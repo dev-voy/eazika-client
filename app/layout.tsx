@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+// CHANGED: Named import with curly braces
+import { Providers } from "@/app/components/Providers"; 
 import "./globals.css";
+import Script from "next/script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,8 +16,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Eazika : e-commerce made easy",
-  description: "Eazika is a headless e-commerce platform that makes it easy to build and scale your online store.",
+  title: {
+    default: "Eazika - Shop Instantly, Live Effortlessly",
+    template: "%s | Eazika",
+  },
+  description:
+    "Experience the future of shopping with EAZIKA.",
 };
 
 export default function RootLayout({
@@ -22,12 +29,17 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const getAnalyticsId = process.env.GOOGLE_ANALYTICS_ID; 
+
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* ... meta tags ... */}
+      </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased bg-background text-foreground`}
       >
-        {children}
+        <Providers>{children}</Providers> 
       </body>
     </html>
   );
