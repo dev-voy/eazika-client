@@ -4,12 +4,11 @@ import Link from "next/link";
 import { ShoppingCart, Heart } from "lucide-react";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { useCartStore } from "@/app/hooks/useCartStore"; // IMPORT STORE
+import { useCartStore } from "@/app/hooks/useCartStore";
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const pathname = usePathname();
-  // Connect to Cart Store
   const { cartCount } = useCartStore();
 
   useEffect(() => {
@@ -35,12 +34,8 @@ export function Header() {
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 h-16 md:h-20 flex items-center justify-between gap-4">
-        {/* --- LEFT SECTION: Theme Switcher & Logo --- */}
+        {/* --- LEFT SECTION: Logo --- */}
         <div className="flex items-center gap-3 md:gap-6">
-          {/* <div className="scale-90 md:scale-100">
-            <ThemeSwitcher />
-          </div> */}
-
           <div className="absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0 md:flex items-center">
             <Link href="/home" className="flex items-center gap-2 group">
               <div className="w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-lg group-hover:rotate-12 transition-transform">
@@ -53,13 +48,14 @@ export function Header() {
           </div>
         </div>
 
-        {/* --- CENTER SECTION: Search Bar (Desktop Only) --- */}
-        <nav className="hidden md:flex items-end gap-6 ml-4">
+        {/* --- CENTER SECTION: Navigation Links (Right Aligned) --- */}
+        {/* Added ml-auto to push this section to the right */}
+        <nav className="hidden md:flex items-center gap-8 ml-auto mr-4">
           {navLinks.map((link) => (
             <Link
               key={link.name}
               href={link.href}
-              className={`font-medium text-xl transition-colors hover:text-yellow-500 ${
+              className={`font-medium text-lg transition-colors hover:text-yellow-500 ${
                 pathname === link.href
                   ? "text-yellow-600 dark:text-yellow-400"
                   : "text-gray-600 dark:text-gray-300"
@@ -88,7 +84,6 @@ export function Header() {
               strokeWidth={2}
               className="group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors"
             />
-            {/* Updated Dynamic Count */}
             {cartCount > 0 && (
               <span className="absolute top-1 right-0.5 h-4 w-4 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full ring-2 ring-white dark:ring-gray-900 shadow-sm">
                 {cartCount}

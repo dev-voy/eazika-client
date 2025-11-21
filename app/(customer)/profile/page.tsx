@@ -88,7 +88,7 @@ export default function ProfilePage() {
     { name: 'Edit Profile', icon: User, href: '/profile/edit' },
     { name: 'Delivery Addresses', icon: MapPin, href: '/profile/addresses' },
     // { name: 'Payment Methods', icon: CreditCard, href: '/profile/payment' },
-    { name: 'Order History', icon: Package, href: '/orders' },
+    { name: 'Order History', icon: Package, href: '/orders/history' },
   ];
 
   const containerVariants = {

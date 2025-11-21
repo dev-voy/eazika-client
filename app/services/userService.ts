@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-// --- Types ---
+import axiosInstance from '@/app/lib/axios';
 
 export interface User {
   id: number;
@@ -49,65 +47,54 @@ export interface AddressPayload {
   pinCode: string;
 }
 
-// --- API Setup ---
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.eazika.com';
-
-const api = axios.create({
-  baseURL: API_URL,
-  withCredentials: true, // Important for cookies (refresh token)
-});
-
-api.interceptors.request.use((config) => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-// API Service
 export const UserService = {
   // Auth
   logout: async () => {
-    const response = await api.post('/users/logout');
+    const response = await axiosInstance.post('/users/logout');
     return response.data;
   },
   
   refresh: async (refreshToken?: string) => {
-    const response = await api.post('/users/refresh', { refreshToken });
+    const response = await axiosInstance.post('/users/refresh', { refreshToken });
     return response.data;
   },
 
   // Profile
   getMe: async () => {
-    const response = await api.get<User>('/users/user/me');
+    const response = await axiosInstance.get<User>('/users/user/me');
     return response.data;
   },
 
   updateProfile: async (data: UpdateProfilePayload) => {
-    const response = await api.patch<User>('/users/user/me', data);
+    const response = await axiosInstance.patch<User>('/users/user/me', data);
     return response.data;
   },
 
   updateProfilePicture: async (imageUrl: string) => {
-    const response = await api.patch<User>('/users/user/update-profile-picture', { image: imageUrl });
+    const response = await axiosInstance.patch<User>('/users/user/update-profile-picture', { image: imageUrl });
     return response.data;
   },
 
   // Addresses
+  // ADDED: Get all addresses
+  getAddresses: async () => {
+    // Assuming endpoint based on conventions. If 404, returns empty array in UI logic.
+    const response = await axiosInstance.get<Address[]>('/users/user/addresses');
+    return response.data;
+  },
+
   addAddress: async (data: AddressPayload) => {
-    const response = await api.post<Address>('/users/user/add-new-address', data);
+    const response = await axiosInstance.post<Address>('/users/user/add-new-address', data);
     return response.data;
   },
 
   updateAddress: async (addressId: number, data: AddressPayload) => {
-    const response = await api.patch<Address>(`/users/user/update-address/${addressId}`, data);
+    const response = await axiosInstance.patch<Address>(`/users/user/update-address/${addressId}`, data);
     return response.data;
   },
 
   deleteAddress: async (addressId: number) => {
-    const response = await api.delete(`/users/user/delete-address/${addressId}`);
+    const response = await axiosInstance.delete(`/users/user/delete-address/${addressId}`);
     return response.data;
   }
 };

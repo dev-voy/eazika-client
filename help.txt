@@ -7,10 +7,6 @@ profil
 
 
 
-suppot
-
-        AS IT IS
-
 
 shop dashbord = home (page.tsx)
 
@@ -27,26 +23,12 @@ delevry home = orders
 ADMIN
         dashbord = home
 
-
-
-
-*****
-contsnt in util 
-usmai sare prosses .env export / import
-
 //file
 services  ko root mai krna hai
 hooks ko root mai
 
-axios ka alg se file 
-usmai sare error haldal 
-JWT tokan
-(ezika fontnd lib mai hai)
 
 
-fetch ko axios k sath chnage krna hai
-
-
-header :-
-                links right aline 
                 
+
+                where is expetion of header

@@ -195,6 +195,8 @@ export default function HomePage() {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">Fresh Arrivals</h2>
              <Link href="/trending" className="flex items-center text-yellow-600 dark:text-yellow-500 hover:text-yellow-700 transition-colors">
+                           <span className="text-sm font-semibold">See All</span>
+              <ArrowRight size={16} className="ml-1" />
             </Link>
           </div>
           <motion.div
