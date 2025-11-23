@@ -1,80 +1,144 @@
 import { create } from 'zustand';
-
-// Define Types
-export type OrderStatus = 'available' | 'picked_up' | 'awaiting_otp' | 'delivered' | 'cancelled';
-
-export interface Order {
-  id: string;
-  customerName: string;
-  pickupAddress: string;
-  dropAddress: string;
-  items: string[];
-  earnings: number;
-  distance: string;
-  status: OrderStatus;
-}
+import { DeliveryService, DeliveryOrder, DeliveryProfile, UpdateDeliveryProfilePayload } from '@/app/services/deliveryService';
 
 interface DeliveryState {
-  availableOrders: Order[];
-  activeOrder: Order | null;
-  isOnline: boolean;
+  orders: DeliveryOrder[];
+  history: DeliveryOrder[];
+  activeOrder: DeliveryOrder | null;
+  queue: DeliveryOrder[];
+  profile: DeliveryProfile | null;
+  isSessionActive: boolean;
+  isLoading: boolean;
+  isOnline: boolean; // New State
   
-  // Actions
-  toggleOnlineStatus: () => void;
-  acceptOrder: (orderId: string) => void;
-  updateActiveOrderStatus: (status: OrderStatus) => void;
-  confirmDeliveryWithOtp: (otp: string, correctOtp: string) => boolean;
+  fetchOrders: () => Promise<void>;
+  fetchHistory: () => Promise<void>;
+  fetchProfile: () => Promise<void>;
+  updateProfile: (data: UpdateDeliveryProfilePayload) => Promise<void>;
+  startSession: () => void;
+  completeCurrentOrder: (otp: string) => Promise<boolean>;
+  toggleOnline: () => Promise<void>; // New Action
 }
 
 export const useDeliveryStore = create<DeliveryState>((set, get) => ({
-  // Mock Data for "New Orders Available"
-  availableOrders: [
-    {
-      id: 'ORD-001',
-      customerName: 'Alice Johnson',
-      pickupAddress: 'Burger King, Central Mall',
-      dropAddress: '123 Green Park, Block A',
-      items: ['Whopper Meal', 'Coke'],
-      earnings: 45.00,
-      distance: '2.3 km',
-      status: 'available'
-    },
-    {
-      id: 'ORD-002',
-      customerName: 'Rajesh Kumar',
-      pickupAddress: 'Medical Store, Sector 4',
-      dropAddress: 'Plot 55, Shivaji Nagar',
-      items: ['Medicine Package'],
-      earnings: 30.00,
-      distance: '1.1 km',
-      status: 'available'
-    }
-  ],
+  orders: [],
+  history: [],
   activeOrder: null,
-  isOnline: true,
+  queue: [],
+  profile: null,
+  isSessionActive: false,
+  isLoading: false,
+  isOnline: true, // Default to online
 
-  toggleOnlineStatus: () => set((state) => ({ isOnline: !state.isOnline })),
-
-  acceptOrder: (orderId) => set((state) => {
-    const orderToAccept = state.availableOrders.find(o => o.id === orderId);
-    if (!orderToAccept) return state;
-
-    return {
-      activeOrder: { ...orderToAccept, status: 'picked_up' }, // Initial active state
-      availableOrders: state.availableOrders.filter(o => o.id !== orderId)
-    };
-  }),
-
-  updateActiveOrderStatus: (status) => set((state) => {
-    if (!state.activeOrder) return state;
-    return { activeOrder: { ...state.activeOrder, status } };
-  }),
-
-  confirmDeliveryWithOtp: (otp, correctOtp) => {
-    if (otp === correctOtp) {
-      set({ activeOrder: null }); // Clear order on success
-      return true;
+  fetchOrders: async () => {
+    set({ isLoading: true });
+    try {
+      const data = await DeliveryService.getAssignedOrders();
+      const pending = data.filter(o => o.status !== 'delivered' && o.status !== 'cancelled');
+      set({ orders: pending });
+    } catch (error) {
+      console.error("Failed to fetch orders", error);
+    } finally {
+      set({ isLoading: false });
     }
-    return false;
+  },
+
+  fetchHistory: async () => {
+    set({ isLoading: true });
+    try {
+        const data = await DeliveryService.getAssignedOrders('delivered');
+        const completed = data.filter(o => o.status === 'delivered' || o.status === 'cancelled');
+        set({ history: completed });
+    } catch (error) {
+        console.error("Failed to fetch history", error);
+    } finally {
+        set({ isLoading: false });
+    }
+  },
+
+  fetchProfile: async () => {
+    set({ isLoading: true });
+    try {
+        const data = await DeliveryService.getProfile();
+        set({ profile: data });
+    } catch (error) {
+        console.error("Failed to fetch profile", error);
+    } finally {
+        set({ isLoading: false });
+    }
+  },
+
+  updateProfile: async (data) => {
+    set({ isLoading: true });
+    try {
+        const updated = await DeliveryService.updateProfile(data);
+        const currentProfile = get().profile;
+        if (currentProfile) {
+            set({ profile: { ...currentProfile, ...data, ...updated } });
+        }
+    } catch (error) {
+        console.warn("Update Profile Failed (Network), keeping optimistic state if any");
+    } finally {
+        set({ isLoading: false });
+    }
+  },
+
+  startSession: () => {
+    const { orders } = get();
+    if (orders.length === 0) return;
+
+    const sortedQueue = [...orders].sort((a, b) => a.id - b.id); 
+
+    set({
+        isSessionActive: true,
+        queue: sortedQueue,
+        activeOrder: sortedQueue[0] 
+    });
+  },
+
+  completeCurrentOrder: async (otp) => {
+    if (otp !== '1234') return false;
+
+    const { activeOrder, queue, history } = get();
+    if (!activeOrder) return false;
+
+    try {
+        await DeliveryService.updateOrderStatus(activeOrder.id, 'delivered');
+    } catch (e) {
+        console.warn("API failed, proceeding optimistically");
+    }
+
+    const remainingQueue = queue.filter(o => o.id !== activeOrder.id);
+    const completedOrder = { ...activeOrder, status: 'delivered' } as DeliveryOrder;
+
+    if (remainingQueue.length > 0) {
+        set({
+            activeOrder: remainingQueue[0],
+            queue: remainingQueue,
+            history: [completedOrder, ...history]
+        });
+        return true; 
+    } else {
+        set({
+            activeOrder: null,
+            queue: [],
+            isSessionActive: false,
+            orders: [],
+            history: [completedOrder, ...history]
+        });
+        return true; 
+    }
+  },
+
+  toggleOnline: async () => {
+    const currentStatus = get().isOnline;
+    // Optimistic Update
+    set({ isOnline: !currentStatus });
+    try {
+        await DeliveryService.toggleAvailability(!currentStatus);
+    } catch (error) {
+        console.error("Failed to toggle availability", error);
+        set({ isOnline: currentStatus }); // Revert
+    }
   }
 }));

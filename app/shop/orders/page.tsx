@@ -1,261 +1,157 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
 import { 
-    ClipboardList, 
+    Search, 
+    Filter, 
+    Clock, 
     CheckCircle, 
-    RefreshCw, 
+    Package, 
+    Truck, 
+    XCircle,
     ChevronRight,
-    Search,
-    Clock,
-    Truck, // For Pending/Action required
-    XCircle // For Cancelled
+    Loader2
 } from 'lucide-react';
+import Link from 'next/link';
+import { ShopService, ShopOrder } from '@/app/services/shopService';
 
-// --- Mock Data (Self-Contained) ---
-type OrderStatus = 'Pending' | 'Preparing' | 'Completed' | 'Cancelled';
-
-type MockShopOrder = {
-  id: string;
-  customerName: string;
-  timeAgo: string;
-  total: string;
-  status: OrderStatus;
-  items: string[];
-};
-
-const allShopOrders: MockShopOrder[] = [
-  {
-    id: 'EAZ123',
-    customerName: 'Ratul Islam',
-    timeAgo: '5m ago',
-    total: '$45.00',
-    status: 'Pending',
-    items: ['Lays Potato Chips x2', 'Coca-Cola Can x4'],
-  },
-  {
-    id: 'EAZ122',
-    customerName: 'Jane Doe',
-    timeAgo: '15m ago',
-    total: '$120.00',
-    status: 'Preparing',
-    items: ['Cadbury Dairy Milk x10', 'Nivea Body Cream x1'],
-  },
-  {
-    id: 'EAZ121',
-    customerName: 'John Smith',
-    timeAgo: '1h ago',
-    total: '$22.50',
-    status: 'Completed',
-    items: ['Coca-Cola Can x6'],
-  },
-  {
-    id: 'EAZ120',
-    customerName: 'Alice Brown',
-    timeAgo: '2h ago',
-    total: '$85.75',
-    status: 'Pending',
-    items: ['Nivea Body Cream x3', 'Lays Potato Chips x5'],
-  },
-  {
-    id: 'EAZ119',
-    customerName: 'Mike Johnson',
-    timeAgo: '4h ago',
-    total: '$32.00',
-    status: 'Completed',
-    items: ['Cadbury Dairy Milk x4'],
-  },
-  {
-    id: 'EAZ118',
-    customerName: 'Sara Wilson',
-    timeAgo: '1d ago',
-    total: '$15.00',
-    status: 'Cancelled',
-    items: ['Lays Potato Chips x1'],
-  },
+const TABS = [
+    { id: 'all', label: 'All' },
+    { id: 'pending', label: 'Pending' },
+    { id: 'preparing', label: 'Preparing' },
+    { id: 'ready', label: 'Ready' },
+    { id: 'delivered', label: 'Completed' },
 ];
-// --- End Mock Data ---
 
-// --- Helper Components ---
-
-const getStatusInfo = (status: OrderStatus) => {
-    switch(status) {
-        case 'Pending':
-            return { icon: Clock, color: 'text-yellow-600 dark:text-yellow-400', bgColor: 'bg-yellow-100 dark:bg-yellow-900/40', animate: false };
-        case 'Preparing':
-            return { icon: RefreshCw, color: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-100 dark:bg-blue-900/40', animate: true };
-        case 'Completed':
-            return { icon: CheckCircle, color: 'text-green-600 dark:text-green-400', bgColor: 'bg-green-100 dark:bg-green-900/40', animate: false };
-        case 'Cancelled':
-            return { icon: XCircle, color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-100 dark:bg-red-900/40', animate: false };
-        default:
-            return { icon: ClipboardList, color: 'text-gray-600 dark:text-gray-400', bgColor: 'bg-gray-100 dark:bg-gray-700', animate: false };
+const getStatusColor = (status: string) => {
+    switch (status) {
+        case 'pending': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400';
+        case 'preparing': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+        case 'ready': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+        case 'shipped': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
+        case 'delivered': return 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
+        case 'cancelled': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+        default: return 'bg-gray-100 text-gray-700';
     }
 };
 
+const getStatusIcon = (status: string) => {
+    switch (status) {
+        case 'pending': return <Clock size={14} />;
+        case 'preparing': return <Package size={14} />;
+        case 'ready': return <CheckCircle size={14} />;
+        case 'shipped': return <Truck size={14} />;
+        case 'delivered': return <CheckCircle size={14} />;
+        case 'cancelled': return <XCircle size={14} />;
+        default: return <Clock size={14} />;
+    }
+};
 
-const OrderCard = ({ order }: { order: MockShopOrder }) => {
-    const statusInfo = getStatusInfo(order.status);
-    
-    // Simple navigation handler (simulating Next.js router or window redirect)
-    const navigateToDetails = () => {
-        if (typeof window !== 'undefined' && (window as any).setMockPathname) {
-            (window as any).setMockPathname(`/dashboard/orders/${order.id}`);
-        } else {
-             window.location.href = `/dashboard/orders/${order.id}`;
-        }
-    };
+export default function ShopOrdersPage() {
+    const [activeTab, setActiveTab] = useState('all');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [orders, setOrders] = useState<ShopOrder[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const loadOrders = async () => {
+            setIsLoading(true);
+            try {
+                // In real app, pass activeTab to API if backend filters
+                const data = await ShopService.getShopOrders(activeTab === 'all' ? undefined : activeTab);
+                setOrders(data);
+            } catch (error) {
+                console.error("Failed to load orders", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        loadOrders();
+    }, [activeTab]);
+
+    const filteredOrders = orders.filter(order => 
+        order.id.toString().includes(searchQuery) || 
+        order.customerName.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     return (
-        <motion.div
-            layout
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 border border-gray-100 dark:border-gray-700 
-                       cursor-pointer transition-all duration-300 hover:shadow-lg hover:border-yellow-400 dark:hover:border-yellow-500"
-            onClick={navigateToDetails}
-        >
-            <div className="flex items-center justify-between">
-                {/* Left side: Status Badge, Name, ID */}
-                <div className="flex items-center gap-3 min-w-0">
-                    {/* Status Icon in a colored ring/circle */}
-                    <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${statusInfo.bgColor}`}>
-                        <statusInfo.icon className={`w-4 h-4 ${statusInfo.color} ${statusInfo.animate ? 'animate-spin' : ''}`} />
-                    </div>
-                    <div className="min-w-0">
-                        <h3 className="font-bold text-gray-800 dark:text-white truncate">{order.customerName}</h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">ID: {order.id} | {order.timeAgo}</p>
-                    </div>
+        <div className="space-y-6 w-full max-w-full overflow-x-hidden pb-20">
+            {/* Header */}
+            <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Orders</h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Manage and track customer orders.</p>
+            </div>
+
+            {/* Controls */}
+            <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between bg-white dark:bg-gray-800 p-2 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                {/* Tabs */}
+                <div className="flex p-1 bg-gray-100 dark:bg-gray-700/50 rounded-xl overflow-x-auto no-scrollbar w-full md:w-auto">
+                    {TABS.map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
+                                activeTab === tab.id 
+                                ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm' 
+                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                            }`}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
                 </div>
 
-                {/* Right side: Total and Action */}
-                <div className="text-right shrink-0 ml-4">
-                    <p className="text-lg font-bold text-gray-900 dark:text-white">{order.total}</p>
-                    <div className="flex items-center gap-1 justify-end mt-0.5">
-                        <p className={`text-xs font-semibold ${statusInfo.color}`}>{order.status}</p>
-                        <ChevronRight className="w-4 h-4 text-gray-400" />
-                    </div>
+                {/* Search */}
+                <div className="relative w-full md:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <input 
+                        type="text" 
+                        placeholder="Search Order ID or Name..." 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-yellow-500 outline-none transition-all"
+                    />
                 </div>
             </div>
 
-            {/* Bottom Section: Items List (Less important info) */}
-            <div className="pt-3 mt-3 border-t border-dashed border-gray-100 dark:border-gray-700/50">
-                <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                    <span className="font-medium mr-1">Items:</span> {order.items.join(', ')}
-                </p>
-            </div>
-        </motion.div>
-    );
-};
-// --- End Helper Components ---
-
-
-// --- Main Page Component ---
-export default function ShopkeeperOrdersPage() {
-
-  type Tab = 'Pending' | 'Preparing' | 'History'; 
-  const [activeTab, setActiveTab] = useState<Tab>('Pending');
-  const [searchTerm, setSearchTerm] = useState('');
-
-  const filteredOrders = useMemo(() => {
-    let orders: MockShopOrder[];
-
-    if (activeTab === 'Pending') {
-      orders = allShopOrders.filter(o => o.status === 'Pending');
-    } else if (activeTab === 'Preparing') {
-      orders = allShopOrders.filter(o => o.status === 'Preparing');
-    } else {
-      // History tab shows both Completed and Cancelled
-      orders = allShopOrders.filter(o => o.status === 'Completed' || o.status === 'Cancelled');
-    }
-
-    if (searchTerm) {
-        orders = orders.filter(o => 
-            o.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            o.customerName.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }
-    return orders;
-  }, [activeTab, searchTerm]);
-  
-  const TABS: Tab[] = ['Pending', 'Preparing', 'History']; 
-
-  return (
-    <motion.div 
-        className="space-y-6"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-    >
-        {/* Header */}
-        <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Order Management 📦</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">Review and process touch-friendly order cards.</p>
-        </div>
-
-        {/* Search Bar */}
-        <div className="relative">
-            <Search className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-            <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by Order ID or Customer Name..."
-                className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-yellow-500 shadow-sm"
-            />
-        </div>
-
-        {/* Tab Navigation (Pill Selector) */}
-        <div className="flex space-x-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-full shadow-inner">
-            {TABS.map(tab => (
-                <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`w-1/3 rounded-full py-2.5 text-sm font-semibold transition-colors ${
-                        activeTab === tab 
-                            ? 'text-gray-900 dark:text-gray-100' 
-                            : 'text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200'
-                    } relative`}
-                >
-                    {activeTab === tab && (
-                        <motion.div
-                            layoutId="shop-order-pill"
-                            className="absolute inset-0 bg-white dark:bg-gray-700 rounded-full shadow-md"
-                            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                        />
-                    )}
-                    <span className="relative z-10">{tab}</span>
-                </button>
-            ))}
-        </div>
-
-        {/* Order List (Single Column for Mobile) */}
-        <motion.div layout className="grid grid-cols-1 gap-4">
-            <AnimatePresence>
-                {filteredOrders.length > 0 ? (
-                filteredOrders.map(order => (
-                    <OrderCard key={order.id} order={order} />
-                ))
+            {/* Orders List */}
+            <div className="space-y-3">
+                {isLoading ? (
+                    <div className="flex justify-center py-20"><Loader2 className="animate-spin text-yellow-500" size={32} /></div>
+                ) : filteredOrders.length > 0 ? (
+                    filteredOrders.map((order) => (
+                        <Link href={`/shop/orders/${order.id}`} key={order.id}>
+                            <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:border-yellow-500/50 transition-all group cursor-pointer">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center font-bold text-gray-500 text-sm">
+                                            {order.customerName.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-gray-900 dark:text-white text-sm">{order.customerName}</h3>
+                                            <p className="text-xs text-gray-500">#{order.id} • {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                        </div>
+                                    </div>
+                                    <span className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${getStatusColor(order.status)}`}>
+                                        {getStatusIcon(order.status)} {order.status}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-end mt-3 border-t border-gray-100 dark:border-gray-700 pt-3">
+                                    <div>
+                                        <p className="text-xs text-gray-500 mb-0.5">{order.itemCount} Items</p>
+                                        <p className="font-bold text-gray-900 dark:text-white">₹{order.totalAmount}</p>
+                                    </div>
+                                    <div className="text-gray-400 group-hover:text-yellow-600 dark:group-hover:text-yellow-500 transition-colors">
+                                        <ChevronRight size={20} />
+                                    </div>
+                                </div>
+                            </div>
+                        </Link>
+                    ))
                 ) : (
-                <motion.div
-                    key="no-orders"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="text-center py-10"
-                >
-                    <ClipboardList className="w-12 h-12 text-gray-300 dark:text-gray-700 mx-auto mb-4" />
-                    <h2 className="text-xl font-bold text-gray-700 dark:text-gray-300">
-                        {searchTerm ? 'No Orders Found' : `No ${activeTab} Orders`}
-                    </h2>
-                    <p className="text-gray-500 dark:text-gray-400 mt-2">
-                        {searchTerm ? 'Try a different search term.' : `New orders in this category will appear here.`}
-                    </p>
-                </motion.div>
+                    <div className="text-center py-20 text-gray-400">No orders found</div>
                 )}
-            </AnimatePresence>
-        </motion.div>
-    </motion.div>
-  );
+            </div>
+        </div>
+    );
 }

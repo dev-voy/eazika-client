@@ -1,239 +1,279 @@
 "use client";
 
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
 import { 
-    ArrowLeft, 
+    TrendingUp, 
     DollarSign, 
-    Landmark, 
-    Clock,
-    Download,
-    CheckCircle,
-    XCircle,
-    Banknote, 
-    ChevronRight
+    ShoppingBag, 
+    Users, 
+    ArrowUpRight, 
+    ArrowDownRight,
+    Filter,
+    Check,
+    ChevronDown,
+    Loader2,
+    BarChart3
 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ShopService, ShopAnalytics } from '@/app/services/shopService';
 
-// --- Mock Data (Self-Contained) ---
-const PENDING_PAYOUT_AMOUNT = 820.00;
-
-const earningsStats = [
-    { 
-        id: 1, 
-        title: "Total Revenue", 
-        value: "$12,450", 
-        icon: DollarSign,
-        color: "text-green-500",
-        bgColor: "bg-green-100 dark:bg-green-900/40"
-    },
-    { 
-        id: 2, 
-        title: "Pending Payout", 
-        value: `$${PENDING_PAYOUT_AMOUNT.toFixed(2)}`, 
-        icon: Clock,
-        color: "text-yellow-600",
-        bgColor: "bg-yellow-100 dark:bg-yellow-900/40"
-    },
-    { 
-        id: 3, 
-        title: "Last Payout", 
-        value: "$1,500", 
-        icon: Landmark,
-        color: "text-blue-600",
-        bgColor: "bg-blue-100 dark:bg-blue-900/40"
-    },
+const timeRanges = ['Today', 'Last 7 Days', 'Last 30 Days', 'This Year'];
+const metricsOptions = [
+    { id: 'revenue', label: 'Revenue', color: 'bg-green-500' },
+    { id: 'orders', label: 'Orders', color: 'bg-blue-500' }
 ];
 
-type TransactionStatus = 'Completed' | 'Pending' | 'Failed';
+export default function AnalysisPage() {
+    const [selectedRange, setSelectedRange] = useState('Last 7 Days');
+    const [activeMetric, setActiveMetric] = useState<'revenue' | 'orders'>('revenue');
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+    
+    const [data, setData] = useState<ShopAnalytics | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-type MockTransaction = {
-    id: string;
-    date: string;
-    amount: string;
-    status: TransactionStatus;
-    type: 'Payout' | 'Order';
-};
+    useEffect(() => {
+        const fetchData = async () => {
+            setIsLoading(true);
+            setError(null);
+            try {
+                const analyticsData = await ShopService.getAnalytics(selectedRange);
+                setData(analyticsData);
+            } catch (err) {
+                console.error("Failed to fetch analytics", err);
+                setError("Failed to load data.");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchData();
+    }, [selectedRange]);
 
-const recentTransactions: MockTransaction[] = [
-    { id: 'PAYOUT-003', date: 'Nov 10, 2025', amount: '- $1,500.00', status: 'Completed', type: 'Payout' },
-    { id: 'EAZ-123', date: 'Nov 10, 2025', amount: '+ $45.00', status: 'Completed', type: 'Order' },
-    { id: 'EAZ-122', date: 'Nov 10, 2025', amount: '+ $120.00', status: 'Completed', type: 'Order' },
-    { id: 'PAYOUT-002', date: 'Nov 03, 2025', amount: '- $2,100.00', status: 'Completed', type: 'Payout' },
-    { id: 'PAYOUT-001', date: 'Oct 27, 2025', amount: '- $1,850.00', status: 'Failed', type: 'Payout' },
-];
-// --- End Mock Data ---
+    const chartData = data ? (activeMetric === 'revenue' ? data.revenueChart : data.ordersChart) : [];
+    const chartColor = activeMetric === 'revenue' ? 'bg-green-500 group-hover:bg-green-400' : 'bg-blue-500 group-hover:bg-blue-400';
 
-// --- Helper Components ---
-const StatsCard = ({ item }: { item: typeof earningsStats[0] }) => (
-    <motion.div 
-        variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}
-        className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"
-    >
-        <div className="flex items-center gap-4">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${item.bgColor} shrink-0`}>
-                <item.icon className={`w-5 h-5 ${item.color}`} />
+    // Metric Card Helper
+    const getMetricConfig = (key: string) => {
+        switch(key) {
+            case 'revenue': return { icon: DollarSign, color: 'text-green-600', bg: 'bg-green-100 dark:bg-green-900/30', title: 'Total Revenue' };
+            case 'orders': return { icon: ShoppingBag, color: 'text-blue-600', bg: 'bg-blue-100 dark:bg-blue-900/30', title: 'Total Orders' };
+            case 'customers': return { icon: Users, color: 'text-purple-600', bg: 'bg-purple-100 dark:bg-purple-900/30', title: 'New Customers' };
+            case 'aov': return { icon: TrendingUp, color: 'text-yellow-600', bg: 'bg-yellow-100 dark:bg-yellow-900/30', title: 'Avg. Order Value' };
+            default: return { icon: BarChart3, color: 'text-gray-600', bg: 'bg-gray-100', title: key };
+        }
+    };
+
+    if (isLoading) {
+        return (
+            <div className="h-96 flex flex-col items-center justify-center gap-4">
+                <Loader2 className="animate-spin text-yellow-500" size={40} />
+                <p className="text-gray-500 text-sm animate-pulse">Crunching the numbers...</p>
             </div>
-            <div>
-                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{item.title}</span>
-                <p className="text-xl font-bold text-gray-900 dark:text-white mt-0.5">{item.value}</p>
-            </div>
-        </div>
-    </motion.div>
-);
-
-const getStatusIcon = (status: TransactionStatus) => {
-    switch(status) {
-        case 'Completed':
-            return <CheckCircle className="w-4 h-4 text-green-500" />;
-        case 'Pending':
-            return <Clock className="w-4 h-4 text-yellow-500" />;
-        case 'Failed':
-            return <XCircle className="w-4 h-4 text-red-500" />;
+        );
     }
-};
 
-const TransactionListItem = ({ txn }: { txn: MockTransaction }) => {
-    const statusIcon = getStatusIcon(txn.status);
-    const amountColor = txn.amount.trim().startsWith('+') ? 'text-green-500' : 'text-red-500';
-    const typeBadgeClass = txn.type === 'Order' 
-        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-        : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+    if (error || !data) {
+        return (
+            <div className="h-96 flex flex-col items-center justify-center gap-4 text-center px-4">
+                <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center text-red-500">
+                    <BarChart3 size={32} />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Unable to load analytics</h3>
+                <p className="text-sm text-gray-500">{error || "No data available for this period."}</p>
+                <button 
+                    onClick={() => setSelectedRange(selectedRange)} // Retry
+                    className="px-6 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-bold hover:opacity-90"
+                >
+                    Retry
+                </button>
+            </div>
+        );
+    }
+
+    const metricsDisplay = [
+        { key: 'revenue', value: data.metrics.revenue, change: data.metrics.revenueTrend || '+0%' },
+        { key: 'orders', value: data.metrics.orders, change: data.metrics.ordersTrend || '+0%' },
+        { key: 'customers', value: data.metrics.customers, change: data.metrics.customersTrend || '+0%' },
+        { key: 'aov', value: data.metrics.aov, change: data.metrics.aovTrend || '+0%' },
+    ];
 
     return (
-        <motion.a
-            href={`/dashboard/transactions/${txn.id}`} // Mock link
-            variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }}
-            className="flex justify-between items-center p-4 border-b dark:border-gray-700 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
-        >
-            {/* Left: ID, Type, Date */}
-            <div className="flex flex-col gap-1">
-                <span className="font-semibold text-gray-800 dark:text-white text-sm">
-                    {txn.id}
-                </span>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold w-fit ${typeBadgeClass}`}>
-                    {txn.type}
-                </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {txn.date}
-                </span>
+        <div className="space-y-6 pb-20">
+            {/* Header & Filter */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Analytics</h1>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Track your shop's performance.</p>
+                </div>
+                
+                {/* Time Range Selector */}
+                <div className="flex items-center bg-white dark:bg-gray-800 p-1 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-x-auto no-scrollbar">
+                    {timeRanges.map((range) => (
+                        <button
+                            key={range}
+                            onClick={() => setSelectedRange(range)}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all whitespace-nowrap ${
+                                selectedRange === range 
+                                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm' 
+                                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            }`}
+                        >
+                            {range}
+                        </button>
+                    ))}
+                </div>
             </div>
 
-            {/* Right: Amount, Status, Action Icon */}
-            <div className="flex items-center gap-4">
-                <div className="flex flex-col items-end">
-                    <span className={`text-base font-bold ${amountColor}`}>{txn.amount}</span>
-                    <div className="flex items-center gap-1 mt-1">
-                        {statusIcon}
-                        <span className="text-xs text-gray-600 dark:text-gray-400">{txn.status}</span>
+            {/* Key Metrics Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                {metricsDisplay.map((m, index) => {
+                    const config = getMetricConfig(m.key);
+                    const Icon = config.icon;
+                    const isUp = m.change.startsWith('+');
+                    
+                    return (
+                        <motion.div 
+                            key={m.key}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                            className="bg-white dark:bg-gray-800 p-3 md:p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700"
+                        >
+                            <div className="flex justify-between items-start mb-2 md:mb-4">
+                                <div className={`p-2 md:p-3 rounded-xl ${config.bg} ${config.color}`}>
+                                    <Icon size={16} className="md:w-5 md:h-5" />
+                                </div>
+                                <span className={`flex items-center text-[10px] md:text-xs font-bold px-1.5 py-0.5 md:px-2 md:py-1 rounded-full ${
+                                    isUp ? 'bg-green-50 text-green-600 dark:bg-green-900/20' : 'bg-red-50 text-red-600 dark:bg-red-900/20'
+                                }`}>
+                                    {m.change} 
+                                    {isUp ? <ArrowUpRight size={10} className="ml-0.5 md:ml-1" /> : <ArrowDownRight size={10} className="ml-0.5 md:ml-1" />}
+                                </span>
+                            </div>
+                            <h3 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white truncate">{m.value}</h3>
+                            <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 font-medium truncate">{config.title}</p>
+                        </motion.div>
+                    );
+                })}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Main Chart */}
+                <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
+                    <div className="flex justify-between items-center mb-8">
+                        <div>
+                            <h2 className="font-bold text-lg text-gray-900 dark:text-white">
+                                {activeMetric === 'revenue' ? 'Revenue Overview' : 'Orders Overview'}
+                            </h2>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Showing data for {selectedRange}</p>
+                        </div>
+                        
+                        {/* Functional Filter Dropdown */}
+                        <div className="relative">
+                            <button 
+                                onClick={() => setIsFilterOpen(!isFilterOpen)}
+                                className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors text-sm font-medium ${
+                                    isFilterOpen 
+                                    ? 'bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white' 
+                                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                }`}
+                            >
+                                <Filter size={16} />
+                                <span>Filter</span>
+                                <ChevronDown size={14} className={`transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            <AnimatePresence>
+                                {isFilterOpen && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        className="absolute right-0 top-full mt-2 w-40 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden z-20"
+                                    >
+                                        {metricsOptions.map((option) => (
+                                            <button
+                                                key={option.id}
+                                                onClick={() => {
+                                                    setActiveMetric(option.id as 'revenue' | 'orders');
+                                                    setIsFilterOpen(false);
+                                                }}
+                                                className="w-full flex items-center justify-between px-4 py-3 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                            >
+                                                <span className={activeMetric === option.id ? 'font-bold text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}>
+                                                    {option.label}
+                                                </span>
+                                                {activeMetric === option.id && <Check size={14} className="text-green-500" />}
+                                            </button>
+                                        ))}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    </div>
+                    
+                    {/* Bar Chart */}
+                    <div className="w-full overflow-x-auto no-scrollbar pb-2">
+                         <div className="h-64 flex items-end justify-between gap-2 md:gap-4">
+                            {chartData.map((d, i) => (
+                                <div key={i} className="flex-1 flex flex-col items-center gap-2 group h-full justify-end">
+                                    <div className="w-3 md:w-8 bg-gray-100 dark:bg-gray-700 rounded-t-lg relative h-full overflow-hidden max-h-full flex flex-col-reverse">
+                                        <motion.div 
+                                            key={activeMetric}
+                                            className={`w-full rounded-t-lg transition-colors relative ${chartColor}`}
+                                            initial={{ height: 0 }}
+                                            animate={{ height: `${d.value}%` }}
+                                            transition={{ type: 'spring', stiffness: 60, damping: 15, delay: i * 0.05 }}
+                                        >
+                                            {/* Tooltip */}
+                                            <div className="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-2 py-1 rounded shadow-lg transition-opacity whitespace-nowrap z-10 pointer-events-none">
+                                                {activeMetric === 'revenue' ? '₹' : ''}{d.value}{activeMetric === 'revenue' ? 'k' : ''}
+                                            </div>
+                                        </motion.div>
+                                    </div>
+                                    <span className="text-[10px] md:text-xs font-medium text-gray-500 dark:text-gray-400 truncate w-full text-center">
+                                        {d.label}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-gray-400" />
+
+                {/* Top Products */}
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <h2 className="font-bold text-lg text-gray-900 dark:text-white mb-6">Top Products</h2>
+                    <div className="space-y-6">
+                        <AnimatePresence mode='wait'>
+                            {data.products.map((product, i) => (
+                                <motion.div 
+                                    key={product.name} 
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: i * 0.1 }}
+                                    className="flex items-center justify-between group cursor-default"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-500 text-xs font-bold">
+                                            #{i + 1}
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-yellow-600 dark:group-hover:text-yellow-500 transition-colors line-clamp-1">
+                                                {product.name}
+                                            </p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">{product.sales} sold</p>
+                                        </div>
+                                    </div>
+                                    <span className="text-sm font-bold text-gray-900 dark:text-white">{product.revenue}</span>
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
+                    </div>
+                    <button className="w-full mt-8 py-3 text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        View Full Report
+                    </button>
+                </div>
             </div>
-        </motion.a>
-    );
-};
-// --- End Helper Components ---
-
-
-// --- Main Page Component ---
-export default function ShopkeeperEarningsPage() {
-    
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
-    };
-
-    const handleWithdraw = () => {
-        // Mock function for withdrawing funds
-        // Replaced alert() with a toast for compliance
-        toast.success(`Requesting withdrawal of $${PENDING_PAYOUT_AMOUNT.toFixed(2)}. Payout initiated!`);
-    };
-
-    return (
-        <motion.div 
-            className="space-y-6"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-        >
-            {/* Header and Download Button */}
-            <motion.div 
-                variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
-                className="flex flex-col pt-2"
-            >
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Financial Hub 💰</h1>
-                    <p className="text-gray-600 dark:text-gray-400 mt-1">Track your revenue and manage payouts.</p>
-                </div>
-                <button
-                    className="w-full shrink-0 flex items-center justify-center gap-2 px-5 py-3 bg-yellow-500 text-gray-900 font-bold rounded-xl hover:bg-yellow-600 transition-colors shadow-md mt-4"
-                >
-                    <Download className="w-5 h-5" />
-                    Download Full Report
-                </button>
-            </motion.div>
-
-            {/* Withdraw Action (Prominent Top Card) */}
-            <motion.div 
-                variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}
-                className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-lg border-2 border-yellow-400 dark:border-yellow-500"
-            >
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Available for Payout</h3>
-                <p className="text-4xl font-extrabold text-yellow-600 dark:text-yellow-400 mb-4">
-                    ${PENDING_PAYOUT_AMOUNT.toFixed(2)}
-                </p>
-                <button
-                    onClick={handleWithdraw}
-                    className="w-full shrink-0 flex items-center justify-center gap-2 px-5 py-3 bg-green-500 text-white font-bold rounded-xl hover:bg-green-600 transition-colors shadow-md"
-                >
-                    <Banknote className="w-5 h-5" />
-                    Withdraw Funds Now
-                </button>
-            </motion.div>
-
-            {/* Stats Cards (2-column layout on mobile) */}
-            <motion.div 
-                variants={containerVariants}
-                className="grid grid-cols-2 gap-4"
-            >
-                {/* Filter out Pending Payout since it's now a dedicated card */}
-                {earningsStats.filter(s => s.id !== 2).map(item => (
-                    <StatsCard key={item.id} item={item} />
-                ))}
-            </motion.div>
-
-            {/* Revenue Chart */}
-            <motion.div 
-                variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
-                className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"
-            >
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Weekly Revenue Trend 📈</h2>
-                <div className="h-48 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">Revenue Chart Placeholder</p>
-                </div>
-            </motion.div>
-                
-            {/* Recent Transactions (Mobile List) */}
-            <motion.div 
-                variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden"
-            >
-                <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                    <h2 className="text-lg font-bold text-gray-900 dark:text-white">Recent Transactions</h2>
-                    <a href="#" className="text-sm font-semibold text-yellow-500 hover:text-yellow-600 transition-colors">
-                        View All
-                    </a>
-                </div>
-                
-                {/* List of Transactions */}
-                <motion.div variants={containerVariants}>
-                    {recentTransactions.map(txn => (
-                        <TransactionListItem key={txn.id} txn={txn} />
-                    ))}
-                </motion.div>
-            </motion.div>
-            
-        </motion.div>
+        </div>
     );
 }
