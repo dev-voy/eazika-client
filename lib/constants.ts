@@ -8,6 +8,9 @@ export const SERVER_URL =
 // Construct the full API Base URL (v2)
 export const API_BASE_URL = `${SERVER_URL}/api/v2`;
 
+// Analytics
+export const googleAnalyticsId = process.env.GOOGLE_ANALYTICS_ID;
+
 // Other Constants (You can add more here later, e.g., MAX_FILE_SIZE)
 export const APP_NAME = "Eazika";
 export const DEFAULT_PAGE_SIZE = 10;
