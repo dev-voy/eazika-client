@@ -9,7 +9,12 @@ const cousterRoutes = [
   "/cart",
   "/shop/:shopId",
 ];
-const deleveryRoutes = ["/delivery/track"];
+const deleveryRoutes = [
+  "/delivery",
+  "/delivery/track",
+  "/delivery/map",
+  "/delivery/profile",
+];
 const shopRoutes = ["/shop/verify", "/shop/setup", "/shop/onboarding"];
 const adminRoutes = ["/admin", "/admin/users", "/admin/shops", "/admin/orders"];
 
