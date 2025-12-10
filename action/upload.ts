@@ -32,10 +32,50 @@ export const uploadImage = async (file: File) => {
   }
 };
 
-export async function getSignedUploadUrl(
-  fileName: string,
-  contentType: string
-) {
+export const uploadMultipleImages = async (files: FileList) => {
+  try {
+    const fileInfos = Array.from(files).map((file) => ({
+      fileName: `image-${Date.now()}-${Math.floor(Math.random() * 1000)}.${
+        file.type.split("/")[1]
+      }`,
+      contentType: file.type,
+    }));
+
+    // Step 1: Get signed upload URLs from backend
+    const { success, data, error } = await getSignedUploadUrlsForMultiple(
+      fileInfos
+    );
+    if (!success) return { success: false, error: error };
+
+    const result: string[] = [];
+
+    const uploadData = data.map(
+      (i: any) => (
+        result.push(i.publicUrl as string),
+        {
+          signedUrl: i.signedUrl,
+          contentType: i.contentType,
+        }
+      )
+    );
+
+    // Step 2: Upload files to the signed URLs
+    const uploadResponse = await uploadMultipleFilesToSignedUrls(
+      uploadData,
+      Array.from(files)
+    );
+    if (!uploadResponse.success)
+      return { success: false, error: uploadResponse.error };
+
+    // const publicUrls = uploadData.map((data: any) => data.publicUrl);
+    return { success: true, urls: result };
+  } catch (error) {
+    console.error("Error in uploadMultipleImages:", error);
+    return { success: false, error: "Failed to upload images" };
+  }
+};
+
+async function getSignedUploadUrl(fileName: string, contentType: string) {
   try {
     const response = await fetch(`${serverUri}/api/V2/uploads/avatar`, {
       method: "POST",
@@ -58,7 +98,7 @@ export async function getSignedUploadUrl(
   }
 }
 
-export async function uploadFileToSignedUrl(
+async function uploadFileToSignedUrl(
   signedUrl: string,
   file: File,
   instructions: { method: string; headers: Record<string, string> }
@@ -81,11 +121,11 @@ export async function uploadFileToSignedUrl(
   }
 }
 
-export async function getSignedUploadUrlsForMultiple(
+async function getSignedUploadUrlsForMultiple(
   files: Array<{ fileName: string; contentType: string }>
 ) {
   try {
-    const response = await fetch(`${serverUri}/api/V2/uploads/multiple`, {
+    const response = await fetch(`${serverUri}/api/V2/uploads/product`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ files }),
@@ -96,14 +136,16 @@ export async function getSignedUploadUrlsForMultiple(
     }
 
     const data = await response.json();
-    return { success: true, data };
+
+    console.log("Signed URLs response data:", data);
+    return { success: true, data: data.files };
   } catch (error) {
     console.error("Error getting signed URLs:", error);
     return { success: false, error: "Failed to get upload URLs" };
   }
 }
 
-export async function uploadMultipleFilesToSignedUrls(
+async function uploadMultipleFilesToSignedUrls(
   uploadData: Array<{ signedUrl: string; contentType: string }>,
   files: File[]
 ) {
