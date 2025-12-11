@@ -8,18 +8,18 @@ import { motion, Variants, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useWishlistStore } from "@/hooks/useWishlistStore";
 import { useCartStore } from "@/store";
+import { useLocationStore } from "@/store/locationStore"; // IMPORT STORE
 import { ShopService, Category } from "@/services/shopService";
 import coustomerService from "@/services/customerService";
 import type { ProductType } from "@/types";
+import { categories as mockCategories } from "@/app/data/mockData";
 
 // Animation Variants
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
+    transition: { staggerChildren: 0.1 },
   },
 };
 
@@ -28,10 +28,7 @@ const itemVariants: Variants = {
   visible: {
     y: 0,
     opacity: 1,
-    transition: {
-      type: "spring",
-      stiffness: 100,
-    },
+    transition: { type: "spring", stiffness: 100 },
   },
 };
 
@@ -44,37 +41,52 @@ export default function HomePage() {
   );
   const { toggleWishlist, isWishlisted } = useWishlistStore();
   const { isLoading: isCartLoading } = useCartStore();
+  const { currentCity, isLocationVerified } = useLocationStore(); // GET CITY
 
   const [isClient, setIsClient] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Real Data State
   const [categories, setCategories] = useState<Category[]>([]);
-  // const [products, setProducts] = useState<ShopProduct[]>([]);
   const [products, setProducts] = useState<ProductType[]>([]);
 
-  // Search State
   const [searchQuery, setSearchQuery] = useState("");
-  // const [searchSuggestions, setSearchSuggestions] = useState<ShopProduct[]>([]);
   const [searchSuggestions, setSearchSuggestions] = useState<ProductType[]>([]);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
-  // Infinite Scroll Ref
   const observerTarget = useRef(null);
 
   useEffect(() => {
     setIsClient(true);
+  }, []);
+
+  // UPDATED: Fetch data only when city is verified
+  useEffect(() => {
+    if (!isClient || !isLocationVerified || !currentCity) return;
 
     const loadData = async () => {
       setIsLoading(true);
       try {
         const [catsData, prodsData] = await Promise.all([
           ShopService.getCategories(),
-          await coustomerService.getProducts(),
+          // PASS CITY TO API
+          await coustomerService.getProducts(1, 20, currentCity),
         ]);
 
-        setCategories(catsData);
-        // console.log("Fetched Products:", prodsData);
+        // Map icons manually since backend doesn't send component references
+        const mappedCategories = catsData.map((cat: any) => {
+          const match = mockCategories.find(
+            (m) =>
+              m.name.toLowerCase() === cat.name.toLowerCase() ||
+              cat.name.toLowerCase().includes(m.slug) ||
+              m.slug.includes(cat.name.toLowerCase())
+          );
+          return {
+            ...cat,
+            icon: match ? match.icon : undefined,
+          };
+        });
+
+        setCategories(mappedCategories);
         setProducts(prodsData.products);
       } catch (error) {
         console.error("Failed to load home data", error);
@@ -84,7 +96,7 @@ export default function HomePage() {
     };
 
     loadData();
-  }, []);
+  }, [isClient, isLocationVerified, currentCity]);
 
   // Search Logic
   useEffect(() => {
@@ -107,7 +119,6 @@ export default function HomePage() {
 
   const hasMoreProducts = visibleProductCount < products?.length;
 
-  // Infinite Scroll Observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -115,7 +126,7 @@ export default function HomePage() {
           setVisibleProductCount((prev) => prev + LOAD_MORE_COUNT);
         }
       },
-      { threshold: 0.1 } // Trigger when 10% of the target is visible
+      { threshold: 0.1 }
     );
 
     if (observerTarget.current) {
@@ -128,6 +139,15 @@ export default function HomePage() {
       }
     };
   }, [hasMoreProducts, isLoading]);
+
+  // Show loader until location is ready
+  if (!isLocationVerified) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <Loader2 className="animate-spin text-yellow-500" size={32} />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-50 dark:bg-gray-900 min-h-screen pb-24">
@@ -150,7 +170,6 @@ export default function HomePage() {
                 placeholder="Search your product..."
                 className="w-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-full py-3.5 pl-12 pr-4 text-base text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500 transition-all shadow-sm"
               />
-              {/* Added pointer-events-none to prevent icon from stealing focus */}
               <Search
                 className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-yellow-500 transition-colors pointer-events-none"
                 size={20}
@@ -308,51 +327,66 @@ export default function HomePage() {
             </h2>
           </div>
 
-          <motion.div
-            key={isLoading ? "products-loading" : "products-loaded"}
-            className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            <Suspense
-              fallback={
-                <>
-                  {[1, 2, 3, 4].map((i) => (
-                    <motion.div
-                      key={i}
-                      variants={itemVariants}
-                      className="bg-white dark:bg-gray-800 rounded-2xl h-64 animate-pulse border border-gray-100 dark:border-gray-700"
-                    />
-                  ))}
-                </>
-              }
+          {products.length === 0 && !isLoading ? (
+            <div className="col-span-full text-center py-20 bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
+              <p className="text-gray-500 text-lg">
+                No products found in{" "}
+                <span className="font-bold text-gray-900 dark:text-white">
+                  {currentCity}
+                </span>
+                .
+              </p>
+              <p className="text-sm text-gray-400 mt-2">
+                We are expanding soon!
+              </p>
+            </div>
+          ) : (
+            <motion.div
+              key={isLoading ? "products-loading" : "products-loaded"}
+              className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
             >
-              {visibleProducts.map((item) => {
-                const liked = isClient
-                  ? isWishlisted(item.id.toString())
-                  : false;
-                return (
-                  <ProductCard
-                    key={item.id}
-                    product={item}
-                    liked={liked}
-                    toggleWishlist={toggleWishlist}
-                    isCartLoading={isCartLoading}
-                  />
-                );
-              })}
-            </Suspense>
-          </motion.div>
+              <Suspense
+                fallback={
+                  <>
+                    {[1, 2, 3, 4].map((i) => (
+                      <motion.div
+                        key={i}
+                        variants={itemVariants}
+                        className="bg-white dark:bg-gray-800 rounded-2xl h-64 animate-pulse border border-gray-100 dark:border-gray-700"
+                      />
+                    ))}
+                  </>
+                }
+              >
+                {visibleProducts.map((item) => {
+                  const liked = isClient
+                    ? isWishlisted(item.id.toString())
+                    : false;
+                  return (
+                    <ProductCard
+                      key={item.id}
+                      product={item}
+                      liked={liked}
+                      toggleWishlist={toggleWishlist}
+                      isCartLoading={isCartLoading}
+                    />
+                  );
+                })}
+              </Suspense>
+            </motion.div>
+          )}
         </motion.section>
 
-        {/* Scroll Observer Sentinel (Invisible Element) */}
+        {/* Scroll Observer Sentinel */}
         {hasMoreProducts && !isLoading && (
           <div
             ref={observerTarget}
             className="h-10 w-full flex justify-center items-center"
           >
-            {<Loader2 className="animate-spin text-gray-400" size={24} />}
+            <Loader2 className="animate-spin text-gray-400" size={24} />
           </div>
         )}
       </motion.div>
@@ -380,7 +414,6 @@ const ProductCard = ({
         whileHover={{ y: -5 }}
         transition={{ type: "spring", stiffness: 300 }}
       >
-        {/* Image Container */}
         <div className="relative w-full aspect-square bg-gray-100 dark:bg-gray-700">
           {product.images.length > 0 ? (
             <Image
@@ -410,7 +443,6 @@ const ProductCard = ({
           </button>
         </div>
 
-        {/* Product Details */}
         <div className="p-3 md:p-4 flex flex-col grow">
           <div className="flex items-center space-x-1 mb-1">
             <Star size={12} className="text-yellow-400 fill-current" />
@@ -422,7 +454,6 @@ const ProductCard = ({
             {product.name}
           </h3>
           <div className="mt-auto flex items-center justify-between">
-            {/* Price Formatted */}
             <p className="text-base md:text-lg font-bold text-gray-900 dark:text-white">
               ₹{product.prices[0].price}
             </p>

@@ -48,35 +48,44 @@ const allCartMethods = {
     return response.data;
   },
 
-  // getOrders: async (status?: string): Promise<Order[]> => {
-  //   const params = status ? { status } : {};
-  //   const response = await axios.get("/customers/get-orders", { params });
-  //   return response.data.data;
-  // },
-
   getOrderById: async (orderId: number): Promise<void> => {
     const response = await axios.get(`/customers/get-order/${orderId}`);
     return response.data.data;
   },
-
-  // trackOrder: async (orderId: number): Promise<TrackingDetails> => {
-  //   const response = await axios.get(`/customers/track-order/${orderId}`);
-  //   return response.data.data;
-  // },
 };
+
 const coustomerServices = {
-  getProducts: async (page = 1, limit = 10): Promise<ProductListType> => {
-    const response = await axios.get(
-      `/customers/products?page=${page}&limit=${limit}`
-    );
+  getProducts: async (
+    page = 1,
+    limit = 10,
+    city?: string
+  ): Promise<ProductListType> => {
+    let url = `/customers/products?page=${page}&limit=${limit}`;
+    if (city) {
+      url += `&city=${encodeURIComponent(city)}`;
+    }
+    const response = await axios.get(url);
     return response.data.data;
   },
+
   getProductById: async (productId: number): Promise<ProductDetailType> => {
     const response = await axios.get(`/customers/products/${productId}`);
     return response.data.data.product;
   },
+
+  getAvailableCities: async (): Promise<string[]> => {
+    try {
+      const response = await axios.get("/customers/cities");
+      return response.data.data;
+    } catch (error) {
+      console.warn("Failed to fetch cities from backend");
+      return [];
+    }
+  },
+
   cartMethods: allCartMethods,
 };
 
 export default coustomerServices;
-export const { getProducts, getProductById, cartMethods } = coustomerServices;
+export const { getProducts, getProductById, getAvailableCities, cartMethods } =
+  coustomerServices;
