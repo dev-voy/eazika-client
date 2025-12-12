@@ -81,10 +81,53 @@ type GlobalProductListType = {
   products: GlobalProduct[];
   pagination: Pagination;
 };
+
+type OrderItem = {
+  id: number | string;
+  productId: number | string;
+  quantity: number;
+  image: string;
+  name: string;
+  price: number;
+  weight: number;
+  unit: "grams" | "kg" | "ml" | "litre" | "piece";
+};
+
+type OrderDetail = {
+  id: number | string;
+  customerName: string;
+  customerPhone: string;
+  address: string;
+  status: "pending" | "confirmed" | "shipped" | "delivered" | "cancelled";
+  totalAmount: number;
+  itemCount: number;
+  paymentMethod: string;
+  createdAt: string;
+  orderItems: OrderItem[];
+  driver?: { id: number | string; name: string; phone: string };
+  driverList: { id: number | string; name: string; phone: string }[];
+};
+
+interface CurrentOrderListType {
+  orders: {
+    id: number;
+    customerName: string;
+    createdAt: string;
+    address: string;
+    itemCount: number;
+    paymentMethod: string;
+    status: "pending" | "confirmed" | "shipped" | "delivered" | "cancelled";
+    totalAmount: number;
+  }[];
+  pagination: Pagination;
+}
+
 export {
   CreateShopPayload,
   ProductPriceType,
   NewProductFormData,
   ShopProductListType,
   GlobalProductListType,
+  OrderDetail,
+  CurrentOrderListType,
 };

@@ -1,4 +1,15 @@
 import axiosInstance from "@/lib/axios";
+import axios from "@/lib/axios";
+import { ProductDetailType } from "@/types";
+import type {
+  CreateShopPayload,
+  NewProductFormData,
+  ProductPriceType,
+  ShopProductListType,
+  GlobalProductListType,
+  OrderDetail,
+} from "@/types/shop";
+
 // Added imports for the specific icons requested
 import {
   ShoppingBasket,
@@ -11,32 +22,6 @@ import {
 } from "lucide-react";
 
 // --- Interfaces ---
-
-export interface BankDetail {
-  accountHolderName: string;
-  accountNumber: string;
-  ifscCode: string;
-  bankName: string;
-  branchName: string;
-  bankPassbookImage: string;
-}
-
-export interface ShopDocuments {
-  aadharImage: string;
-  electricityBillImage: string;
-  businessCertificateImage: string;
-  panImage: string;
-}
-
-export interface CreateShopPayload {
-  shopName: string;
-  shopCategory: string;
-  shopImage: string[];
-  fssaiNumber: string;
-  gstNumber: string;
-  bankDetail: BankDetail;
-  documents: ShopDocuments;
-}
 
 export interface ShopProfile extends CreateShopPayload {
   id: number;
@@ -142,14 +127,14 @@ export interface UserProfile {
   role: string;
 }
 
-export interface Category {
-  id: number | string;
-  name: string;
-  slug: string;
-  image?: string;
-  icon?: any;
-  itemCount?: number;
-}
+// export interface Category {
+//   id: number | string;
+//   name: string;
+//   slug: string;
+//   image?: string;
+//   icon?: any;
+//   itemCount?: number;
+// }
 
 export interface ShopAnalytics {
   revenueChart: { label: string; value: number }[];
@@ -176,30 +161,26 @@ export interface ShopAnalytics {
 export const ShopService = {
   // --- SHOP MANAGEMENT ---
   createShop: async (data: CreateShopPayload) => {
-    const response = await axiosInstance.post("/shops/create-shop", data);
+    const response = await axios.post("/shops/create-shop", data);
     return response.data;
   },
 
   updateShop: async (data: Partial<CreateShopPayload>) => {
-    const response = await axiosInstance.put("/shops/update-shop", data);
+    const response = await axios.put("/shops/update-shop", data);
     return response.data;
   },
 
   getShopProfile: async () => {
-    const response = await axiosInstance.get<ShopProfile>("/shops/profile");
+    const response = await axios.get<ShopProfile>("/shops/profile");
     return response.data;
   },
 
   uploadImage: async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append("file", file);
-    const response = await axiosInstance.post<{ url: string }>(
-      "/upload",
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      }
-    );
+    const response = await axios.post<{ url: string }>("/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
     return response.data.url;
   },
 
@@ -207,9 +188,7 @@ export const ShopService = {
 
   getInventory: async () => {
     try {
-      const response = await axiosInstance.get<ShopProduct[]>(
-        "/shops/products"
-      );
+      const response = await axios.get<ShopProduct[]>("/shops/products");
       return response.data;
     } catch (error) {
       console.warn(
@@ -219,56 +198,9 @@ export const ShopService = {
     }
   },
 
-  getAllProducts: async () => {
-    try {
-      const response = await axiosInstance.get<ShopProduct[]>("/products");
-      return response.data;
-    } catch (error) {
-      console.warn(
-        "Failed to fetch public products, trying global catalog fallback..."
-      );
-      return ShopService.getGlobalCatalog();
-    }
-  },
-
-  getGlobalCatalog: async () => {
-    try {
-      const response = await axiosInstance.get<ShopProduct[]>(
-        "/products/global"
-      );
-      return response.data;
-    } catch (error) {
-      console.warn("Global Catalog 404. Using Static Mock.");
-      return [
-        {
-          id: 101,
-          name: "Coca Cola (750ml)",
-          description: "Carbonated drink",
-          price: 40,
-          stock: 0,
-          isActive: true,
-          isGlobal: true,
-          images: ["https://placehold.co/400x400?text=Coke"],
-          category: "Beverages",
-        },
-        {
-          id: 102,
-          name: "Lays Classic Salted",
-          description: "Potato chips",
-          price: 20,
-          stock: 0,
-          isActive: true,
-          isGlobal: true,
-          images: ["https://placehold.co/400x400?text=Lays"],
-          category: "Snacks",
-        },
-      ] as ShopProduct[];
-    }
-  },
-
   getProductById: async (id: number) => {
     try {
-      const response = await axiosInstance.get<ShopProduct>(
+      const response = await axios.get<ShopProduct>(
         `/customers/products/${id}`
       );
       return response.data;
@@ -289,68 +221,38 @@ export const ShopService = {
   },
 
   getTrendingProducts: async () => {
-    const response = await axiosInstance.get<ShopProduct[]>(
-      "/products/trending"
-    );
+    const response = await axios.get<ShopProduct[]>("/products/trending");
     return response.data;
   },
 
-  // UPDATED: Get All Categories with requested list
+  // --- Additional Product Management Methods ---
+
   getCategories: async () => {
-    // Using the specific static list you requested
-    return [
-      { id: "cat-01", name: "Grocery", slug: "grocery", icon: ShoppingBasket },
-      {
-        id: "cat-02",
-        name: "Electronics",
-        slug: "electronics",
-        icon: Smartphone,
-      },
-      { id: "cat-03", name: "Furniture", slug: "furniture", icon: Sofa },
-      { id: "cat-04", name: "Clothing", slug: "clothing", icon: Shirt },
-      { id: "cat-05", name: "Bakery", slug: "bakery", icon: Cake },
-      {
-        id: "cat-06",
-        name: "Home Appliances",
-        slug: "home-appliances",
-        icon: Refrigerator,
-      },
-      { id: "cat-07", name: "Others", slug: "others", icon: Boxes },
-    ] as Category[];
+    const response = await axios.get("/shops/products/get-all-categories");
+    return response.data.data;
   },
 
-  addProduct: async (data: any) => {
-    const payload: AddProductPayload = {
-      productCategoryId: data.productCategoryId || 1,
-      globalProductId: data.globalProductId || 0,
-      isGlobalProduct: data.isGlobalProduct || false,
-      name: data.name,
-      description: data.description,
-      images: data.images,
-      stock: Number(data.stock),
-      prices: [
-        {
-          price: Number(data.price),
-          discount: 0,
-          weight: 1,
-          unit: "kg",
-          currency: "INR",
-        },
-      ],
-    };
-    const response = await axiosInstance.post(
-      "/shops/add-shop-product",
-      payload
-    );
-    return response.data;
+  getShopProducts: async (): Promise<ShopProductListType> => {
+    const response = await axios.get("/shops/products/get-all-product");
+    return response.data.data;
   },
 
-  updateStock: async (productId: number, stock: number) => {
+  getGlobalProducts: async (): Promise<GlobalProductListType> => {
+    const response = await axios.get("/shops/products/get-all-global-product");
+    return response.data.data;
+  },
+
+  addProduct: async (data: NewProductFormData) => {
+    const response = await axios.post("/shops/products/add-shop-product", data);
+    return response.data.data;
+  },
+
+  updateStock: async (productId: number, data: ProductPriceType) => {
     const response = await axiosInstance.put(
-      `/shops/update-shop-product-stock/${productId}`,
-      { stock }
+      `/shops/products//update-shop-product-stock-and-price/${productId}`,
+      data
     );
-    return response.data;
+    return response.data.data;
   },
 
   updateProductDetails: async (
@@ -365,31 +267,39 @@ export const ShopService = {
   },
 
   deleteProduct: async (productId: number) => {
-    const response = await axiosInstance.delete(`/shops/products/${productId}`);
-    return response.data;
+    const response = await axiosInstance.delete(
+      `/shops/products/delete-shop-product/${productId}`
+    );
+    return response.data.data;
   },
 
   // --- ORDER MANAGEMENT ---
-  getShopOrders: async (status?: string) => {
-    const params = status && status !== "all" ? { status } : {};
-    const response = await axiosInstance.get<ShopOrder[]>("/shops/orders", {
-      params,
-    });
-    return response.data;
-  },
-
-  getShopOrderById: async (id: number) => {
-    const response = await axiosInstance.get<ShopOrderDetail>(
-      `/shops/orders/${id}`
+  getShopOrders: async (page: number | string, limit: number | string) => {
+    const response = await axios.get(
+      `/shops/orders/get-current-orders?page=${page}&limit=${limit}`
     );
-    return response.data;
+    return response.data.data;
   },
 
-  updateOrderStatus: async (id: number, status: string) => {
-    const response = await axiosInstance.put(`/shops/orders/${id}/status`, {
+  getShopOrderById: async (id: number | string): Promise<OrderDetail> => {
+    // const response = await axios.get(`/shops/orders/order/${id}`);
+    const response = await axios.get(`/shops/orders/order/${id}`);
+    console.log("Order Detail Response:", response);
+    // order:orderId
+    return response.data.data.order;
+  },
+
+  updateOrderStatus: async (
+    id: OrderDetail["id"],
+    status: OrderDetail["status"],
+    rider: number | string | null = null
+  ) => {
+    const response = await axios.put(`/shops/orders/order/status/${id}`, {
+      // /shops/orders/order/status/1
       status,
+      rider,
     });
-    return response.data;
+    return response.data.data;
   },
 
   // --- RIDER MANAGEMENT ---
@@ -413,13 +323,13 @@ export const ShopService = {
     return response.data;
   },
 
-  assignRider: async (orderId: number, riderId: number) => {
-    const response = await axiosInstance.post(
-      `/shops/orders/${orderId}/assign`,
-      { riderId }
-    );
-    return response.data;
-  },
+  // assignRider: async (orderId: OrderDetail["id"], riderId: number | string) => {
+  //   const response = await axiosInstance.post(
+  //     `/shops/orders/${orderId}/assign`,
+  //     { riderId }
+  //   );
+  //   return response.data.data;
+  // },
 
   removeRider: async (riderId: number) => {
     const response = await axiosInstance.delete(`/shops/riders/${riderId}`);
@@ -435,3 +345,6 @@ export const ShopService = {
     return response.data;
   },
 };
+
+export default ShopService;
+export { ShopService as shopService };
