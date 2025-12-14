@@ -115,7 +115,7 @@ export default function LoginPage() {
         // 3. Redirect based on role
         if (role === "admin") router.push("/admin");
         else if (role === "shopkeeper") router.push("/shop");
-        else if (role === "delivery") router.push("/delivery");
+        else if (role === "delivery_boy") router.push("/delivery");
         else router.push("/");
         router.refresh();
       } else {
