@@ -13,6 +13,7 @@ import {
   ArrowRight,
   Loader2,
   X,
+  CreditCard,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
@@ -24,7 +25,8 @@ import { uploadImage } from "@/action/upload";
 const STEPS = [
   { id: 1, title: "Info", icon: Store },
   { id: 2, title: "Docs", icon: FileText },
-  { id: 3, title: "Done", icon: CheckCircle },
+  { id: 3, title: "Bank", icon: CreditCard },
+  { id: 4, title: "Done", icon: CheckCircle },
 ];
 
 export default function ShopRegistrationPage() {
@@ -45,6 +47,15 @@ export default function ShopRegistrationPage() {
       businessCertificateImage: "",
       panImage: "",
     },
+    
+    bankDetail: {
+        accountHolderName: "",
+        accountNumber: "",
+        ifscCode: "",
+        bankName: "",
+        branchName: "",
+        bankPassbookImage: "",
+    }
   });
 
   const updateForm = (field: string, value: string | string[]) => {
@@ -52,7 +63,7 @@ export default function ShopRegistrationPage() {
   };
 
   const updateNestedForm = (
-    section: "documents",
+    section: "documents" | "bankDetail",
     field: string,
     value: string
   ) => {
@@ -93,6 +104,17 @@ export default function ShopRegistrationPage() {
           return false;
         }
         return true;
+      case 3: // Bank Details Step
+        const { accountHolderName, accountNumber, ifscCode, bankName, branchName } = formData.bankDetail;
+        if (!accountHolderName || !accountNumber || !ifscCode || !bankName || !branchName) {
+            toast.error("Please fill all bank details.");
+            return false;
+        }
+        if (ifscCode.length !== 11) {
+            toast.error("IFSC Code must be exactly 11 characters.");
+            return false;
+        }
+        return true;
       default:
         return true;
     }
@@ -100,7 +122,7 @@ export default function ShopRegistrationPage() {
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
-      if (currentStep < 3) setCurrentStep((curr) => curr + 1);
+      if (currentStep < 4) setCurrentStep((curr) => curr + 1);
     }
   };
 
@@ -114,10 +136,12 @@ export default function ShopRegistrationPage() {
     label,
     value,
     onUpload,
+    optional = false
   }: {
     label: string;
     value: string | string[];
     onUpload: (url: string) => void;
+    optional?: boolean;
   }) => {
     const [uploading, setUploading] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -150,14 +174,14 @@ export default function ShopRegistrationPage() {
       <div className="space-y-2">
         <div className="flex justify-between items-center">
           <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-            {label} <span className="text-red-500">*</span>
+            {label} {!optional && <span className="text-red-500">*</span>}
           </label>
           {displayValue ? (
             <span className="text-[10px] font-bold text-green-600 flex items-center gap-1">
               <CheckCircle size={10} /> Uploaded
             </span>
           ) : (
-            <span className="text-[10px] font-bold text-red-400">Required</span>
+            <span className="text-[10px] font-bold text-red-400">{optional ? "Optional" : "Required"}</span>
           )}
         </div>
 
@@ -259,7 +283,7 @@ export default function ShopRegistrationPage() {
           <motion.div
             className="absolute top-1/2 left-0 h-0.5 bg-yellow-500 z-0 -translate-y-1/2 origin-left rounded-full"
             initial={{ width: "0%" }}
-            animate={{ width: `${((currentStep - 1) / 2) * 100}%` }}
+            animate={{ width: `${((currentStep - 1) / 3) * 100}%` }}
             transition={{ duration: 0.3 }}
           />
 
@@ -334,13 +358,13 @@ export default function ShopRegistrationPage() {
                       }
                       className="input-field appearance-none"
                     >
-                      <option disabled>Select Category</option>
+                      <option disabled value="">Select Category</option>
                       <option value="grocery">Grocery</option>
                       <option value="electronics">Electronics</option>
                       <option value="furniture">Furniture</option>
                       <option value="clothing">Clothing</option>
                       <option value="bakery">Bakery</option>
-                      <option value="homeAppliances">Home Appliances</option>
+                      <option value="hmoeAppliances">Home Appliances</option>
                       <option value="others">Others</option>
                     </select>
                     <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-500">
@@ -436,8 +460,102 @@ export default function ShopRegistrationPage() {
             </motion.div>
           )}
 
-          {/* STEP 4: Review */}
+          {/* STEP 3: Bank Details */}
           {currentStep === 3 && (
+             <motion.div
+             key="step3"
+             initial={{ opacity: 0, x: 20 }}
+             animate={{ opacity: 1, x: 0 }}
+             exit={{ opacity: 0, x: -20 }}
+             className="space-y-4"
+           >
+             <div className="space-y-3">
+               <div className="space-y-1">
+                 <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                   Account Holder Name <span className="text-red-500">*</span>
+                 </label>
+                 <input
+                   type="text"
+                   required
+                   value={formData.bankDetail.accountHolderName}
+                   onChange={(e) => updateNestedForm("bankDetail", "accountHolderName", e.target.value)}
+                   className="input-field"
+                   placeholder="Name as per bank records"
+                 />
+               </div>
+               
+               <div className="grid grid-cols-2 gap-3">
+                   <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                        Account Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        required
+                        value={formData.bankDetail.accountNumber}
+                        onChange={(e) => updateNestedForm("bankDetail", "accountNumber", e.target.value)}
+                        className="input-field"
+                        placeholder="1234567890"
+                    />
+                   </div>
+                   <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                        IFSC Code <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        required
+                        maxLength={11}
+                        value={formData.bankDetail.ifscCode}
+                        onChange={(e) => updateNestedForm("bankDetail", "ifscCode", e.target.value.toUpperCase())}
+                        className="input-field uppercase"
+                        placeholder="SBIN0001234"
+                    />
+                   </div>
+               </div>
+
+               <div className="grid grid-cols-2 gap-3">
+                   <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                        Bank Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        required
+                        value={formData.bankDetail.bankName}
+                        onChange={(e) => updateNestedForm("bankDetail", "bankName", e.target.value)}
+                        className="input-field"
+                        placeholder="e.g. SBI"
+                    />
+                   </div>
+                   <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                        Branch Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        required
+                        value={formData.bankDetail.branchName}
+                        onChange={(e) => updateNestedForm("bankDetail", "branchName", e.target.value)}
+                        className="input-field"
+                        placeholder="e.g. Main Branch"
+                    />
+                   </div>
+               </div>
+               
+               <ImageUploader 
+                 label="Passbook Front Page"
+                 value={formData.bankDetail.bankPassbookImage || ""}
+                 onUpload={(url) => updateNestedForm("bankDetail", "bankPassbookImage", url)}
+                 optional
+               />
+
+             </div>
+           </motion.div>
+          )}
+
+          {/* STEP 4: Review */}
+          {currentStep === 4 && (
             <motion.div
               key="step4"
               initial={{ opacity: 0, x: 20 }}
@@ -488,6 +606,10 @@ export default function ShopRegistrationPage() {
                   <span className="text-gray-500">Documents</span>{" "}
                   <span className="font-bold text-green-600">4 Uploaded</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Bank Details</span>{" "}
+                  <span className="font-bold text-green-600">Provided</span>
+                </div>
               </div>
             </motion.div>
           )}
@@ -495,7 +617,7 @@ export default function ShopRegistrationPage() {
       </div>
       {/* Footer Actions */}
       <div className="p-4 border-t border-gray-100 dark:border-gray-700 shrink-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-        {currentStep === 3 ? (
+        {currentStep === 4 ? (
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}

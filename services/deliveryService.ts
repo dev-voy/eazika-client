@@ -7,8 +7,8 @@ export interface CreateDeliveryProfilePayload {
   aadharNumber: string;
   panNumber: string;
   licenseNumber: string;
-  licenseImage: string[];
-  vechicleOwnerName: string;
+  licenseImages: string[];
+  vehicleOwnerName: string;
   vehicleName: string;
   vehicleNo: string;
 }
@@ -31,7 +31,7 @@ export interface DeliveryProfile {
   panNumber: string;
   licenseNumber: string;
   licenseImage: string[];
-  vechicleOwnerName: string;
+  vehicleOwnerName: string;
   vehicleName: string;
   vehicleNo: string;
   createdAt: string;
