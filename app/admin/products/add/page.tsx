@@ -302,45 +302,75 @@ export default function AddGlobalProductPage() {
           {/* Image Upload */}
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
              <h3 className="font-semibold text-lg text-gray-800 dark:text-white mb-4">Product Images</h3>
-             <div className="space-y-3">
-                {images.map((img, idx) => (
-                    <div key={idx} className="flex gap-2">
-                        <div className="flex-1 space-y-1">
-                            <input 
-                                type="text"
-                                placeholder="Paste image URL..."
-                                value={img}
-                                onChange={(e) => handleImageChange(idx, e.target.value)}
-                                className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                        </div>
-                         <button 
-                            type="button" 
-                            onClick={() => removeImageField(idx)}
-                            className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                            disabled={images.length === 1 && idx === 0}
-                        >
-                            <Trash2 size={18} />
-                        </button>
-                    </div>
-                ))}
+             <div className="space-y-4">
                 
-                <button 
-                  type="button"
-                  onClick={addImageField} 
-                  className="w-full py-2 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
-                >
-                    <Plus size={16} /> Add Another Image
-                </button>
-             </div>
+                {/* Upload Button */}
+                <div>
+                  <label htmlFor="image-upload" className="cursor-pointer w-full py-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex flex-col items-center justify-center gap-2">
+                      <Upload size={32} className="text-gray-400" />
+                      <span className="text-sm font-medium">Click to upload images</span>
+                  </label>
+                  <input 
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={async (e) => {
+                      if (!e.target.files?.length) return;
+                      const files = Array.from(e.target.files);
+                      
+                      try {
+                        setIsLoading(true);
+                        
+                        // 1. Get Signed URLs
+                        const { data: { files: signedData } } = await import("@/lib/axios").then(m => m.default.post("/uploads/product", {
+                          files: files.map(f => ({ fileName: f.name, contentType: f.type }))
+                        }));
 
-             {/* Preview Grid */}
-             <div className="mt-4 grid grid-cols-3 gap-2">
-                {images.filter(i => i).map((img, i) => (
-                    <div key={i} className="aspect-square rounded-lg bg-gray-100 dark:bg-gray-700 overflow-hidden relative border border-gray-200 dark:border-gray-600">
-                        <img src={img} alt={`Preview ${i}`} className="w-full h-full object-cover" onError={(e) => (e.currentTarget.style.display = 'none')}/>
-                    </div>
-                ))}
+                        // 2. Upload to GCS
+                        await Promise.all(signedData.map(async (fileData: any, i: number) => {
+                           await fetch(fileData.signedUrl, {
+                             method: 'PUT',
+                             body: files[i],
+                             headers: { 'Content-Type': files[i].type }
+                           });
+                        }));
+
+                        // 3. Update State with Public URLs
+                        const newUrls = signedData.map((d: any) => d.publicUrl);
+                        setImages(prev => [...prev.filter(url => url.trim() !== ""), ...newUrls]);
+
+                      } catch (error) {
+                        console.error("Upload failed", error);
+                        alert("Failed to upload images");
+                      } finally {
+                        setIsLoading(false);
+                      }
+                    }}
+                  />
+                </div>
+
+                {/* Preview Grid */}
+                {images.filter(i => i).length > 0 && (
+                  <div className="grid grid-cols-3 gap-2">
+                      {images.filter(i => i).map((img, i) => (
+                          <div key={i} className="aspect-square rounded-lg bg-gray-100 dark:bg-gray-700 overflow-hidden relative border border-gray-200 dark:border-gray-600 group">
+                              <img src={img} alt={`Preview ${i}`} className="w-full h-full object-cover" />
+                              <button 
+                                  type="button"
+                                  onClick={() => {
+                                    const newImages = images.filter(url => url !== img);
+                                    setImages(newImages.length ? newImages : [""]);
+                                  }}
+                                  className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                  <Trash2 size={14} />
+                              </button>
+                          </div>
+                      ))}
+                  </div>
+                )}
              </div>
           </div>
 

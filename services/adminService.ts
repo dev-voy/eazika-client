@@ -48,6 +48,16 @@ export const AdminService = {
     return response.data.data;
   },
 
+  toggleShopStatus: async (shopId: number, isActive: boolean) => {
+    const response = await axiosInstance.patch(
+      `/admin/shops/${shopId}/status`,
+      {
+        isActive,
+      }
+    );
+    return response.data.data;
+  },
+
   getAllRiders: async () => {
     const response = await axiosInstance.get(`/admin/riders/get-all`);
     return response.data.data;

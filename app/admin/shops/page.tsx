@@ -155,17 +155,40 @@ export default function AdminShopsPage() {
                   <tr key={shop.id}>
                     <td className="px-6 py-4 font-bold">{shop.shopName}</td>
                     <td className="px-6 py-4">{shop.user.name}</td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-bold capitalize ${
-                          shop.status === "active"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
-                      >
-                        {shop.status}
-                      </span>
-                    </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <span
+                            className={`px-2 py-1 rounded text-xs font-bold capitalize ${
+                              shop.status === "active"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-red-100 text-red-700"
+                            }`}
+                          >
+                            {shop.status}
+                          </span>
+                          
+                          <button
+                            onClick={async () => {
+                                const newStatus = shop.status !== 'active';
+                                if(confirm(`Are you sure you want to ${newStatus ? 'activate' : 'deactivate'} this shop?`)) {
+                                    try {
+                                        await AdminService.toggleShopStatus(shop.id, newStatus);
+                                        fetchShops();
+                                    } catch(e) {
+                                        alert("Failed to update status");
+                                    }
+                                }
+                            }}
+                            className={`px-3 py-1 rounded text-xs font-semibold text-white transition-colors ${
+                                shop.status === 'active' 
+                                ? 'bg-red-500 hover:bg-red-600' 
+                                : 'bg-green-500 hover:bg-green-600'
+                            }`}
+                          >
+                            {shop.status === 'active' ? 'Deactivate' : 'Activate'}
+                          </button>
+                        </div>
+                      </td>
                   </tr>
                 ))}
               </tbody>
