@@ -9,9 +9,8 @@ import Link from "next/link";
 import { useWishlistStore } from "@/hooks/useWishlistStore";
 import { useCartStore } from "@/store";
 import { useLocationStore } from "@/store/locationStore"; // IMPORT STORE
-import { ShopService, Category } from "@/services/shopService";
 import coustomerService from "@/services/customerService";
-import type { ProductType } from "@/types";
+import type { ProductType, Category } from "@/types";
 import { categories as mockCategories } from "@/app/data/mockData";
 
 // Animation Variants
@@ -67,7 +66,7 @@ export default function HomePage() {
       setIsLoading(true);
       try {
         const [catsData, prodsData] = await Promise.all([
-          ShopService.getCategories(),
+          coustomerService.getCategories(),
           // PASS CITY TO API
           await coustomerService.getProducts(1, 20, currentCity),
         ]);
