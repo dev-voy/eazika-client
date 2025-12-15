@@ -36,7 +36,7 @@ export async function proxy(req: NextRequest) {
       return NextResponse.redirect(
         new URL(`/?msg=unauthorized_for_shop_page`, req.url)
       );
-    } else if (pathname.startsWith("/delivery") && userRole !== "delivery") {
+    } else if (pathname.startsWith("/delivery") && userRole !== "delivery_boy") {
       return NextResponse.redirect(
         new URL("/?msg=unauthorized_for_delivery_page", req.url)
       );

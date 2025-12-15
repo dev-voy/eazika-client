@@ -10,6 +10,14 @@ interface CreateShopPayload {
     businessCertificateImage: string;
     panImage: string;
   };
+  bankDetail: {
+    accountHolderName: string;
+    accountNumber: string;
+    ifscCode: string;
+    bankName: string;
+    branchName: string;
+    bankPassbookImage: string;
+  };
 }
 
 interface ProductPriceType {

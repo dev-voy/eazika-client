@@ -64,13 +64,22 @@ export const userService = {
   },
 
   updateProfile: async (data: User): Promise<User> => {
-    const response = await axios.patch("/users/user", data);
+    const response = await axios.patch("/users/user/update-user", data);
     return response.data;
+  },
+
+  uploadImage: async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await axios.post<{ url: string }>("/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data.url;
   },
 
   updateProfilePicture: async (imageUrl: string) => {
     const response = await axios.patch("/users/user/update-profile-picture", {
-      image: imageUrl,
+      imageUrl: imageUrl, 
     });
     return response.data;
   },
