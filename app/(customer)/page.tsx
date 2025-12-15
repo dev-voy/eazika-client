@@ -74,12 +74,7 @@ export default function HomePage() {
       setIsLoading(true);
       try {
         const [catsData, prodsData] = await Promise.all([
-<<<<<<< HEAD
           coustomerService.getCategories(),
-=======
-          // ShopService.getCategories(),
-          [],
->>>>>>> 8da0d586bef1dd3a04863339365f9aaf5f98283e
           // PASS CITY TO API
           await coustomerService.getProducts(1, 20, currentCity),
         ]);

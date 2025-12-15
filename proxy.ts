@@ -40,7 +40,6 @@ export async function proxy(req: NextRequest) {
         new URL(`/?msg=unauthorized_for_admin_page`, req.url)
       );
     } else if (pathname.startsWith("/shop") && userRole !== "shopkeeper") {
-<<<<<<< HEAD
       return NextResponse.redirect(
         new URL(`/?msg=unauthorized_for_shop_page`, req.url)
       );
@@ -51,23 +50,6 @@ export async function proxy(req: NextRequest) {
       // } else if (cousterRoutes.includes(pathname) && userRole !== "user") {
       //   return NextResponse.redirect(new URL("/", req.url));
     }
-=======
-      if (pathname === "/shop/register") return NextResponse.next(); // allow shop registration
-      return NextResponse.redirect(
-        new URL(`/?msg=unauthorized_for_shop_page`, req.url)
-      );
-    } else if (
-      pathname.startsWith("/delivery") &&
-      userRole !== "delivery_boy"
-    ) {
-      if (pathname === "/delivery/register") return NextResponse.next(); // allow delivery registration
-      return NextResponse.redirect(
-        new URL("/?msg=unauthorized_for_delivery_page", req.url)
-      );
-    }
-    // } else if (cousterRoutes.includes(pathname) && userRole !== "user") {
-    //   return NextResponse.redirect(new URL("/", req.url));
->>>>>>> 8da0d586bef1dd3a04863339365f9aaf5f98283e
   } else {
     if (
       [
@@ -78,11 +60,7 @@ export async function proxy(req: NextRequest) {
       ].includes(pathname)
     ) {
       return NextResponse.redirect(
-<<<<<<< HEAD
         new URL(`/login?redirect="${pathname}"`, req.url)
-=======
-        new URL(`/login?redirect=${pathname}`, req.url)
->>>>>>> 8da0d586bef1dd3a04863339365f9aaf5f98283e
       );
     }
   }
