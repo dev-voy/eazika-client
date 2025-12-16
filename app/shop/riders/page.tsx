@@ -166,7 +166,11 @@ export default function RidersPage() {
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all group"
+                                className={`p-5 rounded-2xl border shadow-sm hover:shadow-md transition-all group ${
+                                    rider.status === 'pending' 
+                                    ? 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-700' 
+                                    : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'
+                                }`}
                             >
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex items-center gap-3">
@@ -183,37 +187,68 @@ export default function RidersPage() {
                                                 <span className={`w-2 h-2 rounded-full ${
                                                     rider.status === 'available' ? 'bg-green-500' : 
                                                     rider.status === 'busy' ? 'bg-orange-500' : 
+                                                    rider.status === 'pending' ? 'bg-yellow-500' :
                                                     'bg-gray-400'
                                                 }`} />
-                                                <span className="text-xs text-gray-500 capitalize">{rider.status}</span>
+                                                <span className="text-xs text-gray-500 capitalize font-medium">
+                                                    {rider.status === 'pending' ? 'Pending Approval' : rider.status}
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
-                                    <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
-                                        <MoreVertical size={18} />
-                                    </button>
+                                    {rider.status !== 'pending' && (
+                                        <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+                                            <MoreVertical size={18} />
+                                        </button>
+                                    )}
                                 </div>
 
-                                <div className="flex items-center justify-between py-3 border-t border-gray-100 dark:border-gray-700">
-                                    <div className="text-center flex-1 border-r border-gray-100 dark:border-gray-700">
-                                        <p className="text-lg font-bold text-gray-900 dark:text-white">{rider.activeOrders}</p>
-                                        <p className="text-[10px] text-gray-500 uppercase font-bold">Active</p>
+                                {rider.status === 'pending' ? (
+                                    <div className="mt-4 grid grid-cols-2 gap-3">
+                                        <button 
+                                            onClick={async () => {
+                                                if(!confirm("Reject request?")) return;
+                                                await ShopService.rejectRider(rider.id);
+                                                fetchRiders();
+                                            }}
+                                            className="py-2 rounded-xl bg-red-100 text-red-700 font-bold text-sm hover:bg-red-200"
+                                        >
+                                            Reject
+                                        </button>
+                                        <button 
+                                            onClick={async () => {
+                                                await ShopService.approveRider(rider.id);
+                                                fetchRiders();
+                                            }}
+                                            className="py-2 rounded-xl bg-yellow-500 text-white font-bold text-sm hover:bg-yellow-600 shadow-lg shadow-yellow-500/20"
+                                        >
+                                            Accept
+                                        </button>
                                     </div>
-                                    <div className="text-center flex-1 border-r border-gray-100 dark:border-gray-700">
-                                        <p className="text-lg font-bold text-gray-900 dark:text-white">{rider.totalDeliveries}</p>
-                                        <p className="text-[10px] text-gray-500 uppercase font-bold">Total</p>
-                                    </div>
-                                    <div className="text-center flex-1">
-                                        <p className="text-lg font-bold text-yellow-500 flex items-center justify-center gap-1">
-                                            {rider.rating} <Star size={12} fill="currentColor" />
-                                        </p>
-                                        <p className="text-[10px] text-gray-500 uppercase font-bold">Rating</p>
-                                    </div>
-                                </div>
-                                
-                                <a href={`tel:${rider.phone}`} className="mt-4 flex items-center justify-center gap-2 w-full py-2.5 bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                                    <Phone size={16} /> Call Rider
-                                </a>
+                                ) : (
+                                    <>
+                                        <div className="flex items-center justify-between py-3 border-t border-gray-100 dark:border-gray-700">
+                                            <div className="text-center flex-1 border-r border-gray-100 dark:border-gray-700">
+                                                <p className="text-lg font-bold text-gray-900 dark:text-white">{rider.activeOrders}</p>
+                                                <p className="text-[10px] text-gray-500 uppercase font-bold">Active</p>
+                                            </div>
+                                            <div className="text-center flex-1 border-r border-gray-100 dark:border-gray-700">
+                                                <p className="text-lg font-bold text-gray-900 dark:text-white">{rider.totalDeliveries}</p>
+                                                <p className="text-[10px] text-gray-500 uppercase font-bold">Total</p>
+                                            </div>
+                                            <div className="text-center flex-1">
+                                                <p className="text-lg font-bold text-yellow-500 flex items-center justify-center gap-1">
+                                                    {rider.rating} <Star size={12} fill="currentColor" />
+                                                </p>
+                                                <p className="text-[10px] text-gray-500 uppercase font-bold">Rating</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <a href={`tel:${rider.phone}`} className="mt-4 flex items-center justify-center gap-2 w-full py-2.5 bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                            <Phone size={16} /> Call Rider
+                                        </a>
+                                    </>
+                                )}
                             </motion.div>
                         ))}
                     </AnimatePresence>

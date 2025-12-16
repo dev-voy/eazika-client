@@ -98,11 +98,12 @@ export interface ShopRider {
   id: number;
   name: string;
   phone: string;
-  status: "available" | "busy" | "offline";
+  status: "available" | "busy" | "offline" | "pending";
   activeOrders: number;
   image?: string;
   totalDeliveries?: number;
   rating?: number;
+  isVerified?: boolean;
 }
 
 export interface UserProfile {
@@ -297,9 +298,31 @@ export const ShopService = {
   },
 
   // --- RIDER MANAGEMENT ---
-  getShopRiders: async () => {
-    const response = await axiosInstance.get<ShopRider[]>("/shops/riders");
-    return response.data;
+  // --- RIDER MANAGEMENT ---
+  getShopRiders: async (status: 'all' | 'pending' | 'verified' = 'all') => {
+    const response = await axiosInstance.get<any>("/shops/get-riders", { params: { status } });
+    return response.data.data.map((r: any) => ({
+        id: r.id,
+        name: r.user.name || "Unknown",
+        phone: r.user.phone,
+        status: !r.isVerified ? 'pending' : (r.isAvailable ? 'available' : 'offline'),
+        activeOrders: 0,
+        totalDeliveries: 0,
+        rating: 4.5,
+        image: r.user.image,
+        isVerified: r.isVerified
+    }));
+  },
+
+  approveRider: async (riderId: number) => {
+      const response = await axiosInstance.patch("/shops/approve-rider", { riderId });
+      return response.data.data;
+  },
+
+  rejectRider: async (riderId: number) => {
+      // Axios delete with body requires 'data' property in config
+      const response = await axiosInstance.delete("/shops/reject-rider", { data: { riderId } });
+      return response.data.data;
   },
 
   searchUserByPhone: async (phone: string) => {
