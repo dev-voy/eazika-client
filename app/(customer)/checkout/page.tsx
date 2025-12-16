@@ -18,7 +18,7 @@ import { toast } from "sonner";
 
 export default function CheckoutPage() {
   const { items, fetchCart, cartTotalAmount, placeOrder } = useCartStore();
-  const { user, addresses, fetchUser, isAuthenticated } = userStore();
+  const { addresses, fetchUser } = userStore();
 
   const router = useRouter();
 

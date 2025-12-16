@@ -80,18 +80,18 @@ export default function HomePage() {
         ]);
 
         // Map icons manually since backend doesn't send component references
-        const mappedCategories = catsData.map((cat: any) => {
-          const match = mockCategories.find(
-            (m) =>
-              m.name.toLowerCase() === cat.name.toLowerCase() ||
-              cat.name.toLowerCase().includes(m.slug) ||
-              m.slug.includes(cat.name.toLowerCase())
-          );
-          return {
-            ...cat,
-            icon: match ? match.icon : undefined,
-          };
-        });
+        // const mappedCategories = catsData.map((cat: any) => {
+        //   const match = mockCategories.find(
+        //     (m) =>
+        //       m.name.toLowerCase() === cat.name.toLowerCase() ||
+        //       cat.name.toLowerCase().includes(m.slug) ||
+        //       m.slug.includes(cat.name.toLowerCase())
+        //   );
+        //   return {
+        //     ...cat,
+        //     icon: match ? match.icon : undefined,
+        //   };
+        // });
 
         // setCategories(mappedCategories);
         setProducts(prodsData.products);

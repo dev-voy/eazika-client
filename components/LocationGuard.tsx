@@ -27,13 +27,13 @@ export default function LocationGuard() {
   // 1. Fetch the list of active cities from the backend on mount
   useEffect(() => {
     fetchSupportedCities();
-  }, []);
+  }, [fetchSupportedCities]);
 
   // 2. Open the modal if the user hasn't selected a location yet
   useEffect(() => {
     if (!isLocationVerified) {
-      // Small delay to prevent flash if hydration is super fast? 
-      // No, for now just direct logic. 
+      // Small delay to prevent flash if hydration is super fast?
+      // No, for now just direct logic.
       setIsOpen(true);
     } else {
       setIsOpen(false);
@@ -112,7 +112,7 @@ export default function LocationGuard() {
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -152,11 +152,11 @@ export default function LocationGuard() {
 
               {/* Divider */}
               <div className="relative flex py-2 items-center mb-4">
-                <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
-                <span className="flex-shrink-0 mx-4 text-xs font-semibold text-gray-400 uppercase">
+                <div className="grow border-t border-gray-200 dark:border-gray-700"></div>
+                <span className="shrink-0 mx-4 text-xs font-semibold text-gray-400 uppercase">
                   Or Select City
                 </span>
-                <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
+                <div className="grow border-t border-gray-200 dark:border-gray-700"></div>
               </div>
 
               {/* Dynamic City List */}
@@ -198,8 +198,8 @@ export default function LocationGuard() {
               <div className="flex gap-2 items-start text-xs text-gray-500 dark:text-gray-400">
                 <AlertCircle size={14} className="shrink-0 mt-0.5" />
                 <p>
-                  If your city isn't listed, we haven't launched there yet. Stay
-                  tuned!
+                  If your city isn&#39;t listed, we haven&#39;t launched there
+                  yet. Stay tuned!
                 </p>
               </div>
             </div>
