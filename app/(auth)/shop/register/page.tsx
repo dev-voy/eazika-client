@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
+
 import { useRouter } from "next/navigation";
 import { CreateShopPayload } from "@/types/shop";
 import {
@@ -13,6 +14,7 @@ import {
   ArrowRight,
   Loader2,
   X,
+  MapPinned,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
@@ -20,17 +22,22 @@ import { shopService } from "@/services/shopService";
 
 import { toast } from "sonner";
 import { uploadImage } from "@/action/upload";
+import { userStore } from "@/store";
+import { cn } from "@/lib/utils";
 
 const STEPS = [
   { id: 1, title: "Info", icon: Store },
-  { id: 2, title: "Docs", icon: FileText },
-  { id: 3, title: "Done", icon: CheckCircle },
+  { id: 2, title: "Address", icon: MapPinned },
+  { id: 3, title: "Docs", icon: FileText },
+  { id: 4, title: "Done", icon: CheckCircle },
 ];
 
 export default function ShopRegistrationPage() {
   const router = useRouter();
+  const { user, fetchUser } = userStore();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [formData, setFormData] = useState<CreateShopPayload>({
     shopName: "",
@@ -38,6 +45,17 @@ export default function ShopRegistrationPage() {
     shopImages: [],
     fssaiNumber: "",
     gstNumber: "",
+    address: {
+      name: user?.name || "",
+      phone: user?.phone || "",
+      line1: "",
+      street: "",
+      country: "India",
+      state: "Maharashtra",
+      city: "",
+      pinCode: "",
+      geoLocation: "",
+    },
     documents: {
       aadharImage: "",
       electricityBillImage: "",
@@ -46,13 +64,24 @@ export default function ShopRegistrationPage() {
     },
   });
 
+  useEffect(() => {
+    // Load saved data from localStorage if available
+    const savedData = localStorage.getItem("shopRegData");
+    if (savedData) setFormData(JSON.parse(savedData));
+    if (!user) fetchUser();
+  }, [fetchUser, user]);
+
   const updateForm = (field: string, value: string | string[]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const updateNestedForm = (
-    section: "documents",
-    field: string,
+    section: "address" | "documents",
+    field: CreateShopPayload["address" | "documents"] extends infer T
+      ? T extends object
+        ? keyof T
+        : never
+      : never,
     value: string
   ) => {
     setFormData((prev) => ({
@@ -74,7 +103,19 @@ export default function ShopRegistrationPage() {
           return false;
         }
         return true;
-      case 2: // Documents Step
+      case 2: // Address Step
+        const { name, phone, line1, city, state, country, pinCode } =
+          formData.address!;
+        if (!name || !phone || !city || !state || !country || !pinCode) {
+          toast.error("Please fill all required address fields.");
+          return false;
+        } else if (line1.length < 5) {
+          toast.error("Address Line 1 seems too short.");
+          return false;
+        }
+
+        return true;
+      case 3: // Documents Step
         const {
           aadharImage,
           panImage,
@@ -99,13 +140,18 @@ export default function ShopRegistrationPage() {
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
-      if (currentStep < 3) setCurrentStep((curr) => curr + 1);
+      if (currentStep < 4) {
+        setCurrentStep((curr) => curr + 1);
+        localStorage.setItem("shopRegData", JSON.stringify(formData));
+        if (currentStep === 2 && formData.address?.geoLocation == "") {
+          handleUseCurrentLocation();
+        }
+      }
     }
   };
 
   const handleBack = () => {
     if (currentStep > 1) setCurrentStep((curr) => curr - 1);
-    else router.back();
   };
 
   // Reusable Image Uploader Component with optional Number Input
@@ -212,6 +258,59 @@ export default function ShopRegistrationPage() {
     );
   };
 
+  // STEP 3: Use Current Location Button Handler
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) return;
+    setIsLoading(true);
+    navigator.geolocation.getCurrentPosition(async (position) => {
+      const { latitude, longitude } = position.coords;
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`;
+
+      try {
+        const response = await fetch(url);
+
+        if (response.ok) {
+          const data = await response.json();
+          setFormData((prev) => ({
+            ...prev,
+            address: {
+              ...prev.address!,
+              line1: data.address.road || "",
+              street:
+                (data.address.suburb ? data.address.suburb + ", " : "") +
+                (data.address.city_district
+                  ? data.address.city_district + ", "
+                  : "") +
+                (data.address.city || ""),
+
+              city: data.address.city || "",
+              state: data.address.state || "",
+              country: data.address.country || "",
+              pinCode: data.address.postcode || "",
+              geoLocation: `${latitude},${longitude}`,
+            },
+          }));
+        } else {
+          setFormData((prev) => ({
+            ...prev,
+            address: {
+              ...prev.address!,
+              geoLocation: `${latitude},${longitude}`,
+            },
+          }));
+        }
+      } catch (error) {
+        console.error("Failed to get address details", error);
+        toast.error(
+          "Unable to retrieve address from your location. Please try again."
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    });
+  };
+
+  // STEP 4: Submit Application
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
@@ -221,18 +320,15 @@ export default function ShopRegistrationPage() {
         7 * 24 * 60 * 60
       }`; // 7 days
       toast.success("Application Submitted! We will review your details.");
+      localStorage.removeItem("shopRegData"); // Clear saved data
       setInterval(() => router.push("/shop"), 1500); // Redirect after 1.5s
-    } catch (error) {
-      if (error instanceof Error) {
-        toast.error(error.message || "Failed to submit. Please try again.");
-      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden w-full border border-gray-100 dark:border-gray-700 flex flex-col h-[600px] md:h-[650px]">
+    <main className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden w-full border border-gray-100 dark:border-gray-700 flex flex-col h-[600px] md:h-[650px]">
       {/* Header */}
 
       <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center gap-3 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shrink-0">
@@ -258,12 +354,11 @@ export default function ShopRegistrationPage() {
           <motion.div
             className="absolute top-1/2 left-0 h-0.5 bg-yellow-500 z-0 -translate-y-1/2 origin-left rounded-full"
             initial={{ width: "0%" }}
-            animate={{ width: `${((currentStep - 1) / 2) * 100}%` }}
+            animate={{ width: `${((currentStep - 1) / 3) * 100}%` }}
             transition={{ duration: 0.3 }}
           />
 
           {STEPS.map((step) => {
-            const Icon = step.icon;
             const isActive = step.id <= currentStep;
             return (
               <div
@@ -271,14 +366,15 @@ export default function ShopRegistrationPage() {
                 className="relative z-10 flex flex-col items-center gap-1"
               >
                 <motion.div
-                  className={`w-7 h-7 rounded-full flex items-center justify-center border-2 transition-colors ${
+                  className={cn(
+                    "w-7 h-7 rounded-full flex items-center justify-center border-2 transition-colors",
                     isActive
                       ? "bg-yellow-500 border-yellow-500 text-white shadow-sm"
                       : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-300 dark:text-gray-600"
-                  }`}
+                  )}
                   animate={{ scale: step.id === currentStep ? 1.5 : 1 }}
                 >
-                  <Icon size={12} />
+                  <step.icon size={14} />
                 </motion.div>
                 <span
                   className={`text-[9px] font-bold ${
@@ -295,10 +391,10 @@ export default function ShopRegistrationPage() {
         </div>
       </div>
       {/* Scrollable Form Area */}
-      <div className="flex-1 overflow-y-auto p-6 no-scrollbar">
+      <section className="flex-1 overflow-y-auto p-6 no-scrollbar">
         <AnimatePresence mode="wait">
-          {/* STEP 1: Basic Info */}
-          {currentStep === 1 && (
+          {currentStep === 1 ? (
+            // STEP 1: Basic Info
             <motion.div
               key="step1"
               initial={{ opacity: 0, x: 20 }}
@@ -333,7 +429,9 @@ export default function ShopRegistrationPage() {
                       }
                       className="input-field appearance-none"
                     >
-                      <option disabled>Select Category</option>
+                      <option disabled value="">
+                        Select Category
+                      </option>
                       <option value="grocery">Grocery</option>
                       <option value="electronics">Electronics</option>
                       <option value="furniture">Furniture</option>
@@ -386,12 +484,130 @@ export default function ShopRegistrationPage() {
                 onUpload={(url) => updateForm("shopImages", [url])}
               />
             </motion.div>
-          )}
-
-          {/* STEP 2: Documents (Images + Numbers) */}
-          {currentStep === 2 && (
+          ) : currentStep === 2 ? (
+            // STEP 2: Address Details
             <motion.div
               key="step2"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-4"
+            >
+              {isLoading && (
+                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg flex items-center gap-3">
+                  <Loader2 className="animate-spin text-yellow-500" />
+                  <span className="text-yellow-700 dark:text-yellow-300 text-sm">
+                    Fetching your current location...
+                  </span>
+                </div>
+              )}
+              <div
+                className={cn(
+                  isLoading ? "opacity-50 pointer-events-none" : "space-y-4"
+                )}
+              >
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                      Name<span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.address?.name}
+                      className="input-field uppercase"
+                      placeholder="Full Name"
+                      onChange={(e) =>
+                        updateNestedForm("address", "name", e.target.value)
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                      Phone <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      value={formData.address?.phone}
+                      onChange={(e) =>
+                        updateNestedForm(
+                          "address",
+                          "phone",
+                          e.target.value.replace(/\D/g, "")
+                        )
+                      }
+                      // remove number input arrows for better UI
+                      className="input-field appearance-none"
+                      placeholder="Phone Number"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                    Address Line 1 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Flat/House No, Building"
+                    className="input-field"
+                    value={formData.address?.line1}
+                    onChange={(e) =>
+                      updateNestedForm("address", "line1", e.target.value)
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                    Street / Area <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Street / Area"
+                    className="input-field"
+                    value={formData.address?.street}
+                    onChange={(e) =>
+                      updateNestedForm("address", "street", e.target.value)
+                    }
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                      City <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      required
+                      placeholder="City"
+                      className="input-field"
+                      value={formData.address?.city}
+                      onChange={(e) =>
+                        updateNestedForm("address", "city", e.target.value)
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                      Pincode <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      required
+                      placeholder="Pincode"
+                      className="input-field"
+                      value={formData.address?.pinCode}
+                      onChange={(e) =>
+                        updateNestedForm("address", "pinCode", e.target.value)
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ) : currentStep === 3 ? (
+            // STEP 3: Documents (Images + Numbers)
+            <motion.div
+              key="step3"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
@@ -433,68 +649,76 @@ export default function ShopRegistrationPage() {
                 }
               />
             </motion.div>
-          )}
+          ) : (
+            currentStep === 4 && (
+              // STEP 4: Review
+              <motion.div
+                key="step4"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-6 text-center py-4"
+              >
+                <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto animate-in zoom-in duration-300">
+                  <CheckCircle className="text-green-600 dark:text-green-400 w-8 h-8" />
+                </div>
 
-          {/* STEP 4: Review */}
-          {currentStep === 3 && (
-            <motion.div
-              key="step4"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-6 text-center py-4"
-            >
-              <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto animate-in zoom-in duration-300">
-                <CheckCircle className="text-green-600 dark:text-green-400 w-8 h-8" />
-              </div>
+                <div className="space-y-1">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                    Ready to Submit?
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
+                    By submitting, you agree to Eazika&#39;s Partner Terms &
+                    Conditions.
+                  </p>
+                </div>
 
-              <div className="space-y-1">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                  Ready to Submit?
-                </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
-                  By submitting, you agree to Eazika&#39;s Partner Terms &
-                  Conditions.
-                </p>
-              </div>
-
-              <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl text-left border border-gray-100 dark:border-gray-700 text-xs space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Shop</span>{" "}
-                  <span className="font-bold dark:text-white">
-                    {formData.shopName || "N/A"}
-                  </span>
+                <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl text-left border border-gray-100 dark:border-gray-700 text-xs space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Shop</span>{" "}
+                    <span className="font-bold dark:text-white">
+                      {formData.shopName}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">GST</span>{" "}
+                    <span className="font-bold dark:text-white">
+                      {formData.gstNumber}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">FSSAI</span>{" "}
+                    <span className="font-bold dark:text-white">
+                      {formData.fssaiNumber}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Category</span>{" "}
+                    <span className="font-bold dark:text-white capitalize">
+                      {formData.shopCategory}
+                    </span>
+                  </div>
+                  {/* Address */}
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Address</span>{" "}
+                    <span className="font-bold text-green-600">
+                      {formData.address?.line1}, {formData.address?.street},{" "}
+                      {formData.address?.city} - {formData.address?.pinCode}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Documents</span>{" "}
+                    <span className="font-bold text-green-600">4 Uploaded</span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">GST</span>{" "}
-                  <span className="font-bold dark:text-white">
-                    {formData.gstNumber || "N/A"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">FSSAI</span>{" "}
-                  <span className="font-bold dark:text-white">
-                    {formData.fssaiNumber || "N/A"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Category</span>{" "}
-                  <span className="font-bold dark:text-white capitalize">
-                    {formData.shopCategory}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Documents</span>{" "}
-                  <span className="font-bold text-green-600">4 Uploaded</span>
-                </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            )
           )}
         </AnimatePresence>
-      </div>
+      </section>
       {/* Footer Actions */}
       <div className="p-4 border-t border-gray-100 dark:border-gray-700 shrink-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-        {currentStep === 3 ? (
+        {currentStep === 4 ? (
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}
@@ -530,7 +754,7 @@ export default function ShopRegistrationPage() {
         }
         .input-field:focus {
           border-color: #eab308;
-          box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.2);
+          box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.2) \\\\\\\;;
         }
         :global(.dark) .input-field {
           background-color: #111827;
@@ -541,6 +765,6 @@ export default function ShopRegistrationPage() {
           border-color: #eab308;
         }
       `}</style>
-    </div>
+    </main>
   );
 }

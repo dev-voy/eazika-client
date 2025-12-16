@@ -4,6 +4,18 @@ interface CreateShopPayload {
   shopImages: string[];
   fssaiNumber: string;
   gstNumber?: string;
+  address?: {
+    name: string;
+    phone: string;
+    line1: string;
+    line2?: string;
+    street: string;
+    country: string;
+    state: string;
+    city: string;
+    pinCode: string;
+    geoLocation: string;
+  };
   documents: {
     aadharImage: string;
     electricityBillImage: string;
