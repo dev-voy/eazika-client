@@ -74,15 +74,15 @@ export const DeliveryService = {
 
   // Assumed Endpoint: GET /delivery/profile
   getProfile: async () => {
-    const response = await axiosInstance.get<DeliveryProfile>('/delivery/profile');
-    return response.data;
+    const response = await axiosInstance.get<any>('/delivery/profile');
+    return response.data.data;
   },
 
   // GET /delivery/get-assigned-orders
   getAssignedOrders: async (status?: string) => {
     const params = status ? { status } : {};
-    const response = await axiosInstance.get<DeliveryOrder[]>('/delivery/get-assigned-orders', { params });
-    return response.data;
+    const response = await axiosInstance.get<any>('/delivery/get-assigned-orders', { params });
+    return response.data.data.orders;
   },
 
   // PATCH /delivery/update-order-status

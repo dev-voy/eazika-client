@@ -186,7 +186,13 @@ export default function DeliveryRegistrationPage() {
       router.push("/delivery"); // Redirect to dashboard
     } catch (error: any) {
       console.error("Registration error:", error);
-      toast.error(error.response?.data?.message || "Registration failed");
+      const errorMessage = error.response?.data?.message || "Registration failed";
+      toast.error(errorMessage);
+      
+      if (typeof errorMessage === "string" && errorMessage.toLowerCase().includes("already exists")) {
+          // If profile exists, redirect to dashboard as fallback
+          setTimeout(() => router.push("/delivery"), 1500); 
+      }
     } finally {
       setIsSubmitting(false);
     }
