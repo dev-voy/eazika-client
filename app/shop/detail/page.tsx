@@ -107,7 +107,7 @@ export default function ShopProfilePage() {
         <div className="relative flex flex-col md:flex-row items-center gap-6 mt-4">
           <div className="w-24 h-24 bg-white dark:bg-gray-700 rounded-2xl border-4 border-white dark:border-gray-800 shadow-md overflow-hidden relative shrink-0">
             <Image
-              src={profile.shopImage[0]}
+              src={profile.shopImages[0]}
               alt={profile.shopName}
               layout="fill"
               objectFit="cover"

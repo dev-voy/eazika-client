@@ -80,20 +80,20 @@ export default function HomePage() {
         ]);
 
         // Map icons manually since backend doesn't send component references
-        // const mappedCategories = catsData.map((cat: any) => {
-        //   const match = mockCategories.find(
-        //     (m) =>
-        //       m.name.toLowerCase() === cat.name.toLowerCase() ||
-        //       cat.name.toLowerCase().includes(m.slug) ||
-        //       m.slug.includes(cat.name.toLowerCase())
-        //   );
-        //   return {
-        //     ...cat,
-        //     icon: match ? match.icon : undefined,
-        //   };
-        // });
+        const mappedCategories = catsData.map((cat: any) => {
+          const match = mockCategories.find(
+            (m) =>
+              m.name.toLowerCase() === cat.name.toLowerCase() ||
+              cat.name.toLowerCase().includes(m.slug) ||
+              m.slug.includes(cat.name.toLowerCase())
+          );
+          return {
+            ...cat,
+            icon: match ? match.icon : undefined,
+          };
+        });
 
-        // setCategories(mappedCategories);
+        setCategories(mappedCategories);
         setProducts(prodsData.products);
       } catch (error) {
         console.error("Failed to load home data", error);
@@ -226,7 +226,10 @@ export default function HomePage() {
                               </p>
                             </div>
                             <div className="text-sm font-bold text-yellow-600 dark:text-yellow-500">
-                              ₹{product.prices[0].price}
+                              ₹
+                              {product.prices && product.prices.length > 0
+                                ? product.prices[0].price
+                                : "N/A"}
                             </div>
                           </Link>
                         </li>
@@ -462,7 +465,10 @@ const ProductCard = ({
           </h3>
           <div className="mt-auto flex items-center justify-between">
             <p className="text-base md:text-lg font-bold text-gray-900 dark:text-white">
-              ₹{product.prices[0].price}
+              ₹
+              {product.prices && product.prices.length > 0
+                ? product.prices[0].price
+                : "N/A"}
             </p>
             <button
               disabled={isCartLoading}

@@ -80,10 +80,10 @@ export const DeliveryService = {
   },
 
   // GET /delivery/get-assigned-orders
-  getAssignedOrders: async (status?: string) => {
+  getAssignedOrders: async (status?: string): Promise<DeliveryOrder[]> => {
     const params = status ? { status } : {};
     const response = await axiosInstance.get<any>('/delivery/get-assigned-orders', { params });
-    return response.data.data.orders;
+    return (response.data.data.orders || []) as DeliveryOrder[];
   },
 
   // PATCH /delivery/update-order-status
