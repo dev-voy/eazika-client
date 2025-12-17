@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import axios from "axios";
@@ -25,7 +25,7 @@ interface Shop {
   distance?: number;
 }
 
-export default function DeliveryRegistrationPage() {
+function DeliveryRegistrationContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const urlShopId = searchParams.get("shopId");
@@ -543,5 +543,17 @@ export default function DeliveryRegistrationPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function DeliveryRegistrationPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex justify-center items-center min-h-screen bg-gray-50">
+        <Loader2 className="animate-spin text-green-600" size={48} />
+      </div>
+    }>
+      <DeliveryRegistrationContent />
+    </Suspense>
   );
 }

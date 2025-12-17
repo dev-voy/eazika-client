@@ -215,6 +215,38 @@ export const ShopService = {
     return response.data;
   },
 
+  getGlobalCatalog: async (): Promise<ShopProduct[]> => {
+    try {
+      const response = await axios.get("/shops/products/get-all-global-product");
+      // Cast explicitly if needed or rely on inference
+      const globalData = response.data.data as GlobalProductListType;
+      
+      return globalData.products.map((gp) => ({
+        id: Number(gp.id), // Ensure numeric ID
+        name: gp.name,
+        description: gp.description,
+        images: gp.images,
+        stock: 100, // Default stock for catalog
+        isActive: true,
+        isGlobal: true,
+        category: gp.category,
+        price: gp.pricing?.[0]?.price || 0,
+        prices: gp.pricing?.map((p, index) => ({
+          id: index + 1,
+          price: p.price,
+          discount: p.discount || 0,
+          weight: p.weight,
+          unit: p.unit,
+          currency: p.currency || "INR",
+        })) || [],
+        rating: gp.rating || 0,
+      }));
+    } catch (error) {
+      console.warn("getGlobalCatalog failed", error);
+      return [];
+    }
+  },
+
   // --- Additional Product Management Methods ---
 
   getCategories: async () => {
@@ -264,7 +296,20 @@ export const ShopService = {
   },
 
   // --- ORDER MANAGEMENT ---
-  getShopOrders: async (page: number | string, limit: number | string) => {
+  getShopOrders: async (
+    pageOrStatus?: number | string,
+    limit: number | string = 10
+  ) => {
+    let page = 1;
+    // Check if pageOrStatus is a number or numeric string (pagination)
+    if (
+      typeof pageOrStatus === "number" ||
+      (typeof pageOrStatus === "string" && !isNaN(Number(pageOrStatus)))
+    ) {
+      page = Number(pageOrStatus);
+    }
+    // If it's a non-numeric string, it's treated as status (ignored by backend currently but allows the call)
+
     const response = await axios.get(
       `/shops/orders/get-current-orders?page=${page}&limit=${limit}`
     );

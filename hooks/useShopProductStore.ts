@@ -49,6 +49,9 @@ export const useShopProductStore = create<ShopProductState>((set, get) => ({
   },
 
   updateStock: async (id, newStock) => {
+    const product = get().products.find(p => p.id === id);
+    if (!product) return;
+
     // Optimistic Update
     set(state => ({
       products: state.products.map(p => 
@@ -57,7 +60,23 @@ export const useShopProductStore = create<ShopProductState>((set, get) => ({
     }));
 
     try {
-      await ShopService.updateStock(id, newStock);
+      // Find the price variant to update (assuming first one)
+      const priceVariant = product.prices?.[0];
+      
+      if (priceVariant && priceVariant.id) {
+        // Construct the full payload required by ProductPriceType
+        // Note: We use priceVariant.id as the ID passed to the service (which expects priceId)
+        await ShopService.updateStock(priceVariant.id, {
+          stock: newStock,
+          price: priceVariant.price,
+          weight: priceVariant.weight,
+          unit: priceVariant.unit as any, // Cast to match strict union type if needed
+          discount: priceVariant.discount,
+          currency: priceVariant.currency
+        });
+      } else {
+         console.warn("No price variant found to update stock for product", id);
+      }
     } catch (error) {
       console.error("Stock update failed", error);
       // Revert logic could go here

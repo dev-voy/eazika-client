@@ -58,8 +58,8 @@ export default function ShopOrdersPage() {
             setIsLoading(true);
             try {
                 // In real app, pass activeTab to API if backend filters
-                const data = await ShopService.getShopOrders(activeTab === 'all' ? undefined : activeTab);
-                setOrders(data);
+                const data: any = await ShopService.getShopOrders(activeTab === 'all' ? undefined : activeTab);
+                setOrders(data.orders || []);
             } catch (error) {
                 console.error("Failed to load orders", error);
             } finally {

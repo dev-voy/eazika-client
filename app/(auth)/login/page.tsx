@@ -9,7 +9,7 @@ import { ChevronLeft, Phone, Lock, ArrowRight, Loader2 } from "lucide-react";
 import { userService } from "@/services/userService";
 import { toast } from "sonner";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectPath = searchParams.get("redirect");
@@ -266,5 +266,19 @@ export default function LoginPage() {
         </p>
       </div>
     </motion.div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="flex h-64 items-center justify-center">
+          <Loader2 className="animate-spin text-yellow-500" size={32} />
+        </div>
+      }
+    >
+      <LoginContent />
+    </React.Suspense>
   );
 }
