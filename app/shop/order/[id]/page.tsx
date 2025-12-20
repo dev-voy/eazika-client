@@ -348,11 +348,11 @@ export default function ShopOrderDetailsPage({
                 </h3>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-600">
-                    {order.driver.name.charAt(0)}
+                    {order.driver.name.charAt(0).toUpperCase() || "R"}
                   </div>
                   <div>
                     <p className="font-bold text-gray-900 dark:text-white">
-                      {order.driver.name}
+                      {order.driver.name || "Rider"}
                     </p>
                     <p className="text-xs text-gray-500">
                       {order.driver.phone}
