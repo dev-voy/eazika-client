@@ -24,39 +24,41 @@ const shopRoutes = [
   "/shop/onboarding",
 ];
 const adminRoutes = ["/admin", "/admin/users", "/admin/shops", "/admin/orders"];
+type UserRoleType = "admin" | "user" | "delivery_boy" | "shopkeeper";
 
 export async function proxy(req: NextRequest) {
   const token = (await req.cookies.get("accessToken")?.value) || null;
-  const userRole = (await req.cookies.get("userRole")?.value) || "user";
+  const userRole: UserRoleType =
+    ((await req.cookies.get("userRole")?.value) as UserRoleType) || "user";
   const pathname = req.nextUrl.pathname;
 
   if (token) {
     if (authRoutes.includes(pathname)) {
-      return NextResponse.redirect(new URL(`/?msg=already_logged_in`, req.url));
+      return NextResponse.redirect(new URL("/?msg=already_logged_in", req.url));
     }
 
     if (pathname.startsWith("/admin") && userRole !== "admin") {
       return NextResponse.redirect(
-        new URL(`/?msg=unauthorized_for_admin_page`, req.url)
+        new URL("/?msg=unauthorized_for_admin_page", req.url)
       );
     } else if (pathname.startsWith("/shop") && userRole !== "shopkeeper") {
       if (pathname === "/shop/register") return NextResponse.next(); // allow shop registration
       return NextResponse.redirect(
-        new URL(`/?msg=unauthorized_for_shop_page`, req.url)
+        new URL("/?msg=unauthorized_for_shop_page", req.url)
       );
     } else if (pathname == "/shop/register" && userRole == "shopkeeper") {
-      return NextResponse.redirect(new URL(`/shop`, req.url));
+      return NextResponse.redirect(new URL("/shop", req.url));
     } else if (
       pathname.startsWith("/delivery") &&
       userRole !== "delivery_boy"
     ) {
-      if (pathname === "/rider/register") return NextResponse.next(); // allow delivery registration
       return NextResponse.redirect(
         new URL("/?msg=unauthorized_for_delivery_page", req.url)
       );
+    } else if (pathname === "/rider/register") {
+      if (userRole === "user") return NextResponse.next();
+      return NextResponse.redirect(new URL("/delivery", req.url));
     }
-    // } else if (cousterRoutes.includes(pathname) && userRole !== "user") {
-    //   return NextResponse.redirect(new URL("/", req.url));
   } else {
     if (
       [
