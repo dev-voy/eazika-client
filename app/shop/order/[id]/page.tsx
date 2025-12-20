@@ -2,6 +2,9 @@
 
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Phone,
@@ -12,12 +15,9 @@ import {
   User,
   X,
 } from "lucide-react";
-import Image from "next/image";
 import { shopService } from "@/services/shopService";
-import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
-
 import { OrderDetail } from "@/types/shop";
+import { cn } from "@/lib/utils";
 
 export default function ShopOrderDetailsPage({
   params,
@@ -77,8 +77,9 @@ export default function ShopOrderDetailsPage({
     if (!selectedRider || !order) return;
     setIsUpdating(true);
     try {
-      await shopService.assignRider(
+      await shopService.updateOrderStatus(
         order.id,
+        "shipped",
         selectedRider.id
       );
 
@@ -305,7 +306,13 @@ export default function ShopOrderDetailsPage({
                     "delivered",
                   ];
                   const currentIdx = stepsOrder.indexOf(order.status);
-                  const stepIdx = stepsOrder.indexOf(step);
+                  const stepIdx = stepsOrder.indexOf(
+                    step == "preparing"
+                      ? "confirmed"
+                      : step && step == "ready"
+                      ? "shipped"
+                      : step
+                  );
                   const isCompleted = currentIdx >= stepIdx;
 
                   return (
@@ -318,16 +325,14 @@ export default function ShopOrderDetailsPage({
                         }`}
                       />
                       <p
-                        className={`text-sm capitalize ${
+                        className={cn(
+                          "text-sm capitalize",
                           isCompleted
                             ? "font-bold text-gray-900 dark:text-white"
                             : "text-gray-400"
-                        }`}
+                        )}
                       >
                         {step}
-                        isCompleted: {isCompleted}
-                        currentIdx: {currentIdx}
-                        stepIdx:{stepIdx}
                       </p>
                     </div>
                   );
@@ -442,7 +447,7 @@ export default function ShopOrderDetailsPage({
                           </div>
                           <div>
                             <p className="font-bold text-gray-900 dark:text-white">
-                              {rider.name}
+                              {rider.name || "Rider"}
                             </p>
                             <div className="flex items-center gap-2 text-xs">
                               <span className="text-gray-400">
