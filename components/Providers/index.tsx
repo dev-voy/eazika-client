@@ -6,9 +6,17 @@ import { Toaster } from "@/components/ui/sonner";
 // import { SocketProvider } from "@/contexts/SocketContext";
 import PushNotificationProvider from "./pushNotification";
 import LocationGuard from "@/components/LocationGuard";
+import { userStore } from "@/store";
+import { getToken } from "@/lib/axios";
 
 const Providers = ({ children }: { children: React.ReactNode }) => {
-  // React.useEffect(() => {});
+  const { user, fetchUser } = userStore();
+  React.useEffect(() => {
+    (async () => {
+      const token = await getToken("accessToken");
+      if (!user && token) await fetchUser();
+    })();
+  }, [fetchUser, user]);
   return (
     <>
       <ThemeProvider

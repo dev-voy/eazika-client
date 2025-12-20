@@ -3,18 +3,9 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShopSidebar } from "@/app/components/ShopSidebar";
-import {
-  LayoutDashboard,
-  Package,
-  User,
-  Store,
-  Users,
-  History,
-  // Menu,
-  // BarChart3,
-  // ShoppingBag,
-} from "lucide-react";
+import { Store } from "lucide-react";
+import { ShopSidebar, menuItems as mobileNavItems } from "@/components/shop";
+import { cn } from "@/lib/utils";
 
 export default function ShopLayout({
   children,
@@ -23,19 +14,7 @@ export default function ShopLayout({
 }) {
   const pathname = usePathname();
 
-  const mobileNavItems = [
-    // { name: "Analysis", href: "/shop/analysis", icon: BarChart3 },
-    // { name: 'Orders', href: '/shop/orders', icon: ShoppingBag },
-    { name: "Home", href: "/shop", icon: LayoutDashboard },
-    { name: "Products", href: "/shop/products", icon: Package },
-    { name: "History", href: "/shop/history", icon: History },
-    { name: "Riders", href: "/shop/riders", icon: Users },
-    { name: "Profile", href: "/shop/detail", icon: User },
-  ];
-
   return (
-    // FIX 1: h-screen and overflow-hidden prevents the whole page from scrolling (body scroll)
-    // This ensures the header and footer stay fixed while 'main' scrolls independently.
     <div className="h-screen w-full bg-gray-50 dark:bg-gray-900 flex overflow-hidden">
       {/* Desktop Sidebar */}
       <ShopSidebar />
@@ -54,17 +33,13 @@ export default function ShopLayout({
           </div>
         </header>
 
-        {/* FIX 3: 'flex-1' and 'overflow-y-auto' makes ONLY this section scrollable */}
-        {/* FIX 4: 'max-w-[100vw]' and 'overflow-x-hidden' stops horizontal scrolling issues */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 pb-24 md:pb-8 w-full max-w-[100vw]">
           {children}
         </main>
 
-        {/* FIX 5: Bottom Nav is fixed to the screen bottom, outside the scrollable main */}
         <nav className="md:hidden absolute bottom-0 left-0 right-0 z-30 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 pb-safe-area-inset-bottom">
           <div className="flex justify-around items-center h-16 overflow-x-auto no-scrollbar px-1">
             {mobileNavItems.map((item) => {
-              const Icon = item.icon;
               const isActive =
                 pathname === item.href ||
                 (item.href !== "/shop" && pathname.startsWith(item.href));
@@ -73,13 +48,14 @@ export default function ShopLayout({
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`flex flex-col items-center justify-center min-w-[60px] h-full space-y-1 transition-all active:scale-95 ${
+                  className={cn(
+                    "flex flex-col items-center justify-center min-w-[60px] h-full space-y-1 transition-all active:scale-95",
                     isActive
                       ? "text-yellow-600 dark:text-yellow-400"
                       : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
-                  }`}
+                  )}
                 >
-                  <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+                  <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
                   <span className="text-[9px] font-medium truncate max-w-[60px]">
                     {item.name}
                   </span>

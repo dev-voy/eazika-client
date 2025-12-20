@@ -4,7 +4,7 @@ interface User {
   phone: string;
   email?: string;
   image?: string;
-  role: "user" | "admin" | "delivery";
+  role: "user" | "admin" | "rider" | "shopkeeper";
   image?: string;
   addresses?: Address[];
 }

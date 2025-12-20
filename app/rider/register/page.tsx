@@ -3,9 +3,12 @@
 import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import axios from "axios";
-import { Loader2, Upload, CheckCircle, X, MapPin, Store, ArrowRight, Search } from "lucide-react";
+
+import { Loader2, Upload, X, Store, ArrowRight } from "lucide-react";
 import { DeliveryService } from "@/services/deliveryService";
+import Image from "next/image";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 interface FormData {
   aadharNumber: string;
@@ -31,8 +34,10 @@ function DeliveryRegistrationContent() {
   const urlShopId = searchParams.get("shopId");
 
   const [step, setStep] = useState<"select-shop" | "details">("select-shop");
-  const [selectedShopId, setSelectedShopId] = useState<number | null>(urlShopId ? parseInt(urlShopId) : null);
-  
+  const [selectedShopId, setSelectedShopId] = useState<number | null>(
+    urlShopId ? parseInt(urlShopId) : null
+  );
+
   // Shop Selection State
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLoadingShops, setIsLoadingShops] = useState(false);
@@ -49,14 +54,14 @@ function DeliveryRegistrationContent() {
     vehicleNo: "",
     licenseImages: [],
   });
-  
+
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (urlShopId) {
-        setSelectedShopId(parseInt(urlShopId));
-        setStep("details");
+      setSelectedShopId(parseInt(urlShopId));
+      setStep("details");
     }
   }, [urlShopId]);
 
@@ -64,56 +69,60 @@ function DeliveryRegistrationContent() {
 
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
-        setLocationError("Geolocation is not supported by your browser");
-        return;
+      setLocationError("Geolocation is not supported by your browser");
+      return;
     }
 
     setIsLoadingShops(true);
     setLocationError(null);
 
     navigator.geolocation.getCurrentPosition(
-        async (position) => {
-            const { latitude, longitude } = position.coords;
-            setLocationPermission(true);
-            try {
-                // Fetch nearby shops using the service
-                // const data = await DeliveryService.getNearbyShops(latitude, longitude);
-                // Mocking response for now if backend isn't ready, or replace with actual call
-                 const data = await DeliveryService.getNearbyShops(latitude, longitude).catch(() => []);
-                 
-                 // If data is empty, maybe mock some for demo if needed
-                 if (!data || data.length === 0) {
-                     // Fallback/Demo Data
-                     /* 
-                     setNearbyShops([
-                         { id: 1, name: "Fresh Mart", address: "123 Main St, Mumbai", distance: 1.2 },
-                         { id: 2, name: "Daily Grocers", address: "456 Side Ave, Mumbai", distance: 2.5 }
-                     ]);
-                     */
-                    setNearbyShops([]);
-                    if (!data) toast.info("No shops found nearby.");
-                 } else {
-                     setNearbyShops(data);
-                 }
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        setLocationPermission(true);
+        try {
+          // Fetch nearby shops using the service
+          // const data = await DeliveryService.getNearbyShops(latitude, longitude);
+          // Mocking response for now if backend isn't ready, or replace with actual call
+          const data = await DeliveryService.getNearbyShops(
+            latitude,
+            longitude
+          ).catch(() => []);
 
-            } catch (error) {
-                console.error("Failed to fetch shops", error);
-                toast.error("Failed to find nearby shops.");
-            } finally {
-                setIsLoadingShops(false);
-            }
-        },
-        (error) => {
-            setIsLoadingShops(false);
-            setLocationError("Unable to retrieve your location. Please allow location access.");
+          // If data is empty, maybe mock some for demo if needed
+          if (!data || data.length === 0) {
+            // Fallback/Demo Data
+            /* 
+            setNearbyShops([
+                { id: 1, name: "Fresh Mart", address: "123 Main St, Mumbai", distance: 1.2 },
+                { id: 2, name: "Daily Grocers", address: "456 Side Ave, Mumbai", distance: 2.5 }
+            ]);
+            */
+            setNearbyShops([]);
+            if (!data) toast.info("No shops found nearby.");
+          } else {
+            setNearbyShops(data);
+          }
+        } catch (error) {
+          console.error("Failed to fetch shops", error);
+          toast.error("Failed to find nearby shops.");
+        } finally {
+          setIsLoadingShops(false);
         }
+      },
+      (error) => {
+        setIsLoadingShops(false);
+        setLocationError(
+          "Unable to retrieve your location. Please allow location access."
+        );
+      }
     );
   };
 
   const handleSelectShop = (shopId: number) => {
-      setSelectedShopId(shopId);
-      setStep("details");
-      window.scrollTo(0, 0);
+    setSelectedShopId(shopId);
+    setStep("details");
+    window.scrollTo(0, 0);
   };
 
   // --- Step 2: Form Logic ---
@@ -137,7 +146,7 @@ function DeliveryRegistrationContent() {
         const url = await DeliveryService.uploadImage(file);
         uploadedUrls.push(url);
       }
-      
+
       setFormData((prev) => ({
         ...prev,
         licenseImages: [...prev.licenseImages, ...uploadedUrls],
@@ -164,34 +173,40 @@ function DeliveryRegistrationContent() {
       toast.error("No shop selected. Please go back and select a shop.");
       return;
     }
-    
+
     if (formData.licenseImages.length === 0) {
-        toast.error("Please upload at least one license image.");
-        return;
+      toast.error("Please upload at least one license image.");
+      return;
     }
 
     setIsSubmitting(true);
     try {
       // Use DeliveryService to create profile
       await DeliveryService.createProfile({
-          ...formData,
-          shopkeeperId: selectedShopId
+        ...formData,
+        shopkeeperId: selectedShopId,
       });
 
       // Update cookie to 'delivery_boy' manually so they can access dashboard immediately
       // The backend updates the role in DB, but client-side cookie needs update for Middleware to pass
-      document.cookie = `userRole=delivery_boy; path=/; max-age=${7 * 24 * 60 * 60}`;
-      
+      document.cookie = `userRole=delivery_boy; path=/; max-age=${
+        7 * 24 * 60 * 60
+      }`;
+
       toast.success("Delivery profile created successfully!");
       router.push("/delivery"); // Redirect to dashboard
     } catch (error: any) {
       console.error("Registration error:", error);
-      const errorMessage = error.response?.data?.message || "Registration failed";
+      const errorMessage =
+        error.response?.data?.message || "Registration failed";
       toast.error(errorMessage);
-      
-      if (typeof errorMessage === "string" && errorMessage.toLowerCase().includes("already exists")) {
-          // If profile exists, redirect to dashboard as fallback
-          setTimeout(() => router.push("/delivery"), 1500); 
+
+      if (
+        typeof errorMessage === "string" &&
+        errorMessage.toLowerCase().includes("already exists")
+      ) {
+        // If profile exists, redirect to dashboard as fallback
+        setTimeout(() => router.push("/delivery"), 1500);
       }
     } finally {
       setIsSubmitting(false);
@@ -202,358 +217,462 @@ function DeliveryRegistrationContent() {
 
   // --- City Selection Logic ---
   const fetchShopsByCity = async (city: string) => {
-      setIsLoadingShops(true);
-      try {
-          const data = await DeliveryService.getNearbyShops(undefined, undefined, city);
-          setNearbyShops(data || []);
-      } catch (error) {
-          toast.error("Failed to fetch shops for this city");
-      } finally {
-          setIsLoadingShops(false);
-      }
+    setIsLoadingShops(true);
+    try {
+      const data = await DeliveryService.getNearbyShops(
+        undefined,
+        undefined,
+        city
+      );
+      setNearbyShops(data || []);
+    } catch (error) {
+      toast.error("Failed to fetch shops for this city");
+      console.error("City shop fetch error:", error);
+    } finally {
+      setIsLoadingShops(false);
+    }
   };
 
   const CitySelector = ({ onSelect }: { onSelect: (city: string) => void }) => {
-      const [cities, setCities] = useState<string[]>([]);
-      const [loading, setLoading] = useState(true);
+    const [cities, setCities] = useState<string[]>([]);
+    const [loading, setLoading] = useState(true);
 
-      useEffect(() => {
-          DeliveryService.getAvailableCities()
-            .then(data => setCities(data))
-            .catch(() => toast.error("Failed to load cities"))
-            .finally(() => setLoading(false));
-      }, []);
+    useEffect(() => {
+      DeliveryService.getAvailableCities()
+        .then((data) => setCities(data))
+        .catch(() => toast.error("Failed to load cities"))
+        .finally(() => setLoading(false));
+    }, []);
 
-      if (loading) return <div className="text-gray-400 text-sm">Loading cities...</div>;
+    if (loading)
+      return <div className="text-gray-400 text-sm">Loading cities...</div>;
 
-      return (
-          <div className="grid grid-cols-2 gap-3">
-              {cities.map(city => (
-                  <button 
-                    key={city}
-                    onClick={() => onSelect(city)}
-                    className="p-3 border rounded-lg hover:border-green-500 hover:bg-green-50 transition text-gray-700 font-medium"
-                  >
-                      {city}
-                  </button>
-              ))}
-              {cities.length === 0 && <p className="col-span-2 text-gray-500 text-sm">No cities available</p>}
-          </div>
-      );
+    return (
+      <div className="grid grid-cols-2 gap-3">
+        {cities.map((city) => (
+          <button
+            key={city}
+            onClick={() => onSelect(city)}
+            className="p-3 border rounded-lg hover:border-green-500 hover:bg-green-50 transition text-gray-700 font-medium"
+          >
+            {city}
+          </button>
+        ))}
+        {cities.length === 0 && (
+          <p className="col-span-2 text-gray-500 text-sm">
+            No cities available
+          </p>
+        )}
+      </div>
+    );
   };
 
   const ShopCard = ({ shop }: { shop: Shop }) => (
-      <div 
-          onClick={() => handleSelectShop(shop.id)}
-          className="border border-gray-200 rounded-xl p-4 hover:border-green-500 hover:shadow-md transition-all cursor-pointer flex items-center justify-between group bg-white"
-      >
-          <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400">
-                  <Store size={24} />
-              </div>
-              <div>
-                  <h3 className="font-bold text-gray-900 group-hover:text-green-600 transition-colors">{shop.name}</h3>
-                  <p className="text-sm text-gray-500">{shop.address}</p>
-                  {shop.distance && <p className="text-xs text-green-600 mt-1">{shop.distance.toFixed(1)} km away</p>}
-              </div>
-          </div>
-          <ArrowRight className="text-gray-300 group-hover:text-green-500" />
+    <div
+      onClick={() => handleSelectShop(shop.id)}
+      className="border text-black border-gray-200 rounded-xl p-4 hover:border-green-500 hover:shadow-md transition-all cursor-pointer flex items-center justify-between group bg-white"
+    >
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400">
+          <Store size={24} />
+        </div>
+        <div>
+          <h3 className="font-bold text-gray-900 group-hover:text-green-600 transition-colors">
+            {shop.name}
+          </h3>
+          <p className="text-sm text-gray-500">{shop.address}</p>
+          {shop.distance && (
+            <p className="text-xs text-green-600 mt-1">
+              {shop.distance.toFixed(1)} km away
+            </p>
+          )}
+        </div>
       </div>
+      <ArrowRight className="text-gray-300 group-hover:text-green-500" />
+    </div>
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
+    <>
+      {/* <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8"> */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white dark:bg-gray-900 p-8 rounded-3xl shadow-xl border border-yellow-100 dark:border-yellow-900/20"
+      >
         <div className="text-center mb-10">
-          <h2 className="text-3xl font-extrabold text-gray-900">
+          <h2 className="text-3xl font-extrabold">
             Join Eazika Delivery Partner
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            {step === 'select-shop' 
-                ? "Find a shop near you to start delivering." 
-                : "Complete your profile details."}
+            {step === "select-shop"
+              ? "Find a shop near you to start delivering."
+              : "Complete your profile details."}
           </p>
         </div>
-
         {/* Step 1: Shop Selection */}
-        {step === 'select-shop' && (
-            <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 border border-gray-100 min-h-[400px]">
-                <div className="flex flex-col items-center justify-center space-y-6">
-                    
-                    {/* City Selection & Search Mode Toggle */}
-                    <div className="w-full mb-4">
-                        <div className="flex gap-2 justify-center mb-6">
-                             <button 
-                                onClick={() => setLocationPermission(false)}
-                                className={`px-4 py-2 rounded-full text-sm font-bold border transition ${!locationPermission ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300'}`}
-                             >
-                                Search by City
-                             </button>
-                             <button 
-                                onClick={handleGetLocation}
-                                className={`px-4 py-2 rounded-full text-sm font-bold border transition ${locationPermission ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300'}`}
-                             >
-                                Use GPS Location
-                             </button>
-                        </div>
-                    </div>
-
-                    {!locationPermission ? (
-                        <div className="w-full max-w-sm mx-auto text-center">
-                            <h3 className="text-xl font-bold text-gray-900 mb-4">Select City</h3>
-                            <CitySelector onSelect={(city) => fetchShopsByCity(city)} />
-                        </div>
-                    ) : (
-                        /* GPS Location View (existing logic mostly) */
-                        isLoadingShops ? (
-                             <div className="flex justify-center py-10">
-                                <Loader2 className="animate-spin text-blue-500" size={32} />
-                                <p className="ml-2 text-gray-500">Locating...</p>
-                             </div>
-                        ) : null
+        {step === "select-shop" && (
+          <div className="py-8 px-4 shadow sm:rounded-lg sm:px-10 border min-h-[400px]">
+            <div className="flex flex-col items-center justify-center space-y-6">
+              {/* City Selection & Search Mode Toggle */}
+              <div className="w-full mb-4">
+                <div className="flex gap-2 justify-center mb-6">
+                  <button
+                    onClick={() => setLocationPermission(false)}
+                    className={cn(
+                      "px-4 py-2 rounded-full text-sm font-bold border transition",
+                      locationPermission
+                        ? "bg-white text-gray-600 border-gray-300"
+                        : "bg-blue-600 text-white border-blue-600"
                     )}
-
-                    {/* Shop List Display */}
-                    <div className="w-full mt-6">
-                         {!isLoadingShops && nearbyShops.length > 0 && (
-                             <div className="space-y-3">
-                                <h3 className="font-bold text-lg text-gray-900 mb-2">Available Shops</h3>
-                                {nearbyShops.map(shop => (
-                                    <ShopCard key={shop.id} shop={shop} />
-                                ))}
-                             </div>
-                         )}
-
-                         {!isLoadingShops && nearbyShops.length === 0 && (locationPermission || locationError) && (
-                            <div className="text-center py-8">
-                                <p className="text-gray-500">No shops found. Try a different city or location.</p>
-                            </div>
-                         )}
-                    </div>
+                  >
+                    Search by City
+                  </button>
+                  <button
+                    onClick={handleGetLocation}
+                    className={cn(
+                      "px-4 py-2 rounded-full text-sm font-bold border transition cursor-pointer",
+                      locationPermission
+                        ? "bg-blue-600 text-white border-blue-600"
+                        : "bg-white text-gray-600 border-gray-300"
+                    )}
+                  >
+                    Use GPS Location
+                  </button>
                 </div>
-            </div>
-        )}
+              </div>
 
-        {/* Step 2: Registration Form */}
-        {step === 'details' && (
-            <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 border border-gray-100 relative">
-                {!urlShopId && (
-                    <button 
-                        onClick={() => setStep('select-shop')}
-                        className="absolute top-8 left-8 text-gray-400 hover:text-gray-600 text-sm font-medium flex items-center gap-1"
-                    >
-                        &larr; Change Shop
-                    </button>
+              {!locationPermission ? (
+                <div className="w-full max-w-sm mx-auto text-center">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">
+                    Select City
+                  </h3>
+                  <CitySelector onSelect={(city) => fetchShopsByCity(city)} />
+                </div>
+              ) : (
+                /* GPS Location View (existing logic mostly) */
+                isLoadingShops && (
+                  <div className="flex justify-center py-10">
+                    <Loader2 className="animate-spin text-blue-500" size={32} />
+                    <p className="ml-2 text-gray-500">Locating...</p>
+                  </div>
+                )
+              )}
+
+              {/* Shop List Display */}
+              <div className="w-full mt-6">
+                {!isLoadingShops && nearbyShops.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="font-bold text-lg text-gray-900 mb-2">
+                      Available Shops
+                    </h3>
+                    {nearbyShops.map((shop) => (
+                      <ShopCard key={shop.id} shop={shop} />
+                    ))}
+                  </div>
                 )}
 
-                <div className="mb-6 pt-6 border-b pb-4">
-                    <p className="text-sm text-gray-500">Registering for:</p>
-                    <p className="text-lg font-bold text-green-600 flex items-center gap-2">
-                        <Store size={18} /> Shop #{selectedShopId}
-                        {/* Ideally fetch and show shop name here if possible, but ID is sufficient for logic */}
-                    </p>
+                {!isLoadingShops &&
+                  nearbyShops.length === 0 &&
+                  (locationPermission || locationError) && (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500">
+                        No shops found. Try a different city or location.
+                      </p>
+                    </div>
+                  )}
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Step 2: Registration Form */}
+        {step === "details" && (
+          <div className="bg-white backdrop-blur-xl py-8 px-4 shadow sm:rounded-lg sm:px-10 border border-gray-100 relative">
+            {!urlShopId && (
+              <button
+                onClick={() => setStep("select-shop")}
+                className="absolute top-8 left-8 text-gray-400 hover:text-gray-600 text-sm font-medium flex items-center gap-1"
+              >
+                &larr; Change Shop
+              </button>
+            )}
+
+            <div className="mb-6 pt-6 border-b pb-4">
+              <p className="text-sm text-gray-500">Registering for:</p>
+              <p className="text-lg font-bold text-green-600 flex items-center gap-2">
+                <Store size={18} /> Shop #{selectedShopId}
+                {/* Ideally fetch and show shop name here if possible, but ID is sufficient for logic */}
+              </p>
+            </div>
+
+            <form className="space-y-6 text-black" onSubmit={handleSubmit}>
+              {/* Personal Details */}
+              <div>
+                <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4 border-b pb-2">
+                  Personal Identification
+                </h3>
+                <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
+                  <div>
+                    <label
+                      htmlFor="aadharNumber"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Aadhar Number <span className="text-red-500">*</span>
+                    </label>
+                    <div className="mt-1">
+                      <input
+                        id="aadharNumber"
+                        name="aadharNumber"
+                        type="text"
+                        required
+                        value={formData.aadharNumber}
+                        onChange={(e) => {
+                          e.target.value = e.target.value.replace(/\D/g, "");
+                          if (formData.aadharNumber.length < 12)
+                            handleChange(e);
+                        }}
+                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="panNumber"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      PAN Number
+                    </label>
+                    <div className="mt-1">
+                      <input
+                        id="panNumber"
+                        name="panNumber"
+                        type="text"
+                        value={formData.panNumber}
+                        onChange={(e) => {
+                          if (formData.panNumber.length < 10) handleChange(e);
+                        }}
+                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="licenseNumber"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Driving License Number{" "}
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <div className="mt-1">
+                      <input
+                        id="licenseNumber"
+                        name="licenseNumber"
+                        type="text"
+                        required
+                        value={formData.licenseNumber}
+                        onChange={(e) => {
+                          if (formData.licenseNumber.length < 15)
+                            handleChange(e);
+                        }}
+                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* License Images */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Driving License Images <span className="text-red-500">*</span>
+                </label>
+                <div className="flex items-center justify-center w-full">
+                  <label
+                    htmlFor="licenseImages"
+                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
+                  >
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      {isUploading ? (
+                        <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
+                      ) : (
+                        <>
+                          <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                          <p className="text-sm text-gray-500">
+                            <span className="font-semibold">
+                              Click to upload
+                            </span>{" "}
+                            license front & back
+                          </p>
+                        </>
+                      )}
+                    </div>
+                    <input
+                      id="licenseImages"
+                      type="file"
+                      className="hidden"
+                      multiple
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      disabled={isUploading}
+                    />
+                  </label>
                 </div>
 
-                <form className="space-y-6" onSubmit={handleSubmit}>
-                    
-                    {/* Personal Details */}
-                    <div>
-                    <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4 border-b pb-2">
-                        Personal Identification
-                    </h3>
-                    <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
-                        <div>
-                        <label htmlFor="aadharNumber" className="block text-sm font-medium text-gray-700">
-                            Aadhar Number <span className="text-red-500">*</span>
-                        </label>
-                        <div className="mt-1">
-                            <input
-                            id="aadharNumber"
-                            name="aadharNumber"
-                            type="text"
-                            required
-                            value={formData.aadharNumber}
-                            onChange={handleChange}
-                            className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-                            />
-                        </div>
-                        </div>
+                {/* Image Previews */}
+                {formData.licenseImages.length > 0 && (
+                  <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
+                    {formData.licenseImages.map((url, index) => (
+                      <div
+                        key={index}
+                        className="relative group aspect-video bg-gray-100 rounded-lg overflow-hidden border"
+                      >
+                        <Image
+                          src={url}
+                          alt={`License ${index + 1}`}
+                          className="object-cover w-full h-full"
+                          height={150}
+                          width={200}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(index)}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
-                        <div>
-                        <label htmlFor="panNumber" className="block text-sm font-medium text-gray-700">
-                            PAN Number
-                        </label>
-                        <div className="mt-1">
-                            <input
-                            id="panNumber"
-                            name="panNumber"
-                            type="text"
-                            value={formData.panNumber}
-                            onChange={handleChange}
-                            className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-                            />
-                        </div>
-                        </div>
-
-                        <div>
-                        <label htmlFor="licenseNumber" className="block text-sm font-medium text-gray-700">
-                            Driving License Number <span className="text-red-500">*</span>
-                        </label>
-                        <div className="mt-1">
-                            <input
-                            id="licenseNumber"
-                            name="licenseNumber"
-                            type="text"
-                            required
-                            value={formData.licenseNumber}
-                            onChange={handleChange}
-                            className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-                            />
-                        </div>
-                        </div>
-                    </div>
-                    </div>
-
-                    {/* License Images */}
-                    <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Driving License Images <span className="text-red-500">*</span>
-                    </label>
-                    <div className="flex items-center justify-center w-full">
-                        <label htmlFor="licenseImages" className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                {isUploading ? (
-                                    <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
-                                ) : (
-                                    <>
-                                        <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                                        <p className="text-sm text-gray-500"><span className="font-semibold">Click to upload</span> license front & back</p>
-                                    </>
-                                )}
-                            </div>
-                            <input 
-                                id="licenseImages" 
-                                type="file" 
-                                className="hidden" 
-                                multiple 
-                                accept="image/*"
-                                onChange={handleFileUpload}
-                                disabled={isUploading}
-                            />
-                        </label>
-                    </div>
-                    
-                    {/* Image Previews */}
-                    {formData.licenseImages.length > 0 && (
-                        <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
-                            {formData.licenseImages.map((url, index) => (
-                                <div key={index} className="relative group aspect-video bg-gray-100 rounded-lg overflow-hidden border">
-                                    <img src={url} alt={`License ${index + 1}`} className="object-cover w-full h-full" />
-                                    <button
-                                        type="button"
-                                        onClick={() => handleRemoveImage(index)}
-                                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    >
-                                        <X size={14} />
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                    </div>
-
-                    {/* Vehicle Details */}
-                    <div>
-                    <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4 border-b pb-2">
-                        Vehicle Details
-                    </h3>
-                    <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
-                        <div>
-                        <label htmlFor="vehicleOwnerName" className="block text-sm font-medium text-gray-700">
-                            Vehicle Owner Name <span className="text-red-500">*</span>
-                        </label>
-                        <div className="mt-1">
-                            <input
-                            id="vehicleOwnerName"
-                            name="vehicleOwnerName"
-                            type="text"
-                            required
-                            value={formData.vehicleOwnerName}
-                            onChange={handleChange}
-                            className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-                            />
-                        </div>
-                        </div>
-
-                        <div>
-                        <label htmlFor="vehicleName" className="block text-sm font-medium text-gray-700">
-                            Vehicle Model Name
-                        </label>
-                        <div className="mt-1">
-                            <input
-                            id="vehicleName"
-                            name="vehicleName"
-                            type="text"
-                            placeholder="e.g. Honda Activa"
-                            value={formData.vehicleName}
-                            onChange={handleChange}
-                            className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-                            />
-                        </div>
-                        </div>
-
-                        <div>
-                        <label htmlFor="vehicleNo" className="block text-sm font-medium text-gray-700">
-                            Vehicle Registration Number <span className="text-red-500">*</span>
-                        </label>
-                        <div className="mt-1">
-                            <input
-                            id="vehicleNo"
-                            name="vehicleNo"
-                            type="text"
-                            required
-                            placeholder="MH 31 AB 1234"
-                            value={formData.vehicleNo}
-                            onChange={handleChange}
-                            className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-                            />
-                        </div>
-                        </div>
-                    </div>
-                    </div>
-
-                    <div className="pt-5">
-                    <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              {/* Vehicle Details */}
+              <div>
+                <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4 border-b pb-2">
+                  Vehicle Details
+                </h3>
+                <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
+                  <div>
+                    <label
+                      htmlFor="vehicleOwnerName"
+                      className="block text-sm font-medium text-gray-700"
                     >
-                        {isSubmitting ? (
-                            <>
-                                <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
-                                Submitting...
-                            </>
-                        ) : (
-                            "Register Profile & Join Shop"
-                        )}
-                    </button>
+                      Vehicle Owner Name <span className="text-red-500">*</span>
+                    </label>
+                    <div className="mt-1">
+                      <input
+                        id="vehicleOwnerName"
+                        name="vehicleOwnerName"
+                        type="text"
+                        required
+                        value={formData.vehicleOwnerName}
+                        onChange={handleChange}
+                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                      />
                     </div>
-                </form>
-            </div>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="vehicleName"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Vehicle Model Name
+                    </label>
+                    <div className="mt-1">
+                      <input
+                        id="vehicleName"
+                        name="vehicleName"
+                        type="text"
+                        placeholder="e.g. Honda Activa"
+                        value={formData.vehicleName}
+                        onChange={handleChange}
+                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="vehicleNo"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Vehicle Registration Number{" "}
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <div className="mt-1">
+                      <input
+                        id="vehicleNo"
+                        name="vehicleNo"
+                        type="text"
+                        required
+                        placeholder="MH 31 AB 1234"
+                        value={formData.vehicleNo}
+                        // onChange={handleChange}
+                        onChange={(e) => {
+                          if (formData.vehicleNo.length < 10) handleChange(e);
+                        }}
+                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-5">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
+                      Submitting...
+                    </>
+                  ) : (
+                    "Register Profile & Join Shop"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
         )}
-      </div>
-    </div>
+      </motion.div>
+      {/* </div> */}
+    </>
   );
 }
 
 export default function DeliveryRegistrationPage() {
   return (
-    <Suspense fallback={
-      <div className="flex justify-center items-center min-h-screen bg-gray-50">
-        <Loader2 className="animate-spin text-green-600" size={48} />
+    <main className="min-h-screen w-full bg-[#fffdf5] dark:bg-gray-950 flex flex-col items-center justify-center p-4 transition-colors duration-300 relative overflow-hidden">
+      {/* 1. Grocery Pattern Background (Increased Opacity for better visibility) */}
+      <div
+        className="absolute inset-0 z-0 opacity-[0.20] dark:opacity-[0.10]" // Opacity increased from 8%/5% to 20%/10%
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23f59e0b' stroke-width='2'%3E%3C!-- Apple/Fruit --%3E%3Ccircle cx='20' cy='20' r='8' /%3E%3Cpath d='M20 12 v-3 m-2 0 h4' stroke-linecap='round'/%3E%3C!-- Shopping Bag --%3E%3Crect x='60' y='15' width='14' height='16' rx='2' /%3E%3Cpath d='M63 15 a5 5 0 0 1 8 0' /%3E%3C!-- Wheat/Carrot Abstract --%3E%3Cpath d='M20 70 l5 -10 l5 10 m-5 -10 v15' stroke-linecap='round'/%3E%3C!-- Box/Carton --%3E%3Crect x='60' y='65' width='12' height='12' /%3E%3Cpath d='M60 65 l6 -4 l6 4' /%3E%3C/g%3E%3C/svg%3E")`,
+          backgroundSize: "100px 100px",
+        }}
+      ></div>
+
+      {/* 2. Soft Gradient Overlay (Adjusted to fade the now darker pattern near the form) */}
+      <div className="absolute inset-0 bg-linear-to-b from-transparent via-white/50 to-white/90 dark:from-transparent dark:via-gray-950/50 dark:to-gray-950/90 pointer-events-none z-0" />
+
+      {/* 3. Animated Brand Colors Blobs (Increased opacity slightly) */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute -top-[10%] -right-[10%] w-[500px] h-[500px] bg-yellow-400/30 dark:bg-yellow-600/15 rounded-full blur-[80px] animate-pulse" />
+        <div className="absolute -bottom-[10%] -left-[10%] w-[400px] h-[400px] bg-orange-300/30 dark:bg-orange-600/15 rounded-full blur-[80px] animate-pulse delay-1000" />
       </div>
-    }>
-      <DeliveryRegistrationContent />
-    </Suspense>
+
+      {/* Main Card Content */}
+      <div className="w-full max-w-4xl z-10 relative">
+        <Suspense>
+          <DeliveryRegistrationContent />
+        </Suspense>
+      </div>
+    </main>
   );
 }

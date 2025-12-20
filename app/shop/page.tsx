@@ -16,6 +16,7 @@ import { shopService, ShopAnalytics } from "@/services/shopService";
 import { shopStore } from "@/store";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import Image from "next/image";
 
 export default function ShopDashboard() {
   const { currentOders, feathCurrentOrders } = shopStore();
@@ -169,86 +170,90 @@ export default function ShopDashboard() {
           {currentOders.orders.length > 0 ? (
             <div className="divide-y divide-gray-100 dark:divide-gray-700">
               {currentOders.orders
-                .filter(order => order.status !== 'delivered' && order.status !== 'cancelled')
+                .filter(
+                  (order) =>
+                    order.status !== "delivered" && order.status !== "cancelled"
+                )
                 .map((order) => (
-                <Link
-                  href={`shop/order/${order.id}`}
-                  key={order.id}
-                  className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-500 text-xs font-bold">
-                      {order.customerName.charAt(0)}
+                  <Link
+                    href={`shop/order/${order.id}`}
+                    key={order.id}
+                    className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-full text-2xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-500 font-bold">
+                        {order.customerName.charAt(0) || "C"}
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-semibold text-gray-900 dark:text-white text-sm">
+                            {order.customerName || "Customer"}
+                          </h4>
+                          <span className="text-xs text-gray-400">
+                            • #{order.id}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-gray-400">
+                          <Clock size={12} />{" "}
+                          {new Date(order.createdAt).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-semibold text-gray-900 dark:text-white text-sm">
-                          {order.customerName}
-                        </h4>
-                        <span className="text-xs text-gray-400">
-                          • #{order.id}
+                    <div className="flex items-start gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-semibold text-gray-900 dark:text-white text-sm">
+                            {order.address}
+                          </h4>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">
+                          {order.itemCount} items • {order.paymentMethod}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
+                      <div className="text-right">
+                        {/* "pending" | "confirmed" | "shipped" | "delivered" | "cancelled"; */}
+                        <span
+                          className={cn(
+                            "text-[10px] px-2 py-0.5 rounded-full font-medium uppercase",
+                            order.status === "pending"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : order.status === "confirmed"
+                              ? "bg-blue-100 text-blue-700"
+                              : order.status === "shipped"
+                              ? "bg-purple-100 text-purple-700"
+                              : order.status === "delivered"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-red-100 text-red-700"
+                          )}
+                        >
+                          {order.status === "pending"
+                            ? "Pending"
+                            : order.status === "confirmed"
+                            ? "Confirmed"
+                            : order.status === "shipped"
+                            ? "Ready for Delivery"
+                            : order.status === "delivered"
+                            ? "Delivered"
+                            : "Cancelled"}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1 text-xs text-gray-400">
-                        <Clock size={12} />{" "}
-                        {new Date(order.createdAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                    </div>
+                    <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
+                      <div className="text-right">
+                        <p className="font-bold text-gray-900 dark:text-white text-sm">
+                          ₹{order.totalAmount.toFixed(2)}
+                        </p>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-semibold text-gray-900 dark:text-white text-sm">
-                          {order.address}
-                        </h4>
-                      </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">
-                        {order.itemCount} items • {order.paymentMethod}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
-                    <div className="text-right">
-                      {/* "pending" | "confirmed" | "shipped" | "delivered" | "cancelled"; */}
-                      <span
-                        className={cn(
-                          "text-[10px] px-2 py-0.5 rounded-full font-medium uppercase",
-                          order.status === "pending"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : order.status === "confirmed"
-                            ? "bg-blue-100 text-blue-700"
-                            : order.status === "shipped"
-                            ? "bg-purple-100 text-purple-700"
-                            : order.status === "delivered"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
-                        )}
-                      >
-                        {order.status === "pending"
-                          ? "Pending"
-                          : order.status === "confirmed"
-                          ? "Confirmed"
-                          : order.status === "shipped"
-                          ? "Ready for Delivery"
-                          : order.status === "delivered"
-                          ? "Delivered"
-                          : "Cancelled"}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
-                    <div className="text-right">
-                      <p className="font-bold text-gray-900 dark:text-white text-sm">
-                        ₹{order.totalAmount.toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                ))}
             </div>
           ) : (
             /* --- EMPTY STATE UI --- */

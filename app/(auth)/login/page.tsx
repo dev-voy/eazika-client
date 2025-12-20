@@ -86,12 +86,13 @@ function LoginContent() {
         if (user) await localStorage.setItem("user", JSON.stringify(user));
 
         await setAuthCookies(token, role);
+        localStorage.setItem("accessToken", token);
 
         if (redirectPath) {
           router.push(redirectPath);
         } else if (role === "admin") router.push("/admin");
         else if (role === "shopkeeper") router.push("/shop");
-        else if (role === "delivery_boy") router.push("/delivery");
+        else if (role === "delivery_boy") router.push("/rider");
         else router.push("/");
         toast.success("Logged in successfully!");
         router.refresh();

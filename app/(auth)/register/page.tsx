@@ -111,12 +111,13 @@ export default function RegisterPage() {
         // if (user) localStorage.setItem("user", JSON.stringify(user));
 
         // 2. Update Cookies (CRITICAL for Middleware)
-        setAuthCookies(token, role);
+        await setAuthCookies(token, role);
+        localStorage.setItem("accessToken", token);
 
         // 3. Route based on role
         if (role === "admin") router.push("/admin");
         else if (role === "shopkeeper") router.push("/shop");
-        else if (role === "delivery") router.push("/delivery");
+        else if (role === "delivery_boy") router.push("/rider");
         else router.push("/");
         router.refresh();
       } else {
