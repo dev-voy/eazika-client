@@ -27,6 +27,7 @@ export const userService = {
 
   loginUser: async (phone: string) => {
     const response = await axios.post("/users/login", { phone });
+    // console.log("Login Response:", response);
     return response.data;
   },
 

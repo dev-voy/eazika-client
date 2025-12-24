@@ -48,7 +48,7 @@ function LoginContent() {
     try {
       // Use Service instead of raw fetch
       const data = await userService.loginUser(cleanPhone);
-
+      // console.log("OTP Response Data:", data);
       if (data?.data?.requestId) {
         setRequestId(data.data.requestId);
         setStep(2);
