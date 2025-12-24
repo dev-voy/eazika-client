@@ -95,7 +95,7 @@ export default function CategoriesPage() {
           animate="visible"
         >
           {filteredCategories.map((category) => {
-            const Icon = category.icon; // Get icon component
+            const Icon = typeof category.icon === "function" ? category.icon : undefined;
 
             return (
               <Link href={`/categories/${category.slug}`} key={category.id}>
@@ -110,14 +110,11 @@ export default function CategoriesPage() {
                       <Image
                         src={category.image}
                         alt={category.name}
-                        layout="fill"
-                        objectFit="cover"
-                        className="rounded-full"
+                        fill
+                        className="rounded-full object-cover"
                       />
                     ) : Icon ? (
-                      <Icon
-                        size={32}
-                        className="text-gray-600 dark:text-gray-300 group-hover:text-yellow-600 dark:group-hover:text-yellow-500 transition-colors"
+                      <Icon className="text-gray-600 dark:text-gray-300 group-hover:text-yellow-600 dark:group-hover:text-yellow-500 transition-colors"
                       />
                     ) : (
                       <LayoutGrid className="text-gray-400" size={24} />
