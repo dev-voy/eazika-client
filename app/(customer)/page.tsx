@@ -76,20 +76,20 @@ export default function HomePage() {
         const [catsData, prodsData] = await Promise.all([
           coustomerService.getCategories(),
           // PASS CITY TO API
-          await coustomerService.getProducts(1, 20, currentCity),
+          coustomerService.getProducts(1, 20, currentCity),
         ]);
 
         // Map icons manually since backend doesn't send component references
-        const mappedCategories = catsData.map((cat: any) => {
+        const mappedCategories = (catsData?.length ? catsData : mockCategories).map((cat: any) => {
           const match = mockCategories.find(
             (m) =>
-              m.name.toLowerCase() === cat.name.toLowerCase() ||
-              cat.name.toLowerCase().includes(m.slug) ||
-              m.slug.includes(cat.name.toLowerCase())
+              m.name.toLowerCase() === (cat.name ?? "").toLowerCase() ||
+              (cat.name ?? "").toLowerCase().includes(m.slug) ||
+              m.slug.includes((cat.name ?? "").toLowerCase())
           );
           return {
             ...cat,
-            icon: match ? match.icon : undefined,
+            icon: match ? match.icon : cat.icon,
           };
         });
 
@@ -212,8 +212,8 @@ export default function HomePage() {
                                 <Image
                                   src={product.images[0]}
                                   alt={product.name}
-                                  layout="fill"
-                                  objectFit="cover"
+                                  fill
+                                  className="object-cover"
                                 />
                               )}
                             </div>
@@ -276,55 +276,55 @@ export default function HomePage() {
             >
               {isLoading
                 ? // Loading Skeletons
-                  [1, 2, 3, 4, 5].map((i) => (
-                    <motion.div
-                      key={i}
-                      variants={itemVariants}
-                      className="flex flex-col items-center space-y-2 shrink-0"
-                    >
-                      <div className="w-16 h-16 bg-gray-200 dark:bg-gray-800 rounded-2xl animate-pulse" />
-                      <div className="w-12 h-3 bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
-                    </motion.div>
-                  ))
+                [1, 2, 3, 4, 5].map((i) => (
+                  <motion.div
+                    key={i}
+                    variants={itemVariants}
+                    className="flex flex-col items-center space-y-2 shrink-0"
+                  >
+                    <div className="w-16 h-16 bg-gray-200 dark:bg-gray-800 rounded-2xl animate-pulse" />
+                    <div className="w-12 h-3 bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
+                  </motion.div>
+                ))
                 : categories.map((category) => {
-                    const Icon = category.icon;
+                  const Icon = typeof category.icon === "function" ? category.icon : undefined;
 
-                    return (
-                      <Link
-                        href={`/categories/${category.slug}`}
-                        key={category.id}
+                  return (
+                    <Link
+                      href={`/categories/${category.slug}`}
+                      key={category.id}
+                    >
+                      <motion.div
+                        className="flex flex-col items-center space-y-2 text-center group cursor-pointer shrink-0"
+                        variants={itemVariants}
+                        whileTap={{ scale: 0.95 }}
                       >
-                        <motion.div
-                          className="flex flex-col items-center space-y-2 text-center group cursor-pointer shrink-0"
-                          variants={itemVariants}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          <div className="w-16 h-16 md:w-20 md:h-20 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-center group-hover:border-yellow-500 dark:group-hover:border-yellow-500 transition-colors duration-200 overflow-hidden relative">
-                            {category.image ? (
-                              <Image
-                                src={category.image}
-                                alt={category.name}
-                                layout="fill"
-                                objectFit="cover"
-                              />
-                            ) : Icon ? (
-                              <Icon
-                                size={32}
-                                className="text-gray-400 dark:text-gray-500 group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors"
-                              />
-                            ) : (
-                              <div className="text-2xl font-bold text-gray-400">
-                                {category.name.charAt(0)}
-                              </div>
-                            )}
-                          </div>
-                          <span className="text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 w-20 truncate">
-                            {category.name}
-                          </span>
-                        </motion.div>
-                      </Link>
-                    );
-                  })}
+                        <div className="w-16 h-16 md:w-20 md:h-20 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-center group-hover:border-yellow-500 dark:group-hover:border-yellow-500 transition-colors duration-200 overflow-hidden relative">
+                          {category.image ? (
+                            <Image
+                              src={category.image}
+                              alt={category.name}
+                              fill
+                              className="object-cover"
+                            />
+                          ) : Icon ? (
+                            <Icon
+                              size={32}
+                              className="text-gray-400 dark:text-gray-500 group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors"
+                            />
+                          ) : (
+                            <div className="text-2xl font-bold text-gray-400">
+                              {category.name.charAt(0)}
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 w-20 truncate">
+                          {category.name}
+                        </span>
+                      </motion.div>
+                    </Link>
+                  );
+                })}
             </motion.div>
           </div>
         </motion.section>
@@ -445,9 +445,8 @@ const ProductCard = ({
               e.stopPropagation();
               toggleWishlist(product.id.toString());
             }}
-            className={`absolute top-2 right-2 p-2 rounded-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm transition-all shadow-sm z-10 ${
-              liked ? "text-red-500" : "text-gray-400 hover:text-red-500"
-            }`}
+            className={`absolute top-2 right-2 p-2 rounded-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm transition-all shadow-sm z-10 ${liked ? "text-red-500" : "text-gray-400 hover:text-red-500"
+              }`}
           >
             <Heart size={18} className={`${liked ? "fill-current" : ""}`} />
           </button>
