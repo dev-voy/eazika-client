@@ -5,7 +5,6 @@ import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 // import { SocketProvider } from "@/contexts/SocketContext";
 import PushNotificationProvider from "./pushNotification";
-import LocationGuard from "@/components/LocationGuard";
 import { userStore } from "@/store";
 import { getToken } from "@/lib/axios";
 
@@ -27,7 +26,7 @@ const Providers = ({ children }: { children: React.ReactNode }) => {
       >
         {/* <SocketProvider> */}
         <PushNotificationProvider>
-          <LocationGuard />
+
           {children}
           <Toaster richColors />
         </PushNotificationProvider>
