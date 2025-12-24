@@ -30,9 +30,10 @@ export default function EditProfilePage() {
     name: user?.name,
     email: user?.email,
     phone: user?.phone,
+    image: user?.image,
   });
 
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState(user?.image || "");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -45,6 +46,7 @@ export default function EditProfilePage() {
           name: user?.name || prev.name,
           email: user?.email || prev.email,
           phone: user?.phone || prev.phone,
+          image: user?.image || prev.image,
         }));
     })();
   }, [user, fetchUser]);
@@ -87,7 +89,7 @@ export default function EditProfilePage() {
 
       // 3. Refresh local data to ensure sync
       await fetchUser("fresh");
-      
+
       toast.success("Profile updated successfully!", { id: "profile-update" });
       setTimeout(() => router.back(), 500);
     } catch (error: any) {
