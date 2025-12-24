@@ -38,7 +38,7 @@ export interface Order {
   totalAmount: number;
   addressId: number;
   paymentMethod: string;
-  status: "pending" | "confirmed" | "shipped" | "delivered" | "cancelled";
+  status: "pending" | "confirmed" | "preparing" | "ready" | "shipped" | "delivered" | "cancelled";
   cancelBy?: string;
   cancelReason?: string;
   createdAt: string;
@@ -127,10 +127,13 @@ export const CartService = {
 
   getOrders: async (status?: string) => {
     const params = status ? { status } : {};
-    const response = await axiosInstance.get<Order[]>("/customers/get-orders", {
+    const response = await axiosInstance.get("/customers/get-orders", {
       params,
     });
-    return response.data;
+    const payload = (response.data as any)?.data ?? response.data;
+    if (Array.isArray(payload)) return payload as Order[];
+    if (Array.isArray((payload as any)?.orders)) return (payload as any).orders as Order[];
+    return [];
   },
 
   getOrderById: async (orderId: number) => {
