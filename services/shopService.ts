@@ -38,11 +38,10 @@ export interface AddProductPayload {
   prices: ProductPrice[];
 }
 
-export interface UpdateProductPayload {
-  name?: string;
-  description?: string;
-  images?: string[];
+export interface UpdateProductPayload extends Partial<NewProductFormData> {
   isActive?: boolean;
+  prices?: ProductPriceType[];
+  stock?: number;
 }
 
 export interface ShopProduct {
@@ -65,12 +64,12 @@ export interface ShopOrder {
   customerName: string;
   totalAmount: number;
   status:
-    | "pending"
-    | "preparing"
-    | "ready"
-    | "shipped"
-    | "delivered"
-    | "cancelled";
+  | "pending"
+  | "preparing"
+  | "ready"
+  | "shipped"
+  | "delivered"
+  | "cancelled";
   itemCount: number;
   createdAt: string;
   paymentMethod: string;
@@ -120,7 +119,7 @@ export interface Category {
   name: string;
   slug: string;
   image?: string;
-  icon?: any;
+  icon?: string;
   itemCount?: number;
 }
 
@@ -274,7 +273,7 @@ export const ShopService = {
 
   updateStock: async (productId: number, data: ProductPriceType) => {
     const response = await axiosInstance.put(
-      `/shops/products//update-shop-product-stock-and-price/${productId}`,
+      `/shops/products/update-shop-product-stock-and-price/${productId}`,
       data
     );
     return response.data.data;
@@ -284,6 +283,7 @@ export const ShopService = {
     productId: number,
     data: Partial<UpdateProductPayload>
   ) => {
+    console.log("Updating product:", productId, data);
     const response = await axiosInstance.put(
       `/shops/update-shop-product/${productId}`,
       data
@@ -338,8 +338,8 @@ export const ShopService = {
       status: !r.isVerified
         ? "pending"
         : r.isAvailable
-        ? "available"
-        : "offline",
+          ? "available"
+          : "offline",
       activeOrders: 0,
       totalDeliveries: 0,
       rating: 4.5,

@@ -1,11 +1,16 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Search, Plus, Package, Globe, Box, Check } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { Search, Plus, Package, Globe, Box, Check, Loader2, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { shopStore } from "@/store";
+import { ProductForm } from "@/components/shop/ProductForm";
+import { shopService } from "@/services/shopService";
+import { toast } from "sonner";
+import type { NewProductFormData, ProductPriceType } from "@/types/shop";
 
 interface Tab {
   id: "inventory" | "global" | "my_products";
@@ -37,17 +42,219 @@ const TABS: Tab[] = [
 
 export default function ProductsPage() {
   const { products, globalProducts, fetchProducts } = shopStore();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<
     "inventory" | "global" | "my_products"
   >("inventory");
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editInitialData, setEditInitialData] = useState<
+    (NewProductFormData & { categoryName?: string }) | null
+  >(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editablePricing, setEditablePricing] = useState<Record<number, ProductPriceType[]>>({});
+  const [dirtyProductIds, setDirtyProductIds] = useState<Set<number>>(new Set());
+  const [unsavedChanges, setUnsavedChanges] = useState(false);
+  const [exitPromptOpen, setExitPromptOpen] = useState(false);
+  const [pendingNav, setPendingNav] = useState<(() => void) | null>(null);
+
+  const FALLBACK_PRICE: ProductPriceType = {
+    price: 0,
+    discount: 0,
+    weight: 0,
+    stock: 0,
+    unit: "grams",
+  };
+
+  const normalizePricing = (value: unknown): ProductPriceType[] => {
+    if (!value || typeof value !== "object") return [{ ...FALLBACK_PRICE }];
+    const source = value as { pricing?: unknown; prices?: unknown };
+
+    const fromPricing = Array.isArray(source.pricing)
+      ? source.pricing
+      : undefined;
+    const fromPrices = Array.isArray(source.prices) ? source.prices : undefined;
+
+    const list = (fromPricing ?? fromPrices) as
+      | Array<Partial<ProductPriceType>>
+      | undefined;
+
+    if (!list || list.length === 0) return [{ ...FALLBACK_PRICE }];
+
+    return list.map((p) => ({
+      id: (p as { id?: number }).id,
+      price: p.price ?? 0,
+      discount: p.discount ?? 0,
+      weight: p.weight ?? 0,
+      stock: p.stock ?? 0,
+      unit: p.unit ?? "grams",
+    }));
+  };
+
+  // initialize editable pricing when products change
+  useEffect(() => {
+    const map: Record<number, ProductPriceType[]> = {};
+    products.products.forEach((p) => {
+      const pricing = normalizePricing(p);
+      if (p.id !== undefined && p.id !== null) {
+        map[Number(p.id)] = pricing;
+      }
+    });
+    setEditablePricing(map);
+    // reset dirty flags when list refreshes
+    setDirtyProductIds(new Set());
+    setUnsavedChanges(false);
+  }, [products.products]);
+
+  // warn on browser/tab close when there are unsaved inline edits
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (!unsavedChanges) return;
+      e.preventDefault();
+      e.returnValue = "You have unsaved changes.";
+    };
+    if (unsavedChanges) {
+      window.addEventListener("beforeunload", handler);
+    }
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [unsavedChanges]);
 
   useEffect(() => {
     (async () => {
       if (products.products.length === 0) await fetchProducts();
     })();
   }, [fetchProducts, products.products.length]);
+
+  const openEditModal = async (id: number | string) => {
+    const numericId = Number(id);
+    if (!numericId) return;
+
+    setIsEditOpen(true);
+    setEditLoading(true);
+    setEditingId(numericId);
+
+    const productFromStore = products.products.find((p) => Number(p.id) === numericId);
+    if (productFromStore) {
+      const pricing = normalizePricing(productFromStore);
+
+      setEditInitialData({
+        productCategoryId:
+          (productFromStore as { productCategoryId?: number }).productCategoryId ?? 0,
+        categoryName: (productFromStore as { category?: string }).category,
+        name: productFromStore.name ?? "",
+        brand: (productFromStore as { brand?: string }).brand ?? "",
+        description: productFromStore.description ?? "",
+        images: productFromStore.images ?? [],
+        pricing,
+      });
+      setEditLoading(false);
+      return;
+    }
+
+    try {
+      const product = await shopService.getProductById(numericId);
+
+      const pricing = normalizePricing(product);
+
+      setEditInitialData({
+        productCategoryId: (product as { productCategoryId?: number }).productCategoryId ?? 0,
+        categoryName: (product as { category?: string }).category,
+        name: product?.name ?? "",
+        brand: (product as { brand?: string }).brand ?? "",
+        description: product?.description ?? "",
+        images: product?.images ?? [],
+        pricing,
+      });
+    } catch (error) {
+      console.error("Failed to load product", error);
+      toast.error("Failed to load product");
+      setIsEditOpen(false);
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const closeEditModal = () => {
+    setIsEditOpen(false);
+    setEditInitialData(null);
+    setEditingId(null);
+  };
+
+  const handlePricingChange = <K extends keyof ProductPriceType>(
+    productId: number,
+    index: number,
+    key: K,
+    value: ProductPriceType[K]
+  ) => {
+    setEditablePricing((prev) => {
+      const current = prev[productId] ?? [];
+      const updated = current.map((row, i) => (i === index ? { ...row, [key]: value } : row));
+      return { ...prev, [productId]: updated };
+    });
+    setDirtyProductIds((prev) => new Set(prev).add(productId));
+    setUnsavedChanges(true);
+  };
+
+  const savePricing = async (productId: number) => {
+    const pricing = editablePricing[productId];
+    if (!pricing) return;
+    try {
+      await shopService.updateProductDetails(productId, {
+        prices: pricing,
+        stock: pricing[0]?.stock ?? 0,
+      });
+      await fetchProducts();
+      setDirtyProductIds((prev) => {
+        const next = new Set(prev);
+        next.delete(productId);
+        setUnsavedChanges(next.size > 0);
+        return next;
+      });
+      toast.success("Pricing updated");
+    } catch (error) {
+      console.error("Failed to update pricing", error);
+      toast.error("Failed to update pricing");
+    }
+  };
+
+  const handleExitDecision = async (decision: "save" | "discard" | "cancel") => {
+    if (decision === "cancel") {
+      setExitPromptOpen(false);
+      setPendingNav(null);
+      return;
+    }
+
+    if (decision === "discard") {
+      setDirtyProductIds(new Set());
+      setUnsavedChanges(false);
+      setExitPromptOpen(false);
+      const action = pendingNav;
+      setPendingNav(null);
+      action?.();
+      return;
+    }
+
+    const ids = Array.from(dirtyProductIds);
+    for (const id of ids) {
+      // Save sequentially to keep toast order predictable
+      await savePricing(id);
+    }
+    setExitPromptOpen(false);
+    const action = pendingNav;
+    setPendingNav(null);
+    action?.();
+  };
+
+  const attemptNavigate = (action: () => void) => {
+    if (!unsavedChanges) {
+      action();
+      return;
+    }
+    setPendingNav(() => action);
+    setExitPromptOpen(true);
+  };
 
   const filteredProducts = products.products.filter((p) =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -64,11 +271,12 @@ export default function ProductsPage() {
             Manage your store inventory
           </p>
         </div>
-        <Link href="/shop/products/new" className="w-full md:w-auto">
-          <button className="w-full md:w-auto bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3.5 rounded-xl font-bold shadow-lg shadow-yellow-500/20 transition-transform active:scale-95 flex items-center justify-center gap-2 text-sm">
-            <Plus size={20} /> Add New Product
-          </button>
-        </Link>
+        <button
+          onClick={() => attemptNavigate(() => router.push("/shop/products/new"))}
+          className="w-full md:w-auto bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3.5 rounded-xl font-bold shadow-lg shadow-yellow-500/20 transition-transform active:scale-95 flex items-center justify-center gap-2 text-sm"
+        >
+          <Plus size={20} /> Add New Product
+        </button>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {TABS.map((tab) => {
@@ -78,38 +286,34 @@ export default function ProductsPage() {
             <button
               key={tab.id}
               onClick={() => {
-                setActiveTab(tab.id);
+                attemptNavigate(() => setActiveTab(tab.id));
               }}
-              className={`flex flex-col items-start p-5 rounded-2xl border-2 transition-all text-left relative overflow-hidden group ${
-                isActive
-                  ? "bg-gray-900 dark:bg-white border-gray-900 dark:border-white text-white dark:text-gray-900 shadow-lg"
-                  : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600"
-              }`}
+              className={`flex flex-col items-start p-5 rounded-2xl border-2 transition-all text-left relative overflow-hidden group ${isActive
+                ? "bg-gray-900 dark:bg-white border-gray-900 dark:border-white text-white dark:text-gray-900 shadow-lg"
+                : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600"
+                }`}
             >
               <div
-                className={`p-3 rounded-xl mb-3 transition-colors ${
-                  isActive
-                    ? "bg-white/20 text-white dark:bg-gray-900/10 dark:text-gray-900"
-                    : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
-                }`}
+                className={`p-3 rounded-xl mb-3 transition-colors ${isActive
+                  ? "bg-white/20 text-white dark:bg-gray-900/10 dark:text-gray-900"
+                  : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                  }`}
               >
                 <Icon size={24} />
               </div>
               <span
-                className={`text-lg font-bold ${
-                  isActive
-                    ? "text-white dark:text-gray-900"
-                    : "text-gray-900 dark:text-white"
-                }`}
+                className={`text-lg font-bold ${isActive
+                  ? "text-white dark:text-gray-900"
+                  : "text-gray-900 dark:text-white"
+                  }`}
               >
                 {tab.label}
               </span>
               <span
-                className={`text-xs mt-1 ${
-                  isActive
-                    ? "text-gray-300 dark:text-gray-500"
-                    : "text-gray-500"
-                }`}
+                className={`text-xs mt-1 ${isActive
+                  ? "text-gray-300 dark:text-gray-500"
+                  : "text-gray-500"
+                  }`}
               >
                 {tab.description}
               </span>
@@ -142,6 +346,7 @@ export default function ProductsPage() {
               <th className="border-b p-4">Is Active</th>
               <th className="border-b p-4">Is Global Product</th>
               <th className="border-b p-4">Pricing</th>
+              <th className="border-b p-4">Actions</th>
             </tr>
           </thead>
           <tbody className="bg-white m-5 p-6 dark:bg-gray-800 rounded-2xl  md:p-4 border shadow-sm transition-all w-full border-gray-100 dark:border-gray-700">
@@ -177,18 +382,114 @@ export default function ProductsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {product.pricing.map((price, index) => (
-                        <tr key={index}>
-                          <td className="border p-2">{index + 1}</td>
-                          <td className="border p-2">{price.price}</td>
-                          <td className="border p-2">{price.discount || 0}</td>
-                          <td className="border p-2">{price.weight}</td>
-                          <td className="border p-2">{price.unit}</td>
-                          <td className="border p-2">{price.stock}</td>
-                        </tr>
-                      ))}
+                      {(editablePricing[Number(product.id)] ?? product.pricing).map(
+                        (price, index) => (
+                          <tr key={index}>
+                            <td className="border p-2">{price.id ?? index + 1}</td>
+                            <td className="border p-2">
+                              <input
+                                type="number"
+                                className="w-full bg-transparent outline-none"
+                                value={price.price}
+                                onChange={(e) =>
+                                  handlePricingChange(
+                                    Number(product.id),
+                                    index,
+                                    "price",
+                                    parseFloat(e.target.value) || 0
+                                  )
+                                }
+                              />
+                            </td>
+                            <td className="border p-2">
+                              <input
+                                type="number"
+                                className="w-full bg-transparent outline-none"
+                                value={price.discount || 0}
+                                onChange={(e) =>
+                                  handlePricingChange(
+                                    Number(product.id),
+                                    index,
+                                    "discount",
+                                    parseFloat(e.target.value) || 0
+                                  )
+                                }
+                              />
+                            </td>
+                            <td className="border p-2">
+                              <input
+                                type="number"
+                                className="w-full bg-transparent outline-none"
+                                value={price.weight}
+                                onChange={(e) =>
+                                  handlePricingChange(
+                                    Number(product.id),
+                                    index,
+                                    "weight",
+                                    parseFloat(e.target.value) || 0
+                                  )
+                                }
+                              />
+                            </td>
+                            <td className="border p-2">
+                              <select
+                                className="w-full bg-transparent outline-none"
+                                value={price.unit}
+                                onChange={(e) =>
+                                  handlePricingChange(
+                                    Number(product.id),
+                                    index,
+                                    "unit",
+                                    e.target.value as ProductPriceType["unit"]
+                                  )
+                                }
+                              >
+                                <option value="grams">grams</option>
+                                <option value="kg">kg</option>
+                                <option value="ml">ml</option>
+                                <option value="litre">litre</option>
+                                <option value="piece">piece</option>
+                              </select>
+                            </td>
+                            <td className="border p-2">
+                              <input
+                                type="number"
+                                className="w-full bg-transparent outline-none"
+                                value={price.stock}
+                                onChange={(e) =>
+                                  handlePricingChange(
+                                    Number(product.id),
+                                    index,
+                                    "stock",
+                                    parseInt(e.target.value, 10) || 0
+                                  )
+                                }
+                              />
+                            </td>
+                          </tr>
+                        )
+                      )}
                     </tbody>
                   </table>
+                </td>
+                <td className="border-b p-4">
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openEditModal(product.id)}
+                      className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold text-white bg-gray-900 dark:bg-white dark:text-gray-900 rounded-lg shadow-sm hover:opacity-90 transition"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => savePricing(Number(product.id))}
+                      disabled={!dirtyProductIds.has(Number(product.id))}
+                      className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold text-white bg-green-600 disabled:bg-gray-400 rounded-lg shadow-sm hover:opacity-90 transition"
+                    >
+                      Save Pricing
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -262,7 +563,7 @@ export default function ProductsPage() {
       )}
       {activeTab === "my_products" &&
         products.products.filter((p) => p.isGlobalProduct != true).length >
-          0 && (
+        0 && (
           <table className="w-full text-left mt-8 border-collapse">
             <thead className="">
               <tr>
@@ -274,6 +575,7 @@ export default function ProductsPage() {
                 <th className="border-b p-4">Is Active</th>
 
                 <th className="border-b p-4">Pricing</th>
+                <th className="border-b p-4">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -327,11 +629,105 @@ export default function ProductsPage() {
                       </tbody>
                     </table>
                   </td>
+                  <td className="border-b p-4">
+                    <button
+                      type="button"
+                      onClick={() => openEditModal(product.id)}
+                      className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold text-white bg-gray-900 dark:bg-white dark:text-gray-900 rounded-lg shadow-sm hover:opacity-90 transition"
+                    >
+                      Edit
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
+
+      {exitPromptOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-full bg-yellow-100 text-yellow-700">!</div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Unsaved changes</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  You have unsaved pricing edits. Save before leaving or discard them to continue.
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => handleExitDecision("save")}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-green-600 rounded-lg shadow-sm hover:opacity-90 transition"
+              >
+                Save & Continue
+              </button>
+              <button
+                type="button"
+                onClick={() => handleExitDecision("discard")}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gray-900 dark:bg-white dark:text-gray-900 rounded-lg shadow-sm hover:opacity-90 transition"
+              >
+                Discard
+              </button>
+              <button
+                type="button"
+                onClick={() => handleExitDecision("cancel")}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 rounded-lg shadow-sm hover:opacity-90 transition"
+              >
+                Stay
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isEditOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 md:p-6">
+          <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[95vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={closeEditModal}
+              className="absolute right-3 top-3 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300"
+            >
+              <X size={18} />
+            </button>
+
+            {editLoading && (
+              <div className="flex items-center justify-center py-20 text-gray-500 gap-2">
+                <Loader2 className="animate-spin" size={20} />
+                <span>Loading product...</span>
+              </div>
+            )}
+
+            {!editLoading && editInitialData && editingId && (
+              <div className="p-4 md:p-6">
+                <ProductForm
+                  mode="edit"
+                  initialData={editInitialData}
+                  hideBackButton
+                  onBack={closeEditModal}
+                  onCancel={closeEditModal}
+                  onSubmit={async (data) => {
+                    const payload = {
+                      ...data,
+                      prices: data.pricing,
+                      stock: data.pricing?.[0]?.stock ?? 0,
+                    };
+
+                    await shopService.updateProductDetails(editingId, payload);
+                    await fetchProducts();
+                  }}
+                  onSuccess={closeEditModal}
+                  successMessage="Product updated successfully!"
+                  submitLabel="Update Product"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

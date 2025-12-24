@@ -33,6 +33,7 @@ interface CreateShopPayload {
 }
 
 interface ProductPriceType {
+  id?: number;
   stock: number;
   price: number;
   discount?: number;
@@ -57,30 +58,30 @@ interface Pagination {
 }
 type ShopProduct =
   | {
-      isGlobalProduct: false;
-      id: number | string;
-      category: string;
-      name: string;
-      brand: string;
-      description?: string;
-      images: string[];
-      rating: number;
-      pricing: ProductPriceType[];
-      isActive: boolean;
-    }
+    isGlobalProduct: false;
+    id: number | string;
+    category: string;
+    name: string;
+    brand: string;
+    description?: string;
+    images: string[];
+    rating: number;
+    pricing: ProductPriceType[];
+    isActive: boolean;
+  }
   | {
-      isGlobalProduct: true;
-      id: number | string;
-      globalProductId: number | string;
-      category: string;
-      name: string;
-      brand: string;
-      description?: string;
-      images: string[];
-      rating: number;
-      pricing: ProductPriceType[];
-      isActive: boolean;
-    };
+    isGlobalProduct: true;
+    id: number | string;
+    globalProductId: number | string;
+    category: string;
+    name: string;
+    brand: string;
+    description?: string;
+    images: string[];
+    rating: number;
+    pricing: ProductPriceType[];
+    isActive: boolean;
+  };
 
 interface GlobalProduct {
   id: number | string;
