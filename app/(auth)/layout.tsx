@@ -1,6 +1,6 @@
 "use client";
 import LocationGuard from "@/components/LocationGuard";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 import React from "react";
 
@@ -9,13 +9,14 @@ export default function AuthLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathName = usePathname();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "";
 
-  console.log("Auth Layout Pathname:", redirect);
+  // console.log("Auth Layout Pathname:", redirect);
   return (
     <>
-      {redirect !== "/shop/register" ? <><LocationGuard /></> : null}
+      {pathName!== "/shop/register" && redirect !== "/shop/register" ? <><LocationGuard /></> : null}
       <div className="min-h-screen w-full bg-[#fffdf5] dark:bg-gray-950 flex flex-col items-center justify-center p-4 transition-colors duration-300 relative overflow-hidden">
 
         {/* 1. Grocery Pattern Background (Increased Opacity for better visibility) */}
