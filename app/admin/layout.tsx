@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Map, // Added Map Icon
   Package,
+  Box,
 } from "lucide-react";
 
 export default function AdminLayout({
@@ -39,6 +40,7 @@ export default function AdminLayout({
     { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
     { name: "Live Map", href: "/admin/map", icon: Map }, // Added Map Link
     { name: "Global Products", href: "/admin/products/add", icon: Package }, // Added Global Products Link
+    { name: "Global Catogery", href: "/admin/categories", icon: Box },
     { name: "Manage Shops", href: "/admin/shops", icon: Store },
     { name: "Manage Riders", href: "/admin/riders", icon: Bike },
     { name: "Notifications", href: "/admin/notification", icon: Bell },
@@ -70,11 +72,10 @@ export default function AdminLayout({
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                  isActive
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${isActive
                     ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400 shadow-sm"
                     : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-200"
-                }`}
+                  }`}
               >
                 <Icon size={18} />
                 {item.name}
@@ -121,11 +122,10 @@ export default function AdminLayout({
                     key={item.name}
                     href={item.href}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium ${
-                      isActive
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium ${isActive
                         ? "bg-indigo-50 text-indigo-600"
                         : "text-gray-600"
-                    }`}
+                      }`}
                   >
                     <Icon size={18} /> {item.name}
                   </Link>
