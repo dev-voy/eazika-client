@@ -82,18 +82,19 @@ const addNewAddressData = async (
 const logoutUser = async (set: Set) => {
   set({ isLoading: true });
   try {
-    // await userService.logout();
-    // clear local storage and cookies
-    await localStorage.clear();
-    await document.cookie
+    localStorage.clear();
+    sessionStorage.clear();
+    document.cookie
       .split(";")
-      .forEach(
-        (c) =>
-          (document.cookie = c
-            .replace(/^ +/, "")
-            .replace(/=.*/, `=;expires=${new Date().toUTCString()};path=/`))
-      );
-    set({ user: null, isAuthenticated: false });
+      .forEach((c) => {
+        document.cookie = c
+          .replace(/^ +/, "")
+          .replace(/=.*/, `=;expires=${new Date(0).toUTCString()};path=/`);
+      });
+    set({ user: null, addresses: [], isAuthenticated: false });
+    setTimeout(() => {
+      window.location.href = "/login";
+    }, 100);
   } finally {
     set({ isLoading: false });
   }
