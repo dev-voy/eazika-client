@@ -72,7 +72,7 @@ export default function ProductsPage() {
 
   const productList = products?.products ?? [];
   const globalProductList = globalProducts?.products ?? [];
-  console.log("Global Products in component:", globalProducts);
+  // console.log("Global Products in component:", globalProducts);
 
   const normalizePricing = (value: unknown): ProductPriceType[] => {
     if (!value || typeof value !== "object") return [{ ...FALLBACK_PRICE }];
@@ -249,7 +249,7 @@ export default function ProductsPage() {
       if (changedPrices.length > 0) payload.prices = changedPrices;
       if (stockChanged) payload.stock = pricing[0]?.stock ?? 0;
 
-      await shopService.updateProductDetails(productId, payload);
+      await shopService.updateStock(payload);
       await fetchProducts();
       setDirtyProductIds((prev) => {
         const next = new Set(prev);

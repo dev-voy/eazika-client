@@ -142,7 +142,7 @@ const updateStockData = async (
 
   try {
     console.log("Updating stock for product:", productId, pricing);
-    await shopService.updateStock(productId, pricing);
+    await shopService.updateStock(pricing);
   } catch (error) {
     console.error("Stock update failed", error);
   }
