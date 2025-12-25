@@ -1,16 +1,16 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { Search, Plus, Package, Globe, Box, Check, Loader2, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { shopStore } from "@/store";
 import { ProductForm } from "@/components/shop/ProductForm";
 import { shopService, type UpdateProductPayload } from "@/services/shopService";
 import { toast } from "sonner";
 import type { NewProductFormData, ProductPriceType } from "@/types/shop";
+import PriceForm from "../../components/priceForm";
 
 interface Tab {
   id: "inventory" | "global" | "my_products";
@@ -61,6 +61,8 @@ export default function ProductsPage() {
   const [unsavedChanges, setUnsavedChanges] = useState(false);
   const [exitPromptOpen, setExitPromptOpen] = useState(false);
   const [pendingNav, setPendingNav] = useState<(() => void) | null>(null);
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [selectedGlobalProduct, setSelectedGlobalProduct] = useState<null | (typeof globalProductList)[number]>(null);
 
   const FALLBACK_PRICE: ProductPriceType = {
     price: 0,
@@ -249,7 +251,7 @@ export default function ProductsPage() {
       if (changedPrices.length > 0) payload.prices = changedPrices;
       if (stockChanged) payload.stock = pricing[0]?.stock ?? 0;
 
-      await shopService.updateStock(payload);
+      await shopService.updateProductDetails(productId, payload);
       await fetchProducts();
       setDirtyProductIds((prev) => {
         const next = new Set(prev);
@@ -305,6 +307,10 @@ export default function ProductsPage() {
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleAddProductFromGlobalProducts = (product: (typeof globalProductList)[number]) => {
+    setSelectedGlobalProduct(product);
+    setAddModalOpen(true);
+  };
   return (
     <div className="space-y-6 pb-24 md:pb-8 w-full max-w-[100vw] overflow-x-hidden px-1 md:px-0">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -602,7 +608,7 @@ export default function ProductsPage() {
                         <Check size={14} /> Added
                       </button>
                     ) : (
-                      <button onClick={() => {/* Add your add product logic here */ }} className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1 active:scale-95">
+                      <button onClick={() => handleAddProductFromGlobalProducts(product)} className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1 active:scale-95">
                         <Plus size={14} /> Add
                       </button>
                     )}
@@ -736,6 +742,40 @@ export default function ProductsPage() {
                 Stay
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {addModalOpen && selectedGlobalProduct && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 md:p-6">
+          <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6 space-y-4">
+            <button
+              type="button"
+              onClick={() => setAddModalOpen(false)}
+              className="absolute right-3 top-3 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="flex items-start gap-3">
+              <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800">
+                <Image src={selectedGlobalProduct.images?.[0] || "/placeholder.png"} alt={selectedGlobalProduct.name} fill style={{ objectFit: "cover" }} />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{selectedGlobalProduct.name}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{selectedGlobalProduct.category}</p>
+              </div>
+            </div>
+
+            <PriceForm
+              initialPricing={normalizePricing(selectedGlobalProduct)}
+              submitLabel="Add Product"
+              onCancel={() => setAddModalOpen(false)}
+              onSubmit={(pricing) => {
+                console.log({ product: selectedGlobalProduct, pricing });
+                setAddModalOpen(false);
+              }}
+            />
           </div>
         </div>
       )}
