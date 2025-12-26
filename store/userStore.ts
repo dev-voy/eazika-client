@@ -82,19 +82,43 @@ const addNewAddressData = async (
 const logoutUser = async (set: Set) => {
   set({ isLoading: true });
   try {
+    // Clear localStorage and sessionStorage
     localStorage.clear();
     sessionStorage.clear();
-    document.cookie
-      .split(";")
-      .forEach((c) => {
-        document.cookie = c
-          .replace(/^ +/, "")
-          .replace(/=.*/, `=;expires=${new Date(0).toUTCString()};path=/`);
-      });
+
+    // Clear all cookies - compatible with all browsers including Safari
+    const clearCookie = (name: string) => {
+      // Clear with different path and domain combinations for Safari compatibility
+      const expiry = "expires=Thu, 01 Jan 1970 00:00:00 UTC";
+      document.cookie = `${name}=; ${expiry}; path=/;`;
+      document.cookie = `${name}=; ${expiry}; path=/; domain=${window.location.hostname};`;
+      document.cookie = `${name}=; ${expiry}; path=/; SameSite=Lax;`;
+      document.cookie = `${name}=; ${expiry}; path=/; SameSite=Strict;`;
+      document.cookie = `${name}=; ${expiry}; path=/; SameSite=None; Secure;`;
+    };
+
+    // Clear specific auth cookies
+    clearCookie("accessToken");
+    clearCookie("userRole");
+    clearCookie("refreshToken");
+
+    // Clear all other cookies as fallback
+    document.cookie.split(";").forEach((cookie) => {
+      const cookieName = cookie.split("=")[0].trim();
+      if (cookieName) {
+        clearCookie(cookieName);
+      }
+    });
+
+    // Reset state
     set({ user: null, addresses: [], isAuthenticated: false });
-    setTimeout(() => {
-      window.location.href = "/login";
-    }, 100);
+
+    // Hard reload to login page (works better in Safari)
+    window.location.replace("/login");
+  } catch (error) {
+    console.error("Logout error:", error);
+    // Force redirect even if there's an error
+    window.location.replace("/login");
   } finally {
     set({ isLoading: false });
   }
