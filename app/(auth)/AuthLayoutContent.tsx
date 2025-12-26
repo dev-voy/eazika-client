@@ -14,7 +14,7 @@ export default function AuthLayoutContent({
 
     return (
         <>
-            {pathName !== "/shop/register" && redirect !== "/shop/register" ? (
+            {pathName !== "/shop/register" && redirect !== "/shop/register" && redirect !== "/admin" ? (
                 <LocationGuard />
             ) : null}
             <div className="min-h-screen w-full bg-[#fffdf5] dark:bg-gray-950 flex flex-col items-center justify-center p-4 transition-colors duration-300 relative overflow-hidden">
