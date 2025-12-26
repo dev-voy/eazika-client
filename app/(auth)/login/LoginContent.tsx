@@ -131,12 +131,20 @@ function LoginContent() {
         >
             <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-400/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
             <div className="mb-8 text-center relative z-10">
-                <Link
-                    href="/"
-                    className="inline-flex items-center text-sm text-gray-500 hover:text-yellow-600 dark:hover:text-yellow-400 mb-4 transition-colors"
-                >
-                    <ChevronLeft size={16} className="mr-1" /> Back to Home
-                </Link>
+                <div className="flex flex-row-reverse items-center justify-between mb-4 ">
+                    <Link
+                        href="/"
+                        className="inline-flex items-center text-sm text-gray-500 hover:text-yellow-600 dark:hover:text-yellow-400 mb-4 transition-colors"
+                    >
+                        <ChevronLeft size={16} className="mr-1" /> Back to Home
+                    </Link>
+                    <div onClick={() => {
+                        localStorage.clear();
+                        window.location.href = "/login";
+                    }} className="cursor-pointer inline-flex items-center text-sm text-gray-500 hover:text-yellow-600 dark:hover:text-yellow-400 mb-4 transition-colors">
+                        <ChevronLeft size={16} className="mr-1" />Back
+                    </div>
+                </div>
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                     Welcome Back
                 </h1>
