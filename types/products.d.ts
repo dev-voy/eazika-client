@@ -53,6 +53,26 @@ interface ProductDetailType {
   };
   images: string[];
   prices: ProductPriceType[];
+  shop?: {
+    id: number;
+    name: string;
+    category: string;
+    image: string[];
+    minimumOrderValue: number;
+    deliveryRates: {
+      km: number;
+      price: number;
+    }[];
+    schedule?: {
+      isOnlineDelivery: boolean;
+      weeklySlots: {
+        day: string;
+        open: string;
+        close: string;
+        isOpen: boolean;
+      }[];
+    };
+  };
 }
 
 interface CartItem {

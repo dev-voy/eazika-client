@@ -161,11 +161,10 @@ export default function ProductPage() {
                       <button
                         key={idx}
                         onClick={() => setActiveImage(idx)}
-                        className={`relative w-20 h-20 shrink-0 rounded-xl overflow-hidden border-2 transition-all ${
-                          activeImage === idx
+                        className={`relative w-20 h-20 shrink-0 rounded-xl overflow-hidden border-2 transition-all ${activeImage === idx
                             ? "border-yellow-500"
                             : "border-transparent"
-                        }`}
+                          }`}
                       >
                         <Image
                           src={img}
@@ -275,11 +274,10 @@ export default function ProductPage() {
                       <button
                         key={price.id}
                         onClick={() => setSelectedPrice(price)}
-                        className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all border-2 ${
-                          selectedPrice?.id === price.id
+                        className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all border-2 ${selectedPrice?.id === price.id
                             ? "border-yellow-500 bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-400"
                             : "border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
-                        }`}
+                          }`}
                       >
                         {`${price.weight}${price.unit} - ₹${price.price}`}
                       </button>
@@ -296,6 +294,94 @@ export default function ProductPage() {
                     {product.description}
                   </p>
                 </div>
+
+                {/* Shop Information */}
+                {product.shop && (
+                  <div className="border-2 border-gray-100 dark:border-gray-700 rounded-2xl p-5 bg-linear-to-br from-yellow-50 to-orange-50 dark:from-gray-800 dark:to-gray-800/50">
+                    <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-4">
+                      Sold by
+                    </h3>
+                    <div className="flex items-start gap-4">
+                      {/* Shop Image */}
+                      <div className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-white dark:bg-gray-700 border-2 border-white dark:border-gray-600 shadow-md">
+                        {product.shop.image && product.shop.image.length > 0 ? (
+                          <Image
+                            src={product.shop.image[0]}
+                            alt={product.shop.name}
+                            layout="fill"
+                            objectFit="cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
+                            Shop
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Shop Details */}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-lg text-gray-900 dark:text-white mb-1 truncate">
+                          {product.shop.name}
+                        </h4>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 capitalize mb-3">
+                          {product.shop.category}
+                        </p>
+
+                        {/* Delivery Info */}
+                        <div className="space-y-2">
+                          {/* Minimum Order */}
+                          <div className="flex items-center gap-2 text-sm">
+                            <div className="w-7 h-7 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                              <ShoppingCart size={14} className="text-green-600 dark:text-green-400" />
+                            </div>
+                            <span className="text-gray-700 dark:text-gray-300">
+                              Min. Order:{" "}
+                              <span className="font-bold text-gray-900 dark:text-white">
+                                ₹{product.shop.minimumOrderValue}
+                              </span>
+                            </span>
+                          </div>
+
+                          {/* Delivery Rates */}
+                          {product.shop.deliveryRates && product.shop.deliveryRates.length > 0 && (
+                            <div className="flex items-start gap-2 text-sm">
+                              <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0 mt-0.5">
+                                <Truck size={14} className="text-blue-600 dark:text-blue-400" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-gray-700 dark:text-gray-300 mb-1">
+                                  Delivery Charges:
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                  {product.shop.deliveryRates.slice(0, 3).map((rate, idx) => (
+                                    <span
+                                      key={idx}
+                                      className="inline-block px-2 py-1 bg-white dark:bg-gray-700 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600"
+                                    >
+                                      {rate.km}km: {rate.price === 0 ? "Free" : `₹${rate.price}`}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Online Delivery Status */}
+                          {product.shop.schedule?.isOnlineDelivery && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <div className="w-7 h-7 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+                                <ShieldCheck size={14} className="text-yellow-600 dark:text-yellow-400" />
+                              </div>
+                              <span className="text-green-600 dark:text-green-400 font-semibold">
+                                Online Delivery Available
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Trust Badges */}
                 <div className="grid grid-cols-2 gap-4">
