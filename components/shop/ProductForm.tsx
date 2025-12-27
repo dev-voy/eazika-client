@@ -31,6 +31,7 @@ type ProductFormProps = {
     successMessage?: string;
     hideBackButton?: boolean;
     onBack?: () => void;
+    readOnlyCoreFields?: boolean;
 };
 
 const DEFAULT_PRICE: ProductPriceType = {
@@ -60,6 +61,7 @@ export function ProductForm({
     successMessage,
     hideBackButton,
     onBack,
+    readOnlyCoreFields = false,
 }: ProductFormProps) {
     const router = useRouter();
     const [categories, setCategories] = useState<{ id: number; name: string }[]>([
@@ -314,17 +316,18 @@ export function ProductForm({
                                     className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 group bg-gray-50 dark:bg-gray-900"
                                 >
                                     <Image src={img} alt={`Product ${idx}`} fill className="object-cover" />
-                                    <button
-                                        type="button"
-                                        onClick={() => removeImage(idx)}
-                                        className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                    >
-                                        <X size={16} className="text-white" />
-                                    </button>
+                                    {!readOnlyCoreFields && (
+                                        <button
+                                            type="button"
+                                            onClick={() => removeImage(idx)}
+                                            className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <X size={16} className="text-white" />
+                                        </button>
+                                    )}
                                 </div>
                             ))}
-
-                            {formData.images.length < 4 && (
+                            {!readOnlyCoreFields && formData.images.length < 4 && (
                                 <button
                                     type="button"
                                     onClick={() => fileInputRef.current?.click()}
@@ -335,15 +338,19 @@ export function ProductForm({
                                 </button>
                             )}
                         </div>
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleImageUpload}
-                            className="hidden"
-                            accept="image/*"
-                            multiple
-                        />
-                        <p className="text-[10px] text-gray-400 mt-2 text-center">Upload up to 4 images. Max 5MB each.</p>
+                        {!readOnlyCoreFields && (
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleImageUpload}
+                                className="hidden"
+                                accept="image/*"
+                                multiple
+                            />
+                        )}
+                        <p className="text-[10px] text-gray-400 mt-2 text-center">
+                            {readOnlyCoreFields ? "Images are managed by the global catalog." : "Upload up to 4 images. Max 5MB each."}
+                        </p>
                     </div>
                 </div>
 
@@ -362,9 +369,10 @@ export function ProductForm({
                                         name="name"
                                         value={formData.name}
                                         onChange={handleInputChange}
-                                        className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:border-yellow-500 dark:text-white transition-colors text-sm md:text-base"
+                                        className={`w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl outline-none ${readOnlyCoreFields ? "opacity-70 cursor-not-allowed" : "focus:border-yellow-500"} dark:text-white transition-colors text-sm md:text-base`}
                                         placeholder="e.g. Fresh Farm Tomatoes"
                                         required
+                                        disabled={readOnlyCoreFields}
                                     />
                                 </div>
                             </div>
@@ -379,8 +387,9 @@ export function ProductForm({
                                             type="text"
                                             value={formData.brand}
                                             onChange={handleInputChange}
-                                            className="w-full pl-8 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:border-yellow-500 dark:text-white transition-colors text-sm md:text-base"
+                                            className={`w-full pl-8 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl outline-none ${readOnlyCoreFields ? "opacity-70 cursor-not-allowed" : "focus:border-yellow-500"} dark:text-white transition-colors text-sm md:text-base`}
                                             placeholder="e.g. Fresh Farms"
+                                            disabled={readOnlyCoreFields}
                                         />
                                     </div>
                                 </div>
@@ -394,7 +403,8 @@ export function ProductForm({
                                             name="category"
                                             value={formData.productCategoryId}
                                             onChange={handleCategoryChange}
-                                            className="w-full pl-10 pr-8 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:border-yellow-500 dark:text-white transition-colors appearance-none text-sm md:text-base"
+                                            className={`w-full pl-10 pr-8 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl outline-none ${readOnlyCoreFields ? "opacity-70 cursor-not-allowed" : "focus:border-yellow-500"} dark:text-white transition-colors appearance-none text-sm md:text-base`}
+                                            disabled={readOnlyCoreFields}
                                         >
                                             <option value={0} disabled>
                                                 Select Category
@@ -514,8 +524,9 @@ export function ProductForm({
                                     value={formData.description}
                                     onChange={handleInputChange}
                                     rows={4}
-                                    className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:border-yellow-500 dark:text-white transition-colors resize-none text-sm md:text-base"
+                                    className={`w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl outline-none ${readOnlyCoreFields ? "opacity-70 cursor-not-allowed" : "focus:border-yellow-500"} dark:text-white transition-colors resize-none text-sm md:text-base`}
                                     placeholder="Enter product details..."
+                                    disabled={readOnlyCoreFields}
                                 />
                             </div>
                         </div>

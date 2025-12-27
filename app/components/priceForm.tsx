@@ -61,29 +61,47 @@ export function PriceForm({ initialPricing, submitLabel = "Save Pricing", onSubm
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="flex justify-between items-center">
-                <h3 className="font-semibold text-lg text-gray-800 dark:text-white">Pricing & Variants</h3>
-                <button type="button" onClick={addVariant} className="text-sm text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1">
+        <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Pricing & Variants</h3>
+                <button
+                    type="button"
+                    onClick={addVariant}
+                    className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/30"
+                >
                     <Plus size={16} /> Add Variant
                 </button>
             </div>
 
             <div className="space-y-4">
                 {pricing.map((option, index) => (
-                    <div key={index} className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div key={index} className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+                            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Variant #{index + 1}</span>
+                            {pricing.length > 1 && (
+                                <button
+                                    type="button"
+                                    onClick={() => removeVariant(index)}
+                                    className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-gray-900 rounded-lg"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            )}
+                        </div>
+                        <div className="p-4 grid grid-cols-2 md:grid-cols-6 gap-4">
                             <div className="space-y-1">
                                 <label className="text-xs font-medium text-gray-500">Price (₹)</label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    value={option.price}
-                                    onChange={(e) => handleChange(index, "price", e.target.value)}
-                                    className="w-full px-3 py-2 rounded-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-sm"
-                                />
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">₹</span>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={option.price}
+                                        onChange={(e) => handleChange(index, "price", e.target.value)}
+                                        className="w-full pl-8 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm focus:border-indigo-500"
+                                    />
+                                </div>
                             </div>
-
                             <div className="space-y-1">
                                 <label className="text-xs font-medium text-gray-500">Discount (%)</label>
                                 <input
@@ -92,10 +110,9 @@ export function PriceForm({ initialPricing, submitLabel = "Save Pricing", onSubm
                                     max="100"
                                     value={option.discount || 0}
                                     onChange={(e) => handleChange(index, "discount", e.target.value)}
-                                    className="w-full px-3 py-2 rounded-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-sm"
+                                    className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm focus:border-indigo-500"
                                 />
                             </div>
-
                             <div className="space-y-1">
                                 <label className="text-xs font-medium text-gray-500">Weight</label>
                                 <input
@@ -103,16 +120,15 @@ export function PriceForm({ initialPricing, submitLabel = "Save Pricing", onSubm
                                     min="0"
                                     value={option.weight}
                                     onChange={(e) => handleChange(index, "weight", e.target.value)}
-                                    className="w-full px-3 py-2 rounded-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-sm"
+                                    className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm focus:border-indigo-500"
                                 />
                             </div>
-
                             <div className="space-y-1">
                                 <label className="text-xs font-medium text-gray-500">Unit</label>
                                 <select
                                     value={option.unit}
                                     onChange={(e) => handleChange(index, "unit", e.target.value)}
-                                    className="w-full px-3 py-2 rounded-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-sm"
+                                    className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm focus:border-indigo-500"
                                 >
                                     {["grams", "kg", "ml", "litre", "piece"].map((u) => (
                                         <option key={u} value={u}>
@@ -121,27 +137,15 @@ export function PriceForm({ initialPricing, submitLabel = "Save Pricing", onSubm
                                     ))}
                                 </select>
                             </div>
-
-                            <div className="space-y-1">
+                            <div className="space-y-1 md:col-span-2">
                                 <label className="text-xs font-medium text-gray-500">Stock</label>
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        value={option.stock}
-                                        onChange={(e) => handleChange(index, "stock", e.target.value)}
-                                        className="w-full px-3 py-2 rounded-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-sm"
-                                    />
-                                    {pricing.length > 1 && (
-                                        <button
-                                            type="button"
-                                            onClick={() => removeVariant(index)}
-                                            className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-gray-800 rounded"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
-                                    )}
-                                </div>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={option.stock}
+                                    onChange={(e) => handleChange(index, "stock", e.target.value)}
+                                    className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm focus:border-indigo-500"
+                                />
                             </div>
                         </div>
                     </div>
@@ -150,7 +154,11 @@ export function PriceForm({ initialPricing, submitLabel = "Save Pricing", onSubm
 
             <div className="flex justify-end gap-2 pt-2">
                 {onCancel && (
-                    <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:opacity-90 transition">
+                    <button
+                        type="button"
+                        onClick={onCancel}
+                        className="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:opacity-90 transition"
+                    >
                         Cancel
                     </button>
                 )}

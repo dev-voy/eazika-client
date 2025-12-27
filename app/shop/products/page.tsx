@@ -55,6 +55,7 @@ export default function ProductsPage() {
     (NewProductFormData & { categoryName?: string }) | null
   >(null);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingIsGlobal, setEditingIsGlobal] = useState<boolean>(false);
   const [editablePricing, setEditablePricing] = useState<Record<number, ProductPriceType[]>>({});
   const [originalPricing, setOriginalPricing] = useState<Record<number, ProductPriceType[]>>({});
   const [dirtyProductIds, setDirtyProductIds] = useState<Set<number>>(new Set());
@@ -232,6 +233,7 @@ export default function ProductsPage() {
 
     const productFromStore = productList.find((p) => Number(p.id) === numericId);
     if (productFromStore) {
+      setEditingIsGlobal(((productFromStore as any).isGlobalProduct === true) || ((productFromStore as any).isGlobal === true));
       const pricing = normalizePricing(productFromStore);
 
       setEditInitialData({
@@ -250,6 +252,7 @@ export default function ProductsPage() {
 
     try {
       const product = await shopService.getProductById(numericId);
+      setEditingIsGlobal(((product as any).isGlobalProduct === true) || ((product as any).isGlobal === true));
 
       const pricing = normalizePricing(product);
 
@@ -275,6 +278,7 @@ export default function ProductsPage() {
     setIsEditOpen(false);
     setEditInitialData(null);
     setEditingId(null);
+    setEditingIsGlobal(false);
   };
 
   const handlePricingChange = <K extends keyof ProductPriceType>(
@@ -915,6 +919,7 @@ export default function ProductsPage() {
                   hideBackButton
                   onBack={closeEditModal}
                   onCancel={closeEditModal}
+                  readOnlyCoreFields={editingIsGlobal}
                   onSubmit={async (data) => {
                     const payload = {
                       ...data,
