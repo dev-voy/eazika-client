@@ -180,7 +180,25 @@ export const ShopService = {
     });
     return response.data.url;
   },
-
+  getShopAddress: async () => {
+    const response = await axios.get("/shops/get-shop-address");
+    return response.data;
+  },
+  updateShopAddress: async (data: {
+    name?: string;
+    phone?: string;
+    line1: string;
+    line2?: string;
+    street?: string;
+    city: string;
+    state: string;
+    pinCode: string | number;
+    country?: string;
+    geoLocation?: string;
+  }) => {
+    const response = await axios.put("/shops/update-shop-address", data);
+    return response.data;
+  },
   // --- PRODUCT MANAGEMENT ---
 
   getInventory: async () => {
