@@ -227,7 +227,7 @@ export const ShopService = {
   getGlobalCatalog: async (): Promise<ShopProduct[]> => {
     try {
       const response = await axios.get(
-        "/shops/products/get-all-global-product"
+        "/shops/get-all-global-product"
       );
       // Cast explicitly if needed or rely on inference
       const globalData = response.data.data as GlobalProductListType;
@@ -299,8 +299,9 @@ export const ShopService = {
     params.append("page", String(page));
     params.append("limit", String(limit));
     const response = await axios.get(
-      `/shops/products/get-all-global-product?${params.toString()}`
+      `/shops/get-all-global-product?${params.toString()}`
     );
+    console.log(response)
     return response.data.data;
   },
 
@@ -444,6 +445,11 @@ export const ShopService = {
       { params: { range } }
     );
     return response.data;
+  },
+
+  toggleProductStatus: async (productId: number, isActive: boolean) => {
+    const response = await axiosInstance.patch(`/shops/products/toggle-status/${productId}`, { isActive });
+    return response.data.data;
   },
 };
 
