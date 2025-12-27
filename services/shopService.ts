@@ -249,10 +249,10 @@ export const ShopService = {
     }
   },
 
-  getShopMinimumOrder: async (shopkeeperId: number) => {
+  getShopMinimumOrder: async () => {
     try {
       const response = await axiosInstance.get(
-        `/shops/min-order/${shopkeeperId}`
+        `/shops/min-order`
       );
       return response.data;
     } catch (error) {

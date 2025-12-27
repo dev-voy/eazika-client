@@ -105,6 +105,25 @@ export default function ShopSettingsPage() {
         })();
     }, []);
 
+    // Prefill minimum order value from backend; fall back to default if unavailable
+    useEffect(() => {
+        (async () => {
+            try {
+                const minOrderResponse = await ShopService.getShopMinimumOrder();
+                // console.log(minOrderResponse)
+                const minimumOrderValue = minOrderResponse?.data?.minimumValue;
+                if (typeof minimumOrderValue === "number" && minimumOrderValue >= 0) {
+                    setMinOrderValue(minimumOrderValue);
+                } else {
+                    setMinOrderValue(0);
+                }
+            } catch (err) {
+                console.warn("Using default minimum order value", err);
+                setMinOrderValue(0);
+            }
+        })();
+    }, []);
+
     useEffect(() => {
         if (!user && !primaryAddress) return;
         setAddressForm((prev) => {
@@ -204,11 +223,12 @@ export default function ShopSettingsPage() {
         toast.success("Delivery radius pricing saved");
     };
 
-    const saveMinOrder = () => {
+    const saveMinOrder = async () => {
         const payload = { minimumOrderValue: minOrderValue };
-        console.log("[ShopSettings] Minimum order:", payload);
+        await ShopService.shopMinimumOrder(payload)
         toast.success("Minimum order updated");
     };
+
 
     const renderAddressView = () => {
         if (addressLoading || !primaryAddress || isEditingAddress) return null;
