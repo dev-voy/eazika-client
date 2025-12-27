@@ -650,12 +650,10 @@ export default function ProductsPage() {
       {activeTab === "global" && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <AnimatePresence mode="popLayout">
-            {globalProductList.map((product) => {
+            {globalProductList.filter((product) => product.isActive !== false).map((product) => {
               const alreadyAdded = productList.some((p) => p.globalProductId === product.id);
               // console.log(alreadyAdded)
               const firstImage = product.images?.[0] || "/placeholder.png";
-              const primaryPrice = product.pricing?.[0]?.price ?? 0;
-
               return (
                 <motion.div
                   key={product.id}
@@ -689,16 +687,10 @@ export default function ProductsPage() {
                           {product.category}
                         </p>
                       </div>
-
-                      <div className="mt-3 flex flex-wrap items-end justify-between gap-y-2">
-                        <span className="font-bold text-gray-900 dark:text-white text-base md:text-lg">
-                          ₹{primaryPrice}
-                        </span>
-                      </div>
                     </div>
                   </div>
 
-                  <div className="mt-3 flex flex-wrap items-end justify-between gap-y-2">
+                  <div className="mt-3 flex flex-wrap items-end justify-start gap-y-2">
                     <div className="flex items-center gap-2"></div>
                     {alreadyAdded ? (
                       <button
@@ -734,7 +726,7 @@ export default function ProductsPage() {
       )}
       <div ref={globalSentinelRef} className="h-2" />
       {activeTab === "my_products" &&
-        productList.filter((p) => p.isGlobalProduct != true).length >
+        productList.filter((p) => p.isGlobalProduct != true && p.isActive !== false).length >
         0 && (
           <table className="w-full text-left mt-8 border-collapse">
             <thead className="">
@@ -751,7 +743,7 @@ export default function ProductsPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredProducts.map((product) => (
+              {filteredProducts.filter((p) => p.isActive !== false).map((product) => (
                 <tr
                   key={product.id}
                   className="bg-white m-5 p-6 dark:bg-gray-800 rounded-2xl  md:p-4 border shadow-sm transition-all w-full border-gray-100 dark:border-gray-700"

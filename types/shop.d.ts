@@ -93,6 +93,7 @@ interface GlobalProduct {
   images: string[];
   rating: number;
   pricing: ProductPriceType[];
+  isActive: boolean;
 }
 type ShopProductListType = {
   products: ShopProduct[];

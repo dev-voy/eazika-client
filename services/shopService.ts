@@ -301,7 +301,7 @@ export const ShopService = {
     const response = await axios.get(
       `/shops/products/get-all-global-product?${params.toString()}`
     );
-    console.log(response)
+    // console.log(response)
     return response.data.data;
   },
 
