@@ -38,9 +38,6 @@ const DEFAULT_SLOTS: WeeklySlot[] = [
 
 const DEFAULT_RADII = [
     { km: 1, price: 0 },
-    { km: 2, price: 10 },
-    { km: 3, price: 20 },
-    { km: 5, price: 35 },
 ];
 
 export default function ShopSettingsPage() {
@@ -120,6 +117,24 @@ export default function ShopSettingsPage() {
             } catch (err) {
                 console.warn("Using default minimum order value", err);
                 setMinOrderValue(0);
+            }
+        })();
+    }, []);
+
+    // Prefill delivery rates from backend; fall back to defaults if unavailable
+    useEffect(() => {
+        (async () => {
+            try {
+                const DeliverySlotsResponse = await ShopService.getShopDeliveryRates();
+                const rates = DeliverySlotsResponse?.data?.rates;
+                if (Array.isArray(rates) && rates.length > 0) {
+                    setDeliveryBands(rates);
+                } else {
+                    setDeliveryBands(DEFAULT_RADII);
+                }
+            } catch (err) {
+                console.warn("Using default delivery rates", err);
+                setDeliveryBands(DEFAULT_RADII);
             }
         })();
     }, []);
@@ -217,11 +232,14 @@ export default function ShopSettingsPage() {
         // console.log("[ShopSettings] Schedule payload:", schedulePayload);
         toast.success("Schedule saved");
     };
-    const saveDeliveryBands = () => {
-        const pricingPayload = deliveryBands.map((b) => ({ km: b.km, price: b.price }));
-        console.log("[ShopSettings] Delivery pricing:", pricingPayload);
+    const saveDeliveryBands = async () => {
+        const pricingPayload = {
+            rates: deliveryBands.map((b) => ({ km: b.km, price: b.price }))
+        };
+        await ShopService.shopDeliveryRates(pricingPayload)
         toast.success("Delivery radius pricing saved");
     };
+
 
     const saveMinOrder = async () => {
         const payload = { minimumOrderValue: minOrderValue };

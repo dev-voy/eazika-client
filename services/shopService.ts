@@ -279,10 +279,10 @@ export const ShopService = {
     }
   },
 
-  getShopDeliveryRates: async (shopkeeperId: number) => {
+  getShopDeliveryRates: async () => {
     try {
       const response = await axiosInstance.get(
-        `/shops/delivery-rates/${shopkeeperId}`
+        `/shops/delivery-rates`
       );
       return response.data;
     } catch (error) {
