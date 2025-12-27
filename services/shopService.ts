@@ -199,7 +199,8 @@ export const ShopService = {
     const response = await axios.put("/shops/update-shop-address", data);
     return response.data;
   },
-  updateShopDeliverySlots: async (data: {
+  // API calls for shop configuration
+  shopDeliverySlots: async (data: {
     isOnlineDelivery: boolean;
     weeklySlots: Array<{
       day: string;
@@ -209,8 +210,8 @@ export const ShopService = {
     }>;
   }) => {
     try {
-      const response = await axiosInstance.patch(
-        "/shops/update-delivery-slots",
+      const response = await axiosInstance.post(
+        "/shops/schedule",
         data
       );
       return response.data;
@@ -219,6 +220,76 @@ export const ShopService = {
       throw error;
     }
   },
+
+  getShopDeliverySlots: async (shopkeeperId: number) => {
+    try {
+      const response = await axiosInstance.get(
+        `/shops/schedule/${shopkeeperId}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching delivery slots:", error);
+      throw error;
+    }
+  },
+
+  shopMinimumOrder: async (data: {
+    minimumOrderValue: number;
+  }) => {
+    try {
+      const response = await axiosInstance.post(
+        "/shops/min-order",
+        data
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error updating minimum order:", error);
+      throw error;
+    }
+  },
+
+  getShopMinimumOrder: async (shopkeeperId: number) => {
+    try {
+      const response = await axiosInstance.get(
+        `/shops/min-order/${shopkeeperId}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching minimum order:", error);
+      throw error;
+    }
+  },
+
+  shopDeliveryRates: async (data: {
+    rates: Array<{
+      km: number;
+      price: number;
+    }>;
+  }) => {
+    try {
+      const response = await axiosInstance.post(
+        "/shops/delivery-rates",
+        data
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error updating delivery rates:", error);
+      throw error;
+    }
+  },
+
+  getShopDeliveryRates: async (shopkeeperId: number) => {
+    try {
+      const response = await axiosInstance.get(
+        `/shops/delivery-rates/${shopkeeperId}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching delivery rates:", error);
+      throw error;
+    }
+  },
+
   // --- PRODUCT MANAGEMENT ---
 
   getInventory: async () => {
