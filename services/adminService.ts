@@ -82,7 +82,17 @@ export const AdminService = {
     );
     return response.data.data;
   },
-
+  updateCategory: async (
+    id: string,
+    name: string,
+    description: string
+  ) => {
+    const response = await axiosInstance.patch(
+      `/admin/products/update-category/${id}`,
+      { name, description }
+    );
+    return response.data.data;
+  },
   createGlobalProduct: async (data: any) => {
     const response = await axiosInstance.post(
       "/admin/products/add-global",
