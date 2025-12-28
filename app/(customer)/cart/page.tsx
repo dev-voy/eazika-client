@@ -312,7 +312,7 @@ export default function CartPage() {
       </div>
 
       <div className="mb-6 grid gap-3 md:grid-cols-[2fr_2fr_auto] items-end bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-4 shadow-sm">
-        {/* <div>
+        <div className="hidden">
           <label className="text-sm font-semibold text-gray-700 dark:text-gray-200 block mb-1">
             Latitude
           </label>
@@ -326,8 +326,8 @@ export default function CartPage() {
             placeholder="e.g. 25.370656"
             className="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500"
           />
-        </div> */}
-        {/* <div>
+        </div>
+        <div className="hidden">
           <label className="text-sm font-semibold text-gray-700 dark:text-gray-200 block mb-1">
             Longitude
           </label>
@@ -341,7 +341,7 @@ export default function CartPage() {
             placeholder="e.g. 85.163734"
             className="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500"
           />
-        </div> */}
+        </div>
         <div className="flex gap-2">
           <button
             type="button"
