@@ -3,7 +3,15 @@ import { type NextRequest, NextResponse } from "next/server";
 type UserRoleType = "admin" | "user" | "delivery_boy" | "shopkeeper";
 
 // Public routes that don't require authentication
-const publicRoutes = ["/login", "/register", "/contact-us", "/privacy-policy", "/terms-and-condition"];
+const publicRoutes = [
+  "/login",
+  "/register",
+  "/contact-us",
+  "/privacy-policy",
+  "/terms-and-condition",
+  "/web-app-manifest-192x192.png",
+  "/web-app-manifest-512x512.png",
+];
 
 export async function proxy(req: NextRequest) {
   const token = (await req.cookies.get("accessToken")?.value) || null;
