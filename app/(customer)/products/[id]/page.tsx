@@ -494,19 +494,19 @@ export default function ProductPage() {
                           {isLocating ? "Detecting..." : "Use GPS"}
                         </button>
 
-                        <input
+                        {/* <input
                           placeholder="Latitude"
                           value={manualLat}
                           onChange={(e) => setManualLat(e.target.value)}
                           className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-3 py-2 text-sm"
-                        />
+                        /> */}
                         <div className="flex gap-2">
-                          <input
+                          {/* <input
                             placeholder="Longitude"
                             value={manualLng}
                             onChange={(e) => setManualLng(e.target.value)}
                             className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-3 py-2 text-sm"
-                          />
+                          /> */}
                           <button
                             type="button"
                             onClick={handleUseManual}

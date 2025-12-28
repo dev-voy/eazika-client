@@ -75,7 +75,8 @@ export default function WishlistPage() {
       fetchWishlistItems();
     }
   }, [wishlistIds, isClient]);
-
+  console.log(wishlistProducts);
+  wishlistIds.map((id, name) => console.log("Wishlist ID:", name));
   // Handler to add item to cart
   const handleAddToCart = async (product: ShopProduct) => {
     // Use safe fallback for price ID
@@ -158,7 +159,7 @@ export default function WishlistPage() {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-400">
-                      <span className="text-xs">No Image</span>
+                      <span className="text-xs">name is {product.name}</span>
                     </div>
                   )}
                 </Link>
