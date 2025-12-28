@@ -267,7 +267,8 @@ function TrackOrderContent() {
       {/* --- Desktop Layout --- */}
       <div className="hidden md:flex h-full">
         <div className="flex-1 h-full relative">
-          <MapPlaceholder orderId={tracking.orderId} />
+          {/* TODO: Re-enable live map when implementation is ready */}
+          {/* <MapPlaceholder orderId={tracking.orderId} /> */}
 
           <div className="absolute top-6 left-6 right-6 flex justify-between items-center z-10">
             <button
@@ -290,7 +291,8 @@ function TrackOrderContent() {
       {/* --- Mobile Layout --- */}
       <div className="md:hidden h-full w-full relative">
         <div className="absolute inset-0 z-0">
-          <MapPlaceholder orderId={tracking.orderId} />
+          {/* TODO: Re-enable live map when implementation is ready */}
+          {/* <MapPlaceholder orderId={tracking.orderId} /> */}
         </div>
 
         <div className="absolute top-0 left-0 right-0 p-4 pt-safe-top flex justify-between items-center z-10 pointer-events-none">
