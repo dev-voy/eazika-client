@@ -34,7 +34,7 @@ const OrderCard = ({ order }: { order: Order }) => {
   const handleCardClick = () => {
     // Live orders go to tracking page, completed to details page
     if (isLive) {
-      router.push(`/orders/track-order/${order.id}`);
+      router.replace(`/orders/track-order/${order.id}`);
     } else {
       router.push(`/orders/${order.id}`);
     }
