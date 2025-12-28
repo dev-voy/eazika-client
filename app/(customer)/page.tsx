@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef, Suspense } from "react";
-import { ArrowRight, Heart, Star, Search, X, Loader2 } from "lucide-react";
+import { ArrowRight, Heart, Star, Search, X, Loader2, MapPin, Navigation } from "lucide-react";
 import Image from "next/image";
 import { BannerCarousel } from "@/app/components/BannerCarousel";
 import { motion, Variants, AnimatePresence } from "framer-motion";
@@ -41,10 +41,19 @@ export default function HomePage() {
   );
   const { toggleWishlist, isWishlisted } = useWishlistStore();
   const { isLoading: isCartLoading } = useCartStore();
-  const { currentCity, isLocationVerified } = useLocationStore(); // GET CITY
+  const {
+    currentCity,
+    isLocationVerified,
+    supportedCities,
+    fetchSupportedCities,
+    setLocation,
+    setGeoLocation,
+  } = useLocationStore(); // GET CITY
 
   const [isClient, setIsClient] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [cityInput, setCityInput] = useState("");
+  const [detecting, setDetecting] = useState(false);
 
   const [categories, setCategories] = useState<Category[]>([
     {
@@ -66,6 +75,12 @@ export default function HomePage() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Load supported cities once on client
+  useEffect(() => {
+    if (!isClient) return;
+    fetchSupportedCities();
+  }, [isClient, fetchSupportedCities]);
 
   // UPDATED: Fetch data only when city is verified
   useEffect(() => {
@@ -149,11 +164,113 @@ export default function HomePage() {
     };
   }, [hasMoreProducts, isLoading]);
 
-  // Show loader until location is ready
+  // Handle location selection UI before loading products
   if (!isLocationVerified) {
+    const normalizedSupported = supportedCities ?? [];
+
+    const handleCitySelect = (city: string) => {
+      setCityInput(city);
+    };
+
+    const handleSaveCity = () => {
+      const city = (cityInput || normalizedSupported[0] || "").trim();
+      if (!city) return;
+      setLocation(city);
+      setGeoLocation(null);
+    };
+
+    const handleUseMyLocation = () => {
+      setDetecting(true);
+      if (!navigator.geolocation) {
+        setDetecting(false);
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            const { latitude, longitude } = position.coords;
+            const resp = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+            );
+            const data = await resp.json();
+            const detectedCity =
+              data.address?.city ||
+              data.address?.town ||
+              data.address?.village ||
+              data.address?.county;
+            if (detectedCity) {
+              const formatted = detectedCity.trim();
+              setLocation(formatted);
+              setGeoLocation({ lat: latitude, lng: longitude });
+              setCityInput(formatted);
+            }
+          } catch (error) {
+            console.error("Detect location failed", error);
+          } finally {
+            setDetecting(false);
+          }
+        },
+        (error) => {
+          console.error("Geolocation error", error);
+          setDetecting(false);
+        }
+      );
+    };
+
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <Loader2 className="animate-spin text-yellow-500" size={32} />
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+        <div className="w-full max-w-lg bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center text-yellow-600">
+              <MapPin size={22} />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Select your city</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Choose a city to load nearby products.</p>
+            </div>
+          </div>
+
+          {normalizedSupported.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {normalizedSupported.map((city) => (
+                <button
+                  key={city}
+                  onClick={() => handleCitySelect(city)}
+                  className={`px-3 py-2 rounded-full text-sm border transition ${cityInput === city ? "border-yellow-500 text-yellow-700 dark:text-yellow-200 bg-yellow-50 dark:bg-yellow-900/20" : "border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-yellow-400"}`}
+                >
+                  {city}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">City name</label>
+            <input
+              value={cityInput}
+              onChange={(e) => setCityInput(e.target.value)}
+              placeholder={normalizedSupported[0] || "Enter your city"}
+              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-3 text-gray-900 dark:text-white focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/30"
+            />
+          </div>
+
+          <div className="flex gap-3 flex-col sm:flex-row">
+            <button
+              onClick={handleUseMyLocation}
+              disabled={detecting}
+              className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-yellow-500 text-white font-bold py-3 hover:bg-yellow-600 transition disabled:opacity-70"
+            >
+              {detecting ? <Loader2 className="animate-spin" size={16} /> : <Navigation size={16} />}
+              {detecting ? "Detecting..." : "Use my location"}
+            </button>
+            <button
+              onClick={handleSaveCity}
+              className="flex-1 inline-flex items-center justify-center rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-white font-semibold py-3 hover:border-yellow-400"
+            >
+              Save city
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

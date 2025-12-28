@@ -4,10 +4,12 @@ import coustomerService from "@/services/customerService";
 
 interface LocationState {
   currentCity: string | null;
-  supportedCities: string[]; 
+  supportedCities: string[];
   isLocationVerified: boolean;
+  geoLocation: { lat: number; lng: number } | null;
 
   setLocation: (city: string) => void;
+  setGeoLocation: (coords: { lat: number; lng: number } | null) => void;
   fetchSupportedCities: () => Promise<void>;
   resetLocation: () => void;
 }
@@ -18,6 +20,7 @@ export const useLocationStore = create<LocationState>()(
       currentCity: null,
       supportedCities: [],
       isLocationVerified: false,
+      geoLocation: null,
 
       setLocation: (city) =>
         set({
@@ -25,11 +28,16 @@ export const useLocationStore = create<LocationState>()(
           isLocationVerified: true,
         }),
 
-      
+      setGeoLocation: (coords) =>
+        set({
+          geoLocation: coords,
+        }),
+
+
       fetchSupportedCities: async () => {
         try {
           const cities = await coustomerService.getAvailableCities();
-          
+
           const formattedCities = cities.map(
             (c) => c.charAt(0).toUpperCase() + c.slice(1).toLowerCase()
           );
@@ -43,6 +51,7 @@ export const useLocationStore = create<LocationState>()(
         set({
           currentCity: null,
           isLocationVerified: false,
+          geoLocation: null,
         }),
     }),
     {
