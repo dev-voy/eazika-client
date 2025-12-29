@@ -117,7 +117,7 @@ export default function DeliveryMapPage() {
   const { queue, activeOrder, completeCurrentOrder, isSessionActive } =
     useDeliveryStore();
 
-  console.log(activeOrder);
+  // console.log(activeOrder);
   const [currentLocation, setCurrentLocation] =
     useState<google.maps.LatLngLiteral | null>(null);
   const [directionsResponse, setDirectionsResponse] =
@@ -218,9 +218,14 @@ export default function DeliveryMapPage() {
 
   // Get initial fix if missing
   useEffect(() => {
-    if (!currentLocation) {
+    if (currentLocation) return;
+
+    // Defer to next tick to avoid synchronous state updates inside the effect
+    const timeoutId = window.setTimeout(() => {
       handleLocate();
-    }
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [currentLocation, handleLocate]);
 
   // --- 2. AUTO-ZOOM LOGIC (The "Smart" Camera) ---
@@ -251,9 +256,26 @@ export default function DeliveryMapPage() {
   }, [currentLocation, directionsResponse]);
 
   const calculateRoute = useCallback(async () => {
-    if (!currentLocation || !window.google || queue.length === 0) return;
+    if (!currentLocation || !window.google) return;
 
     const directionsService = new window.google.maps.DirectionsService();
+
+    // Prefer shortest path using explicit destination coordinates when available
+    if (destinationLocation) {
+      try {
+        const results = await directionsService.route({
+          origin: currentLocation,
+          destination: destinationLocation,
+          travelMode: google.maps.TravelMode.DRIVING,
+        });
+        setDirectionsResponse(results);
+      } catch (error) {
+        console.error("Route Error:", error);
+      }
+      return;
+    }
+
+    if (queue.length === 0) return;
 
     let destinationAddress = "";
     let waypoints: google.maps.DirectionsWaypoint[] = [];
@@ -275,7 +297,7 @@ export default function DeliveryMapPage() {
       const results = await directionsService.route({
         origin: currentLocation,
         destination: destinationAddress,
-        waypoints: waypoints,
+        waypoints,
         optimizeWaypoints: true,
         travelMode: google.maps.TravelMode.DRIVING,
       });
@@ -283,13 +305,19 @@ export default function DeliveryMapPage() {
     } catch (error) {
       console.error("Route Error:", error);
     }
-  }, [currentLocation, queue]);
+  }, [currentLocation, destinationLocation, queue]);
 
   useEffect(() => {
-    if (isLoaded && currentLocation && queue.length > 0) {
-      calculateRoute();
-    }
-  }, [isLoaded, currentLocation, queue, calculateRoute]);
+    if (!isLoaded || !currentLocation) return;
+    if (!destinationLocation && queue.length === 0) return;
+
+    // Defer route calculation to avoid synchronous state updates inside the effect body
+    const timeoutId = window.setTimeout(() => {
+      void calculateRoute();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isLoaded, currentLocation, destinationLocation, queue, calculateRoute]);
 
   const handleOpenMapsApp = () => {
     if (!activeOrder) return;
