@@ -184,6 +184,12 @@ export const ShopService = {
     const response = await axios.get("/shops/get-shop-address");
     return response.data;
   },
+
+  getShopGeoLocation: async (): Promise<string | undefined> => {
+    const response = await axios.get("/shops/get-shop-address");
+    // console.log("Shop address response:", response);
+    return response.data?.geoLocation;
+  },
   updateShopAddress: async (data: {
     name?: string;
     phone?: string;
@@ -220,7 +226,17 @@ export const ShopService = {
       throw error;
     }
   },
-
+  getShopGeoLocation: async () => {
+    try {
+      const response = await axiosInstance.get(
+        `/shops/shop-geo-location`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching shop geo-location:", error);
+      throw error;
+    }
+  },
   getShopDeliverySlots: async () => {
     try {
       const response = await axiosInstance.get(
@@ -474,6 +490,7 @@ export const ShopService = {
 
   getShopOrderById: async (id: number | string): Promise<OrderDetail> => {
     const response = await axios.get(`/shops/orders/order/${id}`);
+    // console.log("Fetched order details:", response);
     return response.data.data.order;
   },
 

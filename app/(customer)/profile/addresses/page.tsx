@@ -225,7 +225,7 @@ const AddressForm = ({
           <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${liveTracking ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300" : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300"}`}>
             {liveTracking ? "Live tracking: ON" : "Live tracking: OFF"}
           </span>
-          {!liveTracking && <span className="text-xs text-gray-500 dark:text-gray-400">Tap "Use Current Location" to enable</span>}
+          {!liveTracking && <span className="text-xs text-gray-500 dark:text-gray-400">Tap &quot;Use Current Location&quot; to enable</span>}
         </div>
 
         <div className="grid grid-cols-1 gap-4">

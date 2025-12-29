@@ -19,6 +19,39 @@ import { shopService } from "@/services/shopService";
 import { OrderDetail } from "@/types/shop";
 import { cn } from "@/lib/utils";
 
+const parseGeo = (geo?: string | { lat?: number; lng?: number; latitude?: number; longitude?: number } | null) => {
+  if (!geo) return null;
+
+  if (typeof geo === "string") {
+    const [lat, lng] = geo.split(",").map((v) => Number(v.trim()));
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    return { lat, lng } as const;
+  }
+
+  const lat = Number((geo as any).lat ?? (geo as any).latitude);
+  const lng = Number((geo as any).lng ?? (geo as any).longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return { lat, lng } as const;
+};
+
+const haversineKm = (
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number }
+) => {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const R = 6371; // km
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+
+  return 2 * R * Math.asin(Math.sqrt(h));
+};
+
 export default function ShopOrderDetailsPage({
   params,
 }: {
@@ -30,6 +63,10 @@ export default function ShopOrderDetailsPage({
   const [order, setOrder] = useState<OrderDetail | null>();
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+
+  const [shopDistanceKm, setShopDistanceKm] = useState<number | null>(null);
+  const [productDistanceKm, setProductDistanceKm] = useState<number | null>(null);
+  const [distanceNote, setDistanceNote] = useState<string>("");
 
   const [openPopUp, setOpenPopUp] = useState<OrderDetail["status"] | null>(
     null
@@ -46,6 +83,41 @@ export default function ShopOrderDetailsPage({
         const data = await shopService.getShopOrderById(orderId);
         if (!data) return;
         setOrder(data);
+
+        // Use geoLocation from the order payload (see sample response)
+        const customerGeo = (data as any).geoLocation;
+        let shopGeo = (data as any).shopGeoLocation as any;
+        if (!shopGeo) {
+          try {
+            shopGeo = await shopService.getShopGeoLocation();
+            // console.log(shopGeo.data.geoLocation, "this is shop geo from service")
+            if (!shopGeo.data.geoLocation) {
+              setDistanceNote("Shop location missing. Add geo in Shop Settings.");
+            }
+          } catch (err) {
+            console.error("Failed to load shop geo location", err);
+            setDistanceNote("Unable to load shop location.");
+          }
+        }
+
+        const productGeo = (data as any).productGeoLocation || (data.orderItems?.[0] as any)?.geoLocation;
+
+        const from = parseGeo(customerGeo);
+        const toShop = parseGeo(shopGeo.data.geoLocation || null);
+        // console.log("this is shop location", toShop)
+        const toProduct = parseGeo(productGeo);
+
+        if (from && toShop) {
+          setShopDistanceKm(Number(haversineKm(from, toShop).toFixed(2)));
+        } else if (!from) {
+          setDistanceNote("Customer geo missing in order.");
+        } else if (!toShop) {
+          setDistanceNote("Shop geo missing; distance unavailable.");
+        }
+
+        if (from && toProduct) {
+          setProductDistanceKm(Number(haversineKm(from, toProduct).toFixed(2)));
+        }
       } catch (error) {
         if (error instanceof Error) {
           toast.error(`Failed to load order: ${error.message}`);
@@ -117,7 +189,7 @@ export default function ShopOrderDetailsPage({
       setIsUpdating(false);
     }
   };
-  console.log(order)
+  // console.log(order)
 
   return (
     <div className="max-w-4xl mx-auto pb-24 md:pb-8">
@@ -181,6 +253,23 @@ export default function ShopOrderDetailsPage({
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   {order.address}
                 </p>
+                <div className="ml-auto text-right">
+                  {shopDistanceKm !== null && (
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                      To shop: {shopDistanceKm} km
+                    </p>
+                  )}
+                  {productDistanceKm !== null && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      To product location: {productDistanceKm} km
+                    </p>
+                  )}
+                  {shopDistanceKm === null && productDistanceKm === null && distanceNote && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {distanceNote}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -320,8 +409,8 @@ export default function ShopOrderDetailsPage({
                     <div key={step} className="relative">
                       <div
                         className={`absolute -left-[21px] top-1 w-3 h-3 rounded-full ring-4 ring-white dark:ring-gray-800 ${isCompleted
-                            ? "bg-green-500"
-                            : "bg-gray-300 dark:bg-gray-600"
+                          ? "bg-green-500"
+                          : "bg-gray-300 dark:bg-gray-600"
                           }`}
                       />
                       <p
@@ -436,8 +525,8 @@ export default function ShopOrderDetailsPage({
                         key={rider.id}
                         onClick={() => setSelectedRider(rider)}
                         className={`p-4 rounded-xl border-2 cursor-pointer flex items-center justify-between transition-all ${selectedRider?.id === rider.id
-                            ? "border-yellow-500 bg-yellow-50 dark:bg-yellow-500/10"
-                            : "border-gray-100 dark:border-gray-700 hover:border-gray-300"
+                          ? "border-yellow-500 bg-yellow-50 dark:bg-yellow-500/10"
+                          : "border-gray-100 dark:border-gray-700 hover:border-gray-300"
                           }`}
                       >
                         <div className="flex items-center gap-3">
