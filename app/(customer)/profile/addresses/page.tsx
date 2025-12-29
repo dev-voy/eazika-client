@@ -99,6 +99,9 @@ const AddressForm = ({
   });
 
   const [isLocating, setIsLocating] = useState(false);
+  const [geoCoords, setGeoCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [liveTracking, setLiveTracking] = useState(false);
+  const [showGeoPrompt, setShowGeoPrompt] = useState(false);
 
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -128,6 +131,11 @@ const AddressForm = ({
             country: "India",
             pinCode: addr.postcode || "",
           }));
+
+          const coords = { lat: latitude, lng: longitude };
+          setGeoCoords(coords);
+          setLiveTracking(true);
+          localStorage.setItem("eazika-geo", `${coords.lat},${coords.lng}`);
         } catch (error) {
           console.warn("Failed to get address details", error);
         } finally {
@@ -143,7 +151,20 @@ const AddressForm = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    // If no geo coords, prompt to explain importance
+    if (!geoCoords) {
+      setShowGeoPrompt(true);
+      return;
+    }
+    submitWithGeo(geoCoords);
+  };
+
+  const submitWithGeo = (coords?: { lat: number; lng: number }) => {
+    const payload = { ...formData } as AddressPayload & { geoLocation?: string };
+    if (coords) {
+      payload.geoLocation = `${coords.lat},${coords.lng}`;
+    }
+    onSave(payload);
   };
 
   const isEditing = !!initialData.id;
@@ -171,11 +192,10 @@ const AddressForm = ({
                 key={type}
                 type="button"
                 onClick={() => setFormData({ ...formData, name: type })}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all ${
-                  formData.name === type
+                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all ${formData.name === type
                     ? "bg-yellow-50 border-yellow-500 text-yellow-700 dark:bg-yellow-900/30 dark:border-yellow-500 dark:text-yellow-400"
                     : "bg-gray-50 border-transparent text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
-                }`}
+                  }`}
               >
                 {type}
               </button>
@@ -199,6 +219,14 @@ const AddressForm = ({
             Use Current Location
           </button>
         )}
+
+        {/* Live tracking status */}
+        <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+          <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${liveTracking ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300" : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300"}`}>
+            {liveTracking ? "Live tracking: ON" : "Live tracking: OFF"}
+          </span>
+          {!liveTracking && <span className="text-xs text-gray-500 dark:text-gray-400">Tap "Use Current Location" to enable</span>}
+        </div>
 
         <div className="grid grid-cols-1 gap-4">
           <input
@@ -291,6 +319,65 @@ const AddressForm = ({
           </button>
         </div>
       </form>
+
+      {/* Geo prompt modal */}
+      <AnimatePresence>
+        {showGeoPrompt && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl w-full max-w-md border border-gray-100 dark:border-gray-700"
+            >
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">Why we need your location</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Location helps drivers navigate and enables live tracking updates.</p>
+                </div>
+                <button
+                  onClick={() => setShowGeoPrompt(false)}
+                  className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500"
+                  aria-label="Close"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300 mb-4">
+                <p>• Faster delivery and accurate directions.</p>
+                <p>• Enables live tracking for your order.</p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => {
+                    setShowGeoPrompt(false);
+                    handleUseCurrentLocation();
+                  }}
+                  className="flex-1 py-3 rounded-xl bg-yellow-500 text-white font-bold hover:bg-yellow-600 transition-colors"
+                >
+                  Send geo location & continue
+                </button>
+                <button
+                  onClick={() => {
+                    setShowGeoPrompt(false);
+                    submitWithGeo(undefined);
+                  }}
+                  className="flex-1 py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 font-semibold hover:border-yellow-400"
+                >
+                  Save without geo
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };
