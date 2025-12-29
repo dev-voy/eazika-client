@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useMemo } from 'react';
 import {
   ArrowLeft,
   MapPin,
@@ -13,6 +13,7 @@ import {
 import { motion, PanInfo, useAnimation, AnimatePresence, useDragControls } from 'framer-motion';
 import { useRouter, useParams } from 'next/navigation';
 import { CartService, TrackingDetails } from '@/services/cartService';
+import LiveOrderTracker from '@/components/customer/LiveOrderTracker';
 
 // --- Components ---
 
@@ -162,6 +163,18 @@ function TrackOrderContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+  const customerLocation = useMemo(() => {
+    const geo = (tracking as any)?.address?.geoLocation as string | undefined;
+    if (!geo || typeof geo !== 'string') return userLocation;
+    const parts = geo.split(',');
+    if (parts.length !== 2) return userLocation;
+    const lat = parseFloat(parts[0].trim());
+    const lng = parseFloat(parts[1].trim());
+    if (Number.isNaN(lat) || Number.isNaN(lng)) return userLocation;
+    return { lat, lng };
+  }, [tracking, userLocation]);
 
   // Animation controls
   const controls = useAnimation();
@@ -201,6 +214,20 @@ function TrackOrderContent() {
     updateHeight();
     window.addEventListener('resize', updateHeight);
     return () => window.removeEventListener('resize', updateHeight);
+  }, []);
+
+  // Get current user location to show on map first
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      },
+      () => {
+        // ignore errors; map will fall back to address/default
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   }, []);
 
   // --- Panel Logic ---
@@ -267,8 +294,11 @@ function TrackOrderContent() {
       {/* --- Desktop Layout --- */}
       <div className="hidden md:flex h-full">
         <div className="flex-1 h-full relative">
-          {/* TODO: Re-enable live map when implementation is ready */}
-          {/* <MapPlaceholder orderId={tracking.orderId} /> */}
+          <LiveOrderTracker
+            orderId={tracking.orderId}
+            customerLocation={customerLocation || undefined}
+            onRiderLocation={(loc) => console.info("customer-page: rider location", loc)}
+          />
 
           <div className="absolute top-6 left-6 right-6 flex justify-between items-center z-10">
             <button
@@ -291,8 +321,11 @@ function TrackOrderContent() {
       {/* --- Mobile Layout --- */}
       <div className="md:hidden h-full w-full relative">
         <div className="absolute inset-0 z-0">
-          {/* TODO: Re-enable live map when implementation is ready */}
-          {/* <MapPlaceholder orderId={tracking.orderId} /> */}
+          <LiveOrderTracker
+            orderId={tracking.orderId}
+            customerLocation={customerLocation || undefined}
+            onRiderLocation={(loc) => console.info("customer-page: rider location", loc)}
+          />
         </div>
 
         <div className="absolute top-0 left-0 right-0 p-4 pt-safe-top flex justify-between items-center z-10 pointer-events-none">
