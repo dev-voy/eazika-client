@@ -21,7 +21,7 @@ export function CustomerBottomNav() {
     <div className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 md:hidden shadow-2xl">
       <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
         {navItems.map((item) => {
-          const isActive = pathname.startsWith(item.href);
+          const isActive = (pathname || "").startsWith(item.href);
           const Icon = item.icon;
 
           return (
