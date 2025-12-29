@@ -26,6 +26,7 @@ import { motion } from "framer-motion";
 // import { useCartStore } from "@/hooks/useCartStore";
 import { useCartStore } from "@/store";
 import { useWishlistStore } from "@/hooks/useWishlistStore";
+import { useLocationStore } from "@/store/locationStore";
 import coustomerService from "@/services/customerService";
 import type { ProductDetailType, ProductPriceType } from "@/types";
 
@@ -38,6 +39,7 @@ export default function ProductPage() {
   // Stores
   const { addToCart, isLoading: isCartLoading } = useCartStore();
   const { toggleWishlist, isWishlisted } = useWishlistStore();
+  const { geoLocation, setGeoLocation } = useLocationStore();
 
   // State
   const [product, setProduct] = useState<ProductDetailType | null>(null);
@@ -52,6 +54,7 @@ export default function ProductPage() {
   const [manualLat, setManualLat] = useState("");
   const [manualLng, setManualLng] = useState("");
   const [isLocating, setIsLocating] = useState(false);
+  const [hasAutoRequested, setHasAutoRequested] = useState(false);
 
   // Variant State
   const [selectedPrice, setSelectedPrice] = useState<ProductPriceType | null>(
@@ -114,7 +117,9 @@ export default function ProductPage() {
     setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserLocation(coords);
+        setGeoLocation(coords);
         setManualLat(pos.coords.latitude.toFixed(6));
         setManualLng(pos.coords.longitude.toFixed(6));
         setIsLocating(false);
@@ -130,8 +135,39 @@ export default function ProductPage() {
     const lat = parseFloat(manualLat);
     const lng = parseFloat(manualLng);
     if (Number.isNaN(lat) || Number.isNaN(lng)) return;
-    setUserLocation({ lat, lng });
+    const coords = { lat, lng };
+    setUserLocation(coords);
+    setGeoLocation(coords);
   };
+
+  // Initialize user location from persisted storage; if absent, request once
+  useEffect(() => {
+    if (geoLocation && !userLocation) {
+      setUserLocation(geoLocation);
+      setManualLat(geoLocation.lat.toFixed(6));
+      setManualLng(geoLocation.lng.toFixed(6));
+      return;
+    }
+
+    if (!geoLocation && !hasAutoRequested && typeof window !== "undefined" && navigator.geolocation) {
+      setHasAutoRequested(true);
+      setIsLocating(true);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          setUserLocation(coords);
+          setGeoLocation(coords);
+          setManualLat(coords.lat.toFixed(6));
+          setManualLng(coords.lng.toFixed(6));
+          setIsLocating(false);
+        },
+        () => {
+          setIsLocating(false);
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      );
+    }
+  }, [geoLocation, userLocation, hasAutoRequested, setGeoLocation]);
 
   useEffect(() => {
     if (!id) return;
