@@ -19,6 +19,7 @@ import {
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { DeliveryService } from "@/services/deliveryService";
+import socket from "@/lib/socketClient";
 
 // --- 1. DARK MODE MAP STYLE (Blinkit/Uber Style) ---
 const darkMapStyle = [
@@ -112,6 +113,21 @@ const parseGeo = (geo?: string | null): { lat: number; lng: number } | null => {
   return { lat, lng };
 };
 
+const STOP_DISTANCE_METERS = 30;
+
+const distanceMeters = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+  const R = 6371000; // meters
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const lat1 = (a.lat * Math.PI) / 180;
+  const lat2 = (b.lat * Math.PI) / 180;
+  const sinDLat = Math.sin(dLat / 2);
+  const sinDLng = Math.sin(dLng / 2);
+  const aHarv = sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLng * sinDLng;
+  const c = 2 * Math.atan2(Math.sqrt(aHarv), Math.sqrt(1 - aHarv));
+  return R * c;
+};
+
 export default function DeliveryMapPage() {
   const router = useRouter();
   const { queue, activeOrder, completeCurrentOrder, isSessionActive } =
@@ -124,6 +140,8 @@ export default function DeliveryMapPage() {
     useState<google.maps.DirectionsResult | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [hoveredMarker, setHoveredMarker] = useState<"rider" | "destination" | null>(null);
+
+  const stopSharingRef = useRef(false);
 
   // Use a Ref to control the map programmatically (for Auto-Zoom)
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -146,6 +164,10 @@ export default function DeliveryMapPage() {
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || "",
     libraries: ["places"],
   });
+
+  useEffect(() => {
+    stopSharingRef.current = false;
+  }, [activeOrder]);
 
   // Redirect if no active session
   useEffect(() => {
@@ -258,6 +280,71 @@ export default function DeliveryMapPage() {
       });
     }
   }, [currentLocation, directionsResponse]);
+
+  // Join order room for sockets and stream rider location periodically
+  useEffect(() => {
+    const orderId = (activeOrder as any)?.id || (activeOrder as any)?._id || (activeOrder as any)?.orderId;
+    console.info("rider-socket:init", {
+      orderId,
+      connected: socket.connected,
+    });
+    const handleConnect = () => console.info("rider-socket:connected", { orderId, socketId: socket.id });
+    const handleDisconnect = () => console.warn("rider-socket:disconnected", { orderId });
+    socket.on("connect", handleConnect);
+    socket.on("disconnect", handleDisconnect);
+
+    if (!orderId) return () => {
+      socket.off("connect", handleConnect);
+      socket.off("disconnect", handleDisconnect);
+    };
+
+    socket.emit("join-order", orderId);
+
+    return () => {
+      socket.emit("leave-order", orderId);
+      socket.off("connect", handleConnect);
+      socket.off("disconnect", handleDisconnect);
+    };
+  }, [activeOrder]);
+
+  useEffect(() => {
+    const orderId = (activeOrder as any)?.id || (activeOrder as any)?._id || (activeOrder as any)?.orderId;
+    if (!orderId || !currentLocation) return;
+    let intervalId: number | undefined;
+
+    const send = () => {
+      if (stopSharingRef.current) return;
+
+      if (destinationLocation) {
+        const distance = distanceMeters(currentLocation, destinationLocation);
+        if (distance <= STOP_DISTANCE_METERS) {
+          console.info("rider-socket:stop-sharing:arrived", {
+            orderId,
+            distance,
+          });
+          stopSharingRef.current = true;
+          if (intervalId) window.clearInterval(intervalId);
+          return;
+        }
+      }
+
+      console.info("rider-socket:emit-location", {
+        orderId,
+        lat: currentLocation.lat,
+        lng: currentLocation.lng,
+      });
+      socket.emit("rider-location", {
+        orderId,
+        location: { lat: currentLocation.lat, lng: currentLocation.lng },
+      });
+    };
+
+    send();
+    intervalId = window.setInterval(send, 5000);
+    return () => {
+      if (intervalId) window.clearInterval(intervalId);
+    };
+  }, [activeOrder, currentLocation, destinationLocation]);
 
   const calculateRoute = useCallback(async () => {
     if (!currentLocation || !window.google) return;
