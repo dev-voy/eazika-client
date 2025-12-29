@@ -804,7 +804,14 @@ export default function ShopRegistrationContent() {
 
 
 
-const Stepper = ({ currentStep, STEPS }) => {
+type StepDef = {
+    id: number;
+    title: string;
+    description?: string;
+    icon?: React.ComponentType<{ size?: number; className?: string }> | null;
+};
+
+const Stepper = ({ currentStep, STEPS }: { currentStep: number; STEPS: StepDef[] }) => {
     const totalSteps = STEPS.length;
     // Calculate progress width: (completed gaps / total gaps)
     const progressWidth = ((currentStep - 1) / (totalSteps - 1)) * 100;
@@ -844,13 +851,15 @@ const Stepper = ({ currentStep, STEPS }) => {
                                     isActive ? "ring-4 ring-yellow-500/20" : ""
                                 )}
                             >
-                                <step.icon
-                                    size={18}
-                                    className={cn(
-                                        "transition-colors",
-                                        isActive || isCompleted ? "text-white" : "text-gray-400"
-                                    )}
-                                />
+                                {step.icon ? (
+                                    <step.icon
+                                        size={18}
+                                        className={cn(
+                                            "transition-colors",
+                                            isActive || isCompleted ? "text-white" : "text-gray-400"
+                                        )}
+                                    />
+                                ) : null}
                             </motion.div>
 
                             {/* Label - Fixed Positioning to prevent shifting */}
