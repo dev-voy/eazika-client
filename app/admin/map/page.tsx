@@ -11,7 +11,7 @@ import {
     Loader2
 } from 'lucide-react';
 import 'leaflet/dist/leaflet.css'; // Import Leaflet CSS
-import { Icon } from 'leaflet';
+import { Icon, DivIcon } from 'leaflet';
 import ShopService from '@/services/shopService';
 
 // Dynamic import for MapContainer to avoid SSR issues
@@ -19,19 +19,28 @@ const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapCo
 const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
 const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
 const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false });
+const Tooltip = dynamic(() => import('react-leaflet').then(mod => mod.Tooltip), { ssr: false });
 
-// Fix for default marker icons in Next.js
-const fixLeafletIcon = () => {
-    // We can use custom icons, so we might not need this if we define our own.
-};
+// Fix for default marker icons in Next.js (not needed with custom icons)
 
 interface MapData {
     shops: any[];
     riders: any[];
 }
 
+interface ShopAddress {
+    shopId: string;
+    shopName: string;
+    shopCategory?: string;
+    address?: {
+        phone?: string;
+        geoLocation?: string;
+    };
+}
+
 export default function LiveMapPage() {
     const [data, setData] = useState<MapData>({ shops: [], riders: [] });
+    const [shopAddresses, setShopAddresses] = useState<ShopAddress[]>([]);
     const [loading, setLoading] = useState(true);
     const [isClient, setIsClient] = useState(false);
 
@@ -43,6 +52,7 @@ export default function LiveMapPage() {
     useEffect(() => {
         setIsClient(true);
         fetchMapData();
+        fetchShopAddresses();
         // Poll every 30 seconds
         const interval = setInterval(fetchMapData, 30000);
         return () => clearInterval(interval);
@@ -59,7 +69,25 @@ export default function LiveMapPage() {
         }
     };
 
+    const fetchShopAddresses = async () => {
+        try {
+            const addressData = await AdminService.getAllShopsAddress();
+            setShopAddresses(addressData || []);
+        } catch (error) {
+            console.error("Failed to fetch shop addresses", error);
+        }
+    };
 
+    // Parse geo location string "lat,lng" to [lat, lng]
+    const parseGeoLocation = (geo?: string): [number, number] | null => {
+        if (!geo || typeof geo !== 'string') return null;
+        const parts = geo.split(',');
+        if (parts.length !== 2) return null;
+        const lat = parseFloat(parts[0].trim());
+        const lng = parseFloat(parts[1].trim());
+        if (isNaN(lat) || isNaN(lng)) return null;
+        return [lat, lng];
+    };
     // Custom Icons logic would go here. For now, simple logic or default markers.
     // Since we can't easily import L on server side, we define icons inside the component or effect.
 
@@ -70,6 +98,42 @@ export default function LiveMapPage() {
 
     const displayShops = filters.shops ? data.shops : [];
     const displayRiders = filters.riders ? data.riders : [];
+
+    // Get shops with valid geo locations from shopAddresses
+    const shopsWithGeo = shopAddresses
+        .map(shop => {
+            const position = parseGeoLocation(shop.address?.geoLocation);
+            if (!position) return null;
+            return {
+                id: shop.shopId,
+                name: shop.shopName,
+                category: shop.shopCategory,
+                phone: shop.address?.phone,
+                position
+            };
+        })
+        .filter((shop): shop is NonNullable<typeof shop> => shop !== null);
+
+    // Custom marker icons - bigger and more visible
+    const shopIcon = isClient ? new Icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+        iconSize: [35, 55],
+        iconAnchor: [17, 55],
+        popupAnchor: [1, -45],
+        shadowSize: [55, 55],
+        shadowAnchor: [15, 55]
+    }) : null;
+
+    const riderIcon = isClient ? new Icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+        iconSize: [35, 55],
+        iconAnchor: [17, 55],
+        popupAnchor: [1, -45],
+        shadowSize: [55, 55],
+        shadowAnchor: [15, 55]
+    }) : null;
 
     // We need to construct icons on client side only to avoid 'window is not defined'
     // But let's rely on React-Leaflet's behavior. We will use simple circle markers or default markers if Icon import works.
@@ -131,24 +195,32 @@ export default function LiveMapPage() {
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
 
-                    {data.shops.length === 0 && data.riders.length === 0 && !loading && (
+                    {shopsWithGeo.length === 0 && displayRiders.length === 0 && !loading && (
                         // Suggestion text if map is empty
                         <div className="leaflet-bottom leaflet-right m-4 p-4 bg-white rounded shadow text-sm">
                             No active entities found with location data.
                         </div>
                     )}
 
-                    {displayShops.map((shop) => (
+                    {/* Display shops from shopAddresses with geo location */}
+                    {filters.shops && shopsWithGeo.map((shop) => (
                         <Marker
                             key={`shop-${shop.id}`}
-                            position={[shop.lat, shop.lng]}
-                        // icon={shopIcon}
+                            position={shop.position}
+                            icon={shopIcon || undefined}
                         >
+                            <Tooltip direction="top" offset={[0, -10]} opacity={0.9}>
+                                <div className="text-xs">
+                                    <div className="font-bold">{shop.name}</div>
+                                    <div className="text-gray-600">ID: {shop.id}</div>
+                                </div>
+                            </Tooltip>
                             <Popup>
                                 <div className="p-1">
                                     <h3 className="font-bold text-sm">{shop.name}</h3>
-                                    <p className="text-xs text-gray-500 capitalize">{shop.category}</p>
-                                    <p className="text-xs">{shop.phone}</p>
+                                    <p className="text-xs text-gray-500">ID: {shop.id}</p>
+                                    {shop.category && <p className="text-xs text-gray-500 capitalize">{shop.category}</p>}
+                                    {shop.phone && <p className="text-xs">{shop.phone}</p>}
                                     <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Active Shop</span>
                                 </div>
                             </Popup>
@@ -159,8 +231,14 @@ export default function LiveMapPage() {
                         <Marker
                             key={`rider-${rider.id}`}
                             position={[rider.lat, rider.lng]}
-                        // icon={riderIcon}
+                            icon={riderIcon || undefined}
                         >
+                            <Tooltip direction="top" offset={[0, -10]} opacity={0.9}>
+                                <div className="text-xs">
+                                    <div className="font-bold">{rider.name}</div>
+                                    <div className="text-gray-600">ID: {rider.id}</div>
+                                </div>
+                            </Tooltip>
                             <Popup>
                                 <div className="p-1">
                                     <h3 className="font-bold text-sm">{rider.name}</h3>

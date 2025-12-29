@@ -38,7 +38,10 @@ export const AdminService = {
     });
     return response.data.data;
   },
-
+  getAllShopsAddress: async () => {
+    const response = await axiosInstance.get(`/admin/shops/get-all-addresses`);
+    return response.data.data;
+  },
   verifyShop: async (shopId: number, status: "active" | "rejected") => {
     const response = await axiosInstance.patch(
       `/admin/shops/${shopId}/verify`,
