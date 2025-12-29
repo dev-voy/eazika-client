@@ -320,12 +320,25 @@ export default function DeliveryMapPage() {
   }, [isLoaded, currentLocation, destinationLocation, queue, calculateRoute]);
 
   const handleOpenMapsApp = () => {
-    if (!activeOrder) return;
-    const query = encodeURIComponent(activeOrder.deliveryAddress || "");
-    window.open(
-      `https://www.google.com/maps/dir/?api=1&destination=${query}`,
-      "_blank"
-    );
+    const destination = destinationLocation
+      ? `${destinationLocation.lat},${destinationLocation.lng}`
+      : activeOrder?.deliveryAddress || queue[0]?.deliveryAddress || "";
+
+    if (!destination) {
+      toast.error("No destination available for navigation");
+      return;
+    }
+
+    const origin = currentLocation
+      ? `${currentLocation.lat},${currentLocation.lng}`
+      : undefined;
+
+    const url = new URL("https://www.google.com/maps/dir/");
+    url.searchParams.set("api", "1");
+    url.searchParams.set("destination", destination);
+    if (origin) url.searchParams.set("origin", origin);
+
+    window.open(url.toString(), "_blank");
   };
 
   const handleOtpChange = (index: number, value: string) => {
@@ -504,7 +517,9 @@ export default function DeliveryMapPage() {
           <div className="grid grid-cols-5 gap-3">
             <button
               onClick={handleOpenMapsApp}
-              className="col-span-1 bg-gray-800 border border-gray-700 text-white font-bold rounded-xl flex items-center justify-center active:scale-95 transition-transform"
+              disabled={!destinationLocation && !activeOrder?.deliveryAddress && !queue[0]?.deliveryAddress}
+              className="col-span-1 bg-gray-800 border border-gray-700 text-white font-bold rounded-xl flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Open navigation in Google Maps"
             >
               <Navigation size={22} className="text-blue-400" />
             </button>
