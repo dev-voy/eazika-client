@@ -57,6 +57,21 @@ const OrderDetailsContent = ({
   onCancel: () => void;
   customerLocation?: { lat: number; lng: number } | null;
 }) => {
+  const orderItems = useMemo(() => {
+    if (tracking.orderItems && tracking.orderItems.length > 0) return tracking.orderItems;
+    if (tracking.items && tracking.items.length > 0) {
+      return tracking.items.map((it) => ({
+        id: it.id,
+        quantity: it.quantity,
+        productDetails: {
+          name: it.product?.name,
+          image: it.product?.images?.[0],
+          price: it.priceDetails?.price ?? it.price,
+        },
+      })) as any;
+    }
+    return [];
+  }, [tracking]);
   const rawGeo = tracking.address?.geoLocation;
   const normalizedRawGeo = (() => {
     if (!rawGeo) return undefined;
@@ -131,6 +146,9 @@ const OrderDetailsContent = ({
               <span>•</span>
               <span>{tracking.deliveryBoy?.vehicle || "Standard Delivery"}</span>
             </div>
+            {tracking.deliveryBoy?.phone && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Phone: {tracking.deliveryBoy.phone}</p>
+            )}
           </div>
         </div>
 
@@ -140,6 +158,42 @@ const OrderDetailsContent = ({
           </span>
         </div>
       </div>
+
+      {/* Order Items */}
+      {orderItems.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Order items</p>
+            <span className="text-xs font-semibold text-gray-400">{orderItems.length} item{orderItems.length > 1 ? 's' : ''}</span>
+          </div>
+          <div className="space-y-3">
+            {orderItems.map((item) => {
+              const p = item.productDetails || {};
+              const price = p.price != null ? p.price : undefined;
+              return (
+                <div key={item.id} className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-500 text-xs font-bold overflow-hidden">
+                    {p.image ? (
+                      <img src={p.image} alt={p.name || 'Product'} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="px-2 text-center truncate">{p.name?.[0] || 'P'}</span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{p.name || 'Product'}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Qty: {item.quantity}</p>
+                  </div>
+                  {price != null && (
+                    <div className="text-sm font-bold text-gray-900 dark:text-white whitespace-nowrap">
+                      ₹{price}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* OTP & ETA */}
       <div className="grid grid-cols-2 gap-4">

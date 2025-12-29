@@ -64,6 +64,30 @@ export interface TrackingDetails {
   status: string;
   currentLocation: string;
   estimatedDelivery: string;
+  orderItems?: OrderItem[];
+  items?: Array<{
+    id: number;
+    productId: number;
+    priceId: number;
+    quantity: number;
+    unit?: string;
+    weight?: number;
+    price?: number;
+    product?: {
+      id: number;
+      name: string;
+      brand?: string;
+      images?: string[];
+      category?: string;
+    };
+    priceDetails?: {
+      id: number;
+      price?: number;
+      discount?: number;
+      weight?: number;
+      unit?: string;
+    };
+  }>;
   deliveryBoy?: {
     name: string;
     phone: string;
