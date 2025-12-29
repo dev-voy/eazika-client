@@ -251,6 +251,7 @@ function TrackOrderContent() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [didRedirectOnFinal, setDidRedirectOnFinal] = useState(false);
 
   const customerLocation = useMemo(() => {
     const geo = tracking?.address?.geoLocation;
@@ -269,6 +270,16 @@ function TrackOrderContent() {
     }
     return userLocation;
   }, [tracking, userLocation]);
+
+  // Redirect to order history page once an order is delivered or cancelled
+  useEffect(() => {
+    if (!tracking || didRedirectOnFinal) return;
+    const status = tracking.status?.toLowerCase();
+    if (status === 'delivered' || status === 'cancelled') {
+      setDidRedirectOnFinal(true);
+      router.push(`/orders/history`);
+    }
+  }, [tracking, didRedirectOnFinal, router]);
 
   // Animation controls
   const controls = useAnimation();
