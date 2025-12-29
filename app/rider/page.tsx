@@ -6,14 +6,28 @@ import { MapPin, Package, Navigation, Play, Power, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-// Parse geo location string "lat,lng" to {lat, lng}
-const parseGeo = (geo?: string | null): { lat: number; lng: number } | null => {
-  if (!geo || typeof geo !== 'string') return null;
+// Parse geo location to {lat, lng}; supports string "lat,lng" and objects with raw/latitude/longitude
+const parseGeo = (
+  geo?:
+    | string
+    | null
+    | {
+        raw?: string;
+        latitude?: string | number;
+        longitude?: string | number;
+      }
+): { lat: number; lng: number } | null => {
+  if (!geo) return null;
+  if (typeof geo === 'object') {
+    const raw = geo.raw || `${geo.latitude ?? ''},${geo.longitude ?? ''}`;
+    return parseGeo(typeof raw === 'string' ? raw : null);
+  }
+  if (typeof geo !== 'string') return null;
   const parts = geo.split(',');
   if (parts.length !== 2) return null;
   const lat = parseFloat(parts[0].trim());
   const lng = parseFloat(parts[1].trim());
-  if (isNaN(lat) || isNaN(lng)) return null;
+  if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
   return { lat, lng };
 };
 
