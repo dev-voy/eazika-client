@@ -11,9 +11,9 @@ export function BottomNav() {
   // HIDE NAV LOGIC:
   // We hide the bottom navigation on Product pages, Cart, and Checkout
   // to prevent overlapping with their specific sticky bottom bars.
-  const shouldHideNav = 
-    pathname?.startsWith("/products/") || 
-    pathname === "/cart" || 
+  const shouldHideNav =
+    pathname?.startsWith("/products/") ||
+    pathname === "/cart" ||
     pathname === "/checkout";
 
   if (shouldHideNav) {
@@ -31,12 +31,12 @@ export function BottomNav() {
       <div className="flex justify-around items-center h-16">
         {navItems.map((item) => {
           const Icon = item.icon;
-          
+
           // FIX: Specific logic for Home vs other routes
-          const isActive = item.href === "/" 
-            ? pathname === "/" 
-            : pathname.startsWith(item.href);
-          
+          const isActive = item.href === "/"
+            ? pathname === "/"
+            : (pathname || "").startsWith(item.href);
+
           return (
             <Link
               key={item.name}
@@ -49,9 +49,9 @@ export function BottomNav() {
               )}
             >
               {/* Icon with conditional sizing/stroke based on active state */}
-              <Icon 
-                size={24} 
-                strokeWidth={isActive ? 2.5 : 2} 
+              <Icon
+                size={24}
+                strokeWidth={isActive ? 2.5 : 2}
                 className={isActive ? "fill-yellow-500/10" : ""}
               />
               <span className={clsx(
