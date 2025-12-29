@@ -54,7 +54,7 @@ export function ShopSidebar() {
           const isActive =
             item.href === "/shop"
               ? pathname === "/shop"
-              : pathname.startsWith(item.href);
+              : (pathname || "").startsWith(item.href);
 
           return (
             <Link
