@@ -32,7 +32,7 @@ interface Shop {
 function DeliveryRegistrationContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const urlShopId = searchParams.get("shopId");
+  const urlShopId = searchParams?.get("shopId");
 
   const user = userStore((state) => state.user);
   const isAuthenticated = userStore((state) => state.isAuthenticated);
