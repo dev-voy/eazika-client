@@ -4,7 +4,7 @@ import { io, Socket } from "socket.io-client";
 const isBrowser = typeof window !== "undefined";
 
 // Provide a tiny no-op stub when not in the browser to prevent SSR logs.
-const noopSocket: Socket = {
+const noopSocket: Socket = ({
   id: undefined,
   connected: false,
   disconnected: true,
@@ -31,7 +31,7 @@ const noopSocket: Socket = {
   offAnyOutgoing: () => noopSocket,
   listenersAny: () => [],
   listenersAnyOutgoing: () => [],
-} as Socket;
+} as unknown) as Socket;
 
 const socket = isBrowser
   ? io(process.env.NEXT_PUBLIC_SOCKET_URL || undefined, {
