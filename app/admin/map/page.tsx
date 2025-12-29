@@ -11,7 +11,6 @@ import {
     Loader2
 } from 'lucide-react';
 import 'leaflet/dist/leaflet.css'; // Import Leaflet CSS
-import { Icon, DivIcon } from 'leaflet';
 import ShopService from '@/services/shopService';
 
 // Dynamic import for MapContainer to avoid SSR issues
@@ -43,6 +42,7 @@ export default function LiveMapPage() {
     const [shopAddresses, setShopAddresses] = useState<ShopAddress[]>([]);
     const [loading, setLoading] = useState(true);
     const [isClient, setIsClient] = useState(false);
+    const [leaflet, setLeaflet] = useState<typeof import('leaflet') | null>(null);
 
     const [filters, setFilters] = useState({
         shops: true,
@@ -51,6 +51,10 @@ export default function LiveMapPage() {
 
     useEffect(() => {
         setIsClient(true);
+        // Load Leaflet only on client to avoid window reference during SSR
+        import('leaflet').then((mod) => setLeaflet(mod)).catch((err) => {
+            console.error('Failed to load leaflet', err);
+        });
         fetchMapData();
         fetchShopAddresses();
         // Poll every 30 seconds
@@ -115,7 +119,7 @@ export default function LiveMapPage() {
         .filter((shop): shop is NonNullable<typeof shop> => shop !== null);
 
     // Custom marker icons - bigger and more visible
-    const shopIcon = isClient ? new Icon({
+    const shopIcon = isClient && leaflet ? new leaflet.Icon({
         iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
         shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
         iconSize: [35, 55],
@@ -125,7 +129,7 @@ export default function LiveMapPage() {
         shadowAnchor: [15, 55]
     }) : null;
 
-    const riderIcon = isClient ? new Icon({
+    const riderIcon = isClient && leaflet ? new leaflet.Icon({
         iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
         shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
         iconSize: [35, 55],
