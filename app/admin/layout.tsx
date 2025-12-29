@@ -66,15 +66,15 @@ export default function AdminLayout({
             const isActive =
               item.href === "/admin"
                 ? pathname === "/admin"
-                : pathname.startsWith(item.href);
+                : (pathname || "").startsWith(item.href);
 
             return (
               <Link
                 key={item.name}
                 href={item.href}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${isActive
-                    ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400 shadow-sm"
-                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-200"
+                  ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400 shadow-sm"
+                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-200"
                   }`}
               >
                 <Icon size={18} />
@@ -123,8 +123,8 @@ export default function AdminLayout({
                     href={item.href}
                     onClick={() => setIsMobileMenuOpen(false)}
                     className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium ${isActive
-                        ? "bg-indigo-50 text-indigo-600"
-                        : "text-gray-600"
+                      ? "bg-indigo-50 text-indigo-600"
+                      : "text-gray-600"
                       }`}
                   >
                     <Icon size={18} /> {item.name}
