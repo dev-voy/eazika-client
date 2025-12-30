@@ -47,8 +47,8 @@ export default function OrderDetailsPage() {
 
     const fetchOrderDetails = async () => {
       try {
-        // const data = await cartMethods.getOrderById(orderId);
-        // setOrder(data);
+        const data = await cartMethods.getOrderById(orderId);
+        setOrder(data as Order);
       } catch (error) {
         console.error("Failed to fetch order details", error);
       } finally {
@@ -68,7 +68,6 @@ export default function OrderDetailsPage() {
   const handleDownloadInvoice = () => {
     window.print();
   };
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">

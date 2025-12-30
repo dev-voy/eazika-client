@@ -48,7 +48,7 @@ const allCartMethods = {
     return response.data;
   },
 
-  getOrderById: async (orderId: number): Promise<void> => {
+  getOrderById: async (orderId: number): Promise<any> => {
     const response = await axios.get(`/customers/get-order/${orderId}`);
     return response.data.data;
   },

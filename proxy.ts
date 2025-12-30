@@ -39,14 +39,12 @@ export async function proxy(req: NextRequest) {
 
   // If user has token, check role-based access
   if (token) {
-    // Admin bypasses all checks
-    if (isAdmin && pathname.startsWith("/shop")) {
-      return NextResponse.redirect(new URL("/admin", req.url));
-    }
-
-    // ADMIN ROUTES - Only admin can access
-    if (pathname.startsWith("/admin")) {
-      return NextResponse.redirect(new URL("/?msg=unauthorized_access", req.url));
+    // Admin: force land on /admin and allow admin area
+    if (isAdmin) {
+      if (!pathname.startsWith("/admin")) {
+        return NextResponse.redirect(new URL("/admin", req.url));
+      }
+      return NextResponse.next();
     }
 
     // SHOP ROUTES - Shopkeeper or admin (handled above); registration open for users
