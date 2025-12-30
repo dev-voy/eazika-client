@@ -77,35 +77,7 @@ export default function ShopOrderDetailsPage({
     OrderDetail["driver"] | null
   >(null);
 
-  const notifyUser = async (
-    currentOrder: OrderDetail,
-    payload: { title: string; body: string }
-  ) => {
-    const targetUserIdRaw =
-      (currentOrder as any)?.userId ??
-      (currentOrder as any)?.customerId ??
-      (currentOrder as any)?.user?.id;
-    const directId =
-      typeof targetUserIdRaw === "string"
-        ? Number(targetUserIdRaw)
-        : targetUserIdRaw;
 
-
-    const userIdToNotify = '6'
-    if (userIdToNotify) {
-      try {
-        await notificationService.sendToUser(userIdToNotify, {
-          ...payload,
-          icon: "/icon.png",
-          url: `/orders/track-order/${currentOrder.id}`,
-        });
-      } catch (err) {
-        console.warn("Notification send failed", err);
-      }
-    } else if (!userIdToNotify) {
-      console.warn("Skip notification: missing userId on order", currentOrder.id);
-    }
-  };
 
   useEffect(() => {
     (async () => {
@@ -159,6 +131,35 @@ export default function ShopOrderDetailsPage({
     })();
   }, [orderId]);
 
+  const notifyUser = async (
+    currentOrder: OrderDetail,
+    payload: { title: string; body: string }
+  ) => {
+    const targetUserIdRaw =
+      (currentOrder as any)?.userId ??
+      (currentOrder as any)?.customerId ??
+      (currentOrder as any)?.user?.id;
+    const directId =
+      typeof targetUserIdRaw === "string"
+        ? Number(targetUserIdRaw)
+        : targetUserIdRaw;
+
+
+    const userIdToNotify = order?.userId;
+    if (userIdToNotify) {
+      try {
+        await notificationService.sendToUser(userIdToNotify, {
+          ...payload,
+          icon: "/icon.png",
+          url: `/orders/track-order/${currentOrder.id}`,
+        });
+      } catch (err) {
+        console.warn("Notification send failed", err);
+      }
+    } else if (!userIdToNotify) {
+      console.warn("Skip notification: missing userId on order", currentOrder.id);
+    }
+  };
   const handleAcceptOrder = async () => {
     if (!order) return;
     setIsUpdating(true);
@@ -228,7 +229,7 @@ export default function ShopOrderDetailsPage({
       setIsUpdating(false);
     }
   };
-  // console.log(order)
+
 
   return (
     <div className="max-w-4xl mx-auto pb-24 md:pb-8">
