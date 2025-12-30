@@ -60,6 +60,8 @@ function DeliveryRegistrationContent() {
     licenseImages: [],
   });
 
+  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -83,6 +85,67 @@ function DeliveryRegistrationContent() {
       setStep("details");
     }
   }, [urlShopId]);
+
+  const normalizeValue = (name: keyof FormData, value: string) => {
+    switch (name) {
+      case "aadharNumber":
+        return value.replace(/\D/g, "").slice(0, 12);
+      case "panNumber":
+        return value.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 10);
+      case "licenseNumber":
+        return value.replace(/\s+/g, "").toUpperCase().slice(0, 16);
+      case "vehicleNo":
+        return value.replace(/\s+/g, "").toUpperCase().slice(0, 13);
+      default:
+        return value;
+    }
+  };
+
+  const validateField = (name: keyof FormData, value: string): string => {
+    if (!value) {
+      if (name === "vehicleName" || name === "panNumber") return ""; // optional
+      return "This field is required";
+    }
+
+    switch (name) {
+      case "aadharNumber":
+        return /^\d{12}$/.test(value) ? "" : "Enter a valid 12-digit Aadhaar";
+      case "panNumber":
+        return value
+          ? /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(value)
+            ? ""
+            : "PAN must be 10 chars (ABCDE1234F)"
+          : "";
+      case "licenseNumber": {
+        // Typical Indian DL: 2 letters state + 2 digits RTO + 11 alphanumerics (total 15)
+        return /^[A-Z]{2}[0-9]{2}[0-9A-Z]{11}$/.test(value)
+          ? ""
+          : "DL format like MH12YYYY1234567";
+      }
+      case "vehicleNo":
+        return /^[A-Z]{2}[0-9]{2}[A-Z]{1,3}[0-9]{4}$/.test(value)
+          ? ""
+          : "Reg. no. like MH12AB1234";
+      default:
+        return "";
+    }
+  };
+
+  const updateField = (name: keyof FormData, rawValue: string) => {
+    const value = normalizeValue(name, rawValue);
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));
+  };
+
+  const validateForm = () => {
+    const newErrors: Partial<Record<keyof FormData, string>> = {};
+    (Object.keys(formData) as Array<keyof FormData>).forEach((key) => {
+      if (key === "licenseImages") return;
+      newErrors[key] = validateField(key, formData[key] as string);
+    });
+    setErrors(newErrors);
+    return Object.values(newErrors).every((msg) => !msg);
+  };
 
   // --- Step 1: Shop Selection Logic ---
 
@@ -148,7 +211,7 @@ function DeliveryRegistrationContent() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    updateField(name as keyof FormData, value);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -188,6 +251,11 @@ function DeliveryRegistrationContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const isValid = validateForm();
+    if (!isValid) {
+      toast.error("Please fix the highlighted fields.");
+      return;
+    }
     if (!selectedShopId) {
       toast.error("No shop selected. Please go back and select a shop.");
       return;
@@ -444,13 +512,19 @@ function DeliveryRegistrationContent() {
                         type="text"
                         required
                         value={formData.aadharNumber}
-                        onChange={(e) => {
-                          e.target.value = e.target.value.replace(/\D/g, "");
-                          if (formData.aadharNumber.length < 12)
-                            handleChange(e);
-                        }}
-                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                        onChange={handleChange}
+                        aria-invalid={!!errors.aadharNumber}
+                        className={cn(
+                          "appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none sm:text-sm",
+                          errors.aadharNumber
+                            ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                            : "border-gray-300 focus:ring-green-500 focus:border-green-500"
+                        )}
+                        placeholder="12-digit Aadhaar"
                       />
+                      {errors.aadharNumber && (
+                        <p className="mt-1 text-xs text-red-600">{errors.aadharNumber}</p>
+                      )}
                     </div>
                   </div>
 
@@ -467,11 +541,19 @@ function DeliveryRegistrationContent() {
                         name="panNumber"
                         type="text"
                         value={formData.panNumber}
-                        onChange={(e) => {
-                          if (formData.panNumber.length < 10) handleChange(e);
-                        }}
-                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                        onChange={handleChange}
+                        aria-invalid={!!errors.panNumber}
+                        className={cn(
+                          "appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none sm:text-sm",
+                          errors.panNumber
+                            ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                            : "border-gray-300 focus:ring-green-500 focus:border-green-500"
+                        )}
+                        placeholder="ABCDE1234F"
                       />
+                      {errors.panNumber && (
+                        <p className="mt-1 text-xs text-red-600">{errors.panNumber}</p>
+                      )}
                     </div>
                   </div>
 
@@ -490,12 +572,19 @@ function DeliveryRegistrationContent() {
                         type="text"
                         required
                         value={formData.licenseNumber}
-                        onChange={(e) => {
-                          if (formData.licenseNumber.length < 15)
-                            handleChange(e);
-                        }}
-                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                        onChange={handleChange}
+                        aria-invalid={!!errors.licenseNumber}
+                        className={cn(
+                          "appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none sm:text-sm",
+                          errors.licenseNumber
+                            ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                            : "border-gray-300 focus:ring-green-500 focus:border-green-500"
+                        )}
+                        placeholder="MH12YYYY1234567"
                       />
+                      {errors.licenseNumber && (
+                        <p className="mt-1 text-xs text-red-600">{errors.licenseNumber}</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -626,14 +715,20 @@ function DeliveryRegistrationContent() {
                         name="vehicleNo"
                         type="text"
                         required
-                        placeholder="MH 31 AB 1234"
+                        placeholder="MH12AB1234"
                         value={formData.vehicleNo}
-                        // onChange={handleChange}
-                        onChange={(e) => {
-                          if (formData.vehicleNo.length < 10) handleChange(e);
-                        }}
-                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                        onChange={handleChange}
+                        aria-invalid={!!errors.vehicleNo}
+                        className={cn(
+                          "appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none sm:text-sm",
+                          errors.vehicleNo
+                            ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                            : "border-gray-300 focus:ring-green-500 focus:border-green-500"
+                        )}
                       />
+                      {errors.vehicleNo && (
+                        <p className="mt-1 text-xs text-red-600">{errors.vehicleNo}</p>
+                      )}
                     </div>
                   </div>
                 </div>
