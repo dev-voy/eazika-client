@@ -30,6 +30,7 @@ export function Header() {
     { name: "Home", href: "/" },
     { name: "Categories", href: "/categories" },
     { name: "Deals", href: "/trending" },
+
   ];
 
   // Helper for active state
@@ -37,11 +38,10 @@ export function Header() {
 
   return (
     <header
-      className={`sticky top-0 z-50 w-full transition-all duration-300 ${
-        isScrolled
-          ? "bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-md border-b border-gray-200/50 dark:border-gray-800/50"
-          : "bg-white/60 dark:bg-gray-900/60 backdrop-blur-md border-b border-gray-100/50 dark:border-gray-800/30"
-      }`}
+      className={`sticky top-0 z-50 w-full transition-all duration-300 ${isScrolled
+        ? "bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-md border-b border-gray-200/50 dark:border-gray-800/50"
+        : "bg-white/60 dark:bg-gray-900/60 backdrop-blur-md border-b border-gray-100/50 dark:border-gray-800/30"
+        }`}
     >
       <div className="max-w-7xl mx-auto px-4 h-16 md:h-20 flex items-center justify-between gap-4">
         {/* --- LEFT SECTION: Logo --- */}
@@ -64,11 +64,10 @@ export function Header() {
             <Link
               key={link.name}
               href={link.href}
-              className={`font-medium text-lg transition-colors hover:text-yellow-500 ${
-                isActive(link.href)
-                  ? "text-yellow-600 dark:text-yellow-400"
-                  : "text-gray-600 dark:text-gray-300"
-              }`}
+              className={`font-medium text-lg transition-colors hover:text-yellow-500 ${isActive(link.href)
+                ? "text-yellow-600 dark:text-yellow-400"
+                : "text-gray-600 dark:text-gray-300"
+                }`}
             >
               {link.name}
             </Link>
@@ -80,11 +79,10 @@ export function Header() {
           {/* Wishlist Icon */}
           <Link
             href="/wishlist"
-            className={`p-2 rounded-full transition-all hover:scale-105 ${
-              isActive("/wishlist")
-                ? "text-red-500 bg-red-50 dark:bg-red-900/20" // Active State
-                : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-red-500 dark:hover:text-red-500"
-            }`}
+            className={`p-2 rounded-full transition-all hover:scale-105 ${isActive("/wishlist")
+              ? "text-red-500 bg-red-50 dark:bg-red-900/20" // Active State
+              : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-red-500 dark:hover:text-red-500"
+              }`}
           >
             <Heart
               size={22}
@@ -96,11 +94,10 @@ export function Header() {
           {/* Cart Icon */}
           <Link
             href="/cart"
-            className={`p-2 rounded-full transition-all hover:scale-105 relative group ${
-              isActive("/cart")
-                ? "text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20" // Active State
-                : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-            }`}
+            className={`p-2 rounded-full transition-all hover:scale-105 relative group ${isActive("/cart")
+              ? "text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20" // Active State
+              : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+              }`}
           >
             <ShoppingCart
               size={22}
@@ -121,11 +118,10 @@ export function Header() {
           {/* Profile Icon */}
           <Link
             href="/profile"
-            className={`flex items-center gap-2 pl-2 pr-1 py-1 rounded-full transition-all border ${
-              isActive("/profile")
-                ? "border-yellow-500/50 bg-yellow-50 dark:bg-yellow-900/10"
-                : "border-transparent hover:bg-gray-100 dark:hover:bg-gray-800 hover:border-gray-200 dark:hover:border-gray-700"
-            }`}
+            className={`flex items-center gap-2 pl-2 pr-1 py-1 rounded-full transition-all border ${isActive("/profile")
+              ? "border-yellow-500/50 bg-yellow-50 dark:bg-yellow-900/10"
+              : "border-transparent hover:bg-gray-100 dark:hover:bg-gray-800 hover:border-gray-200 dark:hover:border-gray-700"
+              }`}
           >
             <div className="w-8 h-8 bg-linear-to-tr from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold shadow-md overflow-hidden relative">
               {isMounted && user ? (
