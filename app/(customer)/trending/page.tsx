@@ -14,25 +14,58 @@ import {
   Loader2,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { ShopService, ShopProduct } from "@/services/shopService";
+import { ShopService } from "@/services/shopService";
 import { useWishlistStore } from "@/hooks/useWishlistStore";
 import { useCartStore } from "@/store";
+
+type TrendingProduct = {
+  id: number | string;
+  name: string;
+  images?: string[];
+  price?: number;
+  prices?: Array<{ id?: number; price?: number; discount?: number }>;
+  rating?: number;
+  description?: string;
+};
 
 export default function TrendingPage() {
   const router = useRouter();
   const { toggleWishlist, isWishlisted } = useWishlistStore();
   const { addToCart, isLoading: isCartLoading } = useCartStore();
 
-  const [trendingProducts, setTrendingProducts] = useState<ShopProduct[]>([]);
+  const [trendingProducts, setTrendingProducts] = useState<TrendingProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch Real Data
   useEffect(() => {
+    const normalize = (entry: any): TrendingProduct | null => {
+      const product = entry?.product || entry?.data || entry;
+      if (!product) return null;
+
+      const primaryPrice = Array.isArray(product.prices) && product.prices.length > 0
+        ? product.prices[0]
+        : undefined;
+
+      return {
+        id: product.id,
+        name: product.name,
+        images: Array.isArray(product.images) ? product.images : [],
+        price: typeof product.price === "number" ? product.price : primaryPrice?.price,
+        prices: Array.isArray(product.prices) ? product.prices : undefined,
+        rating: product.rating,
+        description: product.description,
+      };
+    };
+
     const fetchTrending = async () => {
       setIsLoading(true);
       try {
         const data = await ShopService.getTrendingProducts();
-        setTrendingProducts(data);
+        setTrendingProducts(
+          (data || [])
+            .map(normalize)
+            .filter((p): p is TrendingProduct => !!p)
+        );
       } catch (error) {
         // FIX: Warn instead of Error to prevent app crash/overlay
         console.warn(
@@ -42,7 +75,11 @@ export default function TrendingPage() {
         // Fallback: Load Global Catalog if Trending endpoint is missing
         try {
           const fallbackData = await ShopService.getGlobalCatalog();
-          setTrendingProducts(fallbackData);
+          setTrendingProducts(
+            (fallbackData || [])
+              .map(normalize)
+              .filter((p): p is TrendingProduct => !!p)
+          );
         } catch (fallbackError) {
           console.warn("Fallback data fetch failed.");
         }
@@ -54,13 +91,13 @@ export default function TrendingPage() {
     fetchTrending();
   }, []);
 
-  const handleAddToCart = async (e: React.MouseEvent, product: ShopProduct) => {
+  const handleAddToCart = async (e: React.MouseEvent, product: TrendingProduct) => {
     e.preventDefault();
     e.stopPropagation();
 
     // Use the first price ID if available, or fallback
     const priceId =
-      product.prices && product.prices.length > 0 ? product.prices[0].id : 1;
+      product.prices && product.prices.length > 0 ? product.prices[0]?.id : 1;
 
     await addToCart({
       productId: product.id,
@@ -186,7 +223,7 @@ export default function TrendingPage() {
                         <div className="mt-auto flex items-center justify-between">
                           <div>
                             <span className="text-base font-bold text-gray-900 dark:text-white">
-                              ₹{product.price}
+                              ₹{product.price ?? product.prices?.[0]?.price ?? 0}
                             </span>
                             {/* Fake Discount Logic for visual appeal */}
                             <span className="text-xs text-gray-400 line-through ml-2">
