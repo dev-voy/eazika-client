@@ -21,7 +21,7 @@ export const menuItems = [
   { name: "Products", href: "/shop/products", icon: Package },
   { name: "History", href: "/shop/history", icon: History },
   { name: "Riders", href: "/shop/riders", icon: Users },
-  { name: "Profile", href: "/profile", icon: User },
+  { name: "Profile", href: "/shop/profile", icon: User },
   { name: "Store Settings", href: "/shop/settings", icon: Settings },
 ];
 export function ShopSidebar() {
