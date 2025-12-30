@@ -39,6 +39,14 @@ export async function proxy(req: NextRequest) {
 
   // If user has token, check role-based access
   if (token) {
+    // Restrict /admin and /admin/* routes to admin only
+    if (pathname.startsWith("/admin")) {
+      if (!isAdmin) {
+        return NextResponse.redirect(new URL("/?msg=unauthorized_access", req.url));
+      }
+      return NextResponse.next();
+    }
+
     // Admin: force land on /admin and allow admin area
     if (isAdmin) {
       if (!pathname.startsWith("/admin")) {
