@@ -63,7 +63,7 @@ export default function CheckoutPage() {
       });
 
       toast.success("Order placed successfully!");
-      setInterval(() => router.push("/orders"), 1500);
+      setTimeout(() => router.push("/orders"), 1500);
     } catch (error) {
       if (isAxiosError(error)) {
         toast.error(
