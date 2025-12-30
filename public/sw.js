@@ -1,5 +1,3 @@
-// public/sw.js
-
 self.addEventListener("push", function (event) {
   let payload = {};
   if (event.data) {
