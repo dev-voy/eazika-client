@@ -40,7 +40,9 @@ export async function proxy(req: NextRequest) {
   // If user has token, check role-based access
   if (token) {
     // Admin bypasses all checks
-    if (isAdmin) return NextResponse.next();
+    if (isAdmin && pathname.startsWith("/shop")) {
+      return NextResponse.redirect(new URL("/admin", req.url));
+    }
 
     // ADMIN ROUTES - Only admin can access
     if (pathname.startsWith("/admin")) {
@@ -62,7 +64,7 @@ export async function proxy(req: NextRequest) {
     // RIDER ROUTES - Delivery or admin (handled above); registration open for users
     if (pathname.startsWith("/rider")) {
       if (pathname === "/rider/register" && userRole === "user") return NextResponse.next();
-      if (pathname === "/rider/register" && userRole === "delivery_boy") {
+      if (pathname === "/" && userRole === "delivery_boy") {
         return NextResponse.redirect(new URL("/rider", req.url));
       }
       if (userRole !== "delivery_boy") {
