@@ -5,12 +5,39 @@ import { toast } from "sonner";
 import { userStore } from "@/store/userStore";
 import ShopService, { shopService } from "@/services/shopService";
 import type { Address } from "@/types/user";
+import Image from "next/image";
 
 type WeeklySlot = {
     day: string;
     isOpen: boolean;
     open: string;
     close: string;
+};
+
+type DeliveryBandInput = {
+    km: string;
+    price: string;
+};
+
+type ShopProfile = {
+    id?: number;
+    name?: string;
+    category?: string;
+    images?: string[];
+    coverPhoto?: string;
+    phone?: string;
+    ownerName?: string;
+    address?: {
+        name?: string;
+        phone?: string;
+        line1?: string;
+        line2?: string | null;
+        street?: string;
+        country?: string;
+        state?: string;
+        city?: string;
+        pinCode?: string;
+    } | null;
 };
 
 const DEFAULT_ADDRESS: Address = {
@@ -36,8 +63,8 @@ const DEFAULT_SLOTS: WeeklySlot[] = [
     "Sunday",
 ].map((day) => ({ day, isOpen: true, open: "09:00", close: "21:00" }));
 
-const DEFAULT_RADII = [
-    { km: 1, price: 0 },
+const DEFAULT_RADII: DeliveryBandInput[] = [
+    { km: "1", price: "0" },
 ];
 
 export default function ShopSettingsPage() {
@@ -47,8 +74,9 @@ export default function ShopSettingsPage() {
     const [loadingGeo, setLoadingGeo] = useState(false);
     const [onlineDelivery, setOnlineDelivery] = useState(true);
     const [slots, setSlots] = useState<WeeklySlot[]>(DEFAULT_SLOTS);
-    const [deliveryBands, setDeliveryBands] = useState<{ km: number; price: number }[]>(DEFAULT_RADII);
+    const [deliveryBands, setDeliveryBands] = useState<DeliveryBandInput[]>(DEFAULT_RADII);
     const [minOrderValue, setMinOrderValue] = useState(0);
+    const [shopProfile, setShopProfile] = useState<ShopProfile | null>(null);
     const [primaryAddress, setPrimaryAddress] = useState<Address | null>(null);
     const [addressLoading, setAddressLoading] = useState<boolean>(true);
     const [schedulesLoading, setSchedulesLoading] = useState(true);
@@ -87,7 +115,21 @@ export default function ShopSettingsPage() {
     useEffect(() => {
         fetchUser();
     }, [fetchUser]);
-
+    useEffect(() => {
+        (async () => {
+            if (user && user.id) {
+                try {
+                    const shopDetails = await ShopService.getShopProfile();
+                    console.log(shopDetails);
+                    const data = (shopDetails as { data?: ShopProfile } | ShopProfile | null) || null;
+                    const normalized = data && typeof data === "object" && "data" in data ? (data as { data?: ShopProfile }).data : data;
+                    setShopProfile(normalized ?? null);
+                } catch (err) {
+                    console.warn("Failed to fetch shop address by user ID", err);
+                }
+            }
+        })();
+    }, [user]);
     // Prefill delivery slots from backend; fall back to defaults if unavailable
     useEffect(() => {
         (async () => {
@@ -143,7 +185,12 @@ export default function ShopSettingsPage() {
                 const DeliverySlotsResponse = await ShopService.getShopDeliveryRates();
                 const rates = DeliverySlotsResponse?.data?.rates;
                 if (Array.isArray(rates) && rates.length > 0) {
-                    setDeliveryBands(rates);
+                    setDeliveryBands(
+                        rates.map((r: { km?: number; price?: number }) => ({
+                            km: r?.km !== undefined ? String(r.km) : "",
+                            price: r?.price !== undefined ? String(r.price) : "",
+                        }))
+                    );
                 } else {
                     setDeliveryBands(DEFAULT_RADII);
                 }
@@ -259,7 +306,10 @@ export default function ShopSettingsPage() {
     };
     const saveDeliveryBands = async () => {
         const pricingPayload = {
-            rates: deliveryBands.map((b) => ({ km: b.km, price: b.price }))
+            rates: deliveryBands.map((b) => ({
+                km: parseFloat(b.km) || 0,
+                price: parseFloat(b.price) || 0,
+            })),
         };
         setSavingPricing(true);
         try {
@@ -334,6 +384,45 @@ export default function ShopSettingsPage() {
 
     return (
         <div className="max-w-5xl mx-auto space-y-8 pb-16 px-2 md:px-0">
+            {shopProfile && (
+                <section className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 shadow-sm space-y-3">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                            {shopProfile.coverPhoto ? (
+                                <Image
+                                    src={shopProfile.coverPhoto || ""}
+                                    width={200}
+                                    height={200}
+                                    alt={shopProfile.name || "Shop cover"}
+                                    className="h-16 w-16 rounded-xl object-cover border border-gray-200 dark:border-gray-700"
+                                />
+                            ) : (
+                                <div className="h-16 w-16 rounded-xl bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-sm font-semibold text-gray-500">
+                                    Logo
+                                </div>
+                            )}
+                            <div>
+                                <h1 className="text-xl font-bold text-gray-900 dark:text-white">{shopProfile.name || "Shop"}</h1>
+                                <p className="text-sm text-gray-500">{shopProfile.category || "Category"}</p>
+                            </div>
+                        </div>
+                        <div className="text-sm text-gray-700 dark:text-gray-200 space-y-1">
+                            {shopProfile.phone && <p className="font-semibold">📞 {shopProfile.phone}</p>}
+                            {shopProfile.ownerName && <p>Owner: {shopProfile.ownerName}</p>}
+                            {shopProfile.address && (
+                                <p className="text-gray-600 dark:text-gray-300">
+                                    {[shopProfile.address.line1, shopProfile.address.street, shopProfile.address.city]
+                                        .filter(Boolean)
+                                        .join(", ")}
+                                    {shopProfile.address.state ? `, ${shopProfile.address.state}` : ""}
+                                    {shopProfile.address.country ? `, ${shopProfile.address.country}` : ""}
+                                    {shopProfile.address.pinCode ? ` - ${shopProfile.address.pinCode}` : ""}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                </section>
+            )}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Shop Settings</h1>
@@ -600,9 +689,13 @@ export default function ShopSettingsPage() {
                         </div>
                         <button
                             type="button"
-                            onClick={() =>
-                                setDeliveryBands((prev) => [...prev, { km: prev.length + 1, price: 0 }])
-                            }
+                            onClick={() => {
+                                setDeliveryBands((prev) => [
+                                    ...prev,
+                                    { km: String(prev.length + 1), price: "0" },
+                                ]);
+                                setDeliveryBandsDirty(true);
+                            }}
                             className="px-3 py-2 rounded-xl text-sm font-semibold bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100"
                         >
                             Add band
@@ -618,14 +711,14 @@ export default function ShopSettingsPage() {
                             </div>
                         ) : (
                             deliveryBands.map((band, idx) => (
-                                <div key={`${band.km}-${idx}`} className="grid grid-cols-2 md:grid-cols-3 gap-3 items-center">
+                                <div key={`band-${idx}`} className="grid grid-cols-2 md:grid-cols-3 gap-3 items-center">
                                     <div>
                                         <label className="text-xs font-semibold text-gray-500 uppercase">Distance (km)</label>
                                         <input
                                             type="number"
                                             value={band.km}
                                             onChange={(e) => {
-                                                const km = parseFloat(e.target.value) || 0;
+                                                const km = e.target.value;
                                                 setDeliveryBands((prev) => prev.map((b, i) => (i === idx ? { ...b, km } : b)));
                                                 setDeliveryBandsDirty(true);
                                             }}
@@ -638,7 +731,7 @@ export default function ShopSettingsPage() {
                                             type="number"
                                             value={band.price}
                                             onChange={(e) => {
-                                                const price = parseFloat(e.target.value) || 0;
+                                                const price = e.target.value;
                                                 setDeliveryBands((prev) => prev.map((b, i) => (i === idx ? { ...b, price } : b)));
                                                 setDeliveryBandsDirty(true);
                                             }}
