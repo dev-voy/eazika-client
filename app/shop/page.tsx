@@ -35,9 +35,9 @@ export default function ShopDashboard() {
         }
         // Fetch Analytics and Recent Orders in parallel
         const analyticsData = await shopService
-          .getAnalytics("Last 7 Days")
+          .getAnalytics("all")
           .catch(() => null);
-
+        console.log("Analytics Data:", analyticsData);
         // Set Analytics
         if (analyticsData?.metrics) {
           setAnalytics(analyticsData.metrics);
@@ -139,8 +139,8 @@ export default function ShopDashboard() {
                 {stat.change && (
                   <span
                     className={`text-[10px] font-bold flex items-center px-2 py-1 rounded-full ${isNewShop
-                        ? "bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500"
-                        : "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400"
+                      ? "bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500"
+                      : "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400"
                       }`}
                   >
                     {stat.change}{" "}
