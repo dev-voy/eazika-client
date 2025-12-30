@@ -70,6 +70,9 @@ export async function proxy(req: NextRequest) {
     // RIDER ROUTES - Delivery or admin (handled above); registration open for users
     if (pathname.startsWith("/rider")) {
       if (pathname === "/rider/register" && userRole === "user") return NextResponse.next();
+      if (pathname === "/rider/register" && userRole === "delivery_boy") {
+        return NextResponse.redirect(new URL("/rider", req.url));
+      }
       if (pathname === "/" && userRole === "delivery_boy") {
         return NextResponse.redirect(new URL("/rider", req.url));
       }
