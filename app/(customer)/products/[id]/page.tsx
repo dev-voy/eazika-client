@@ -102,12 +102,12 @@ export default function ProductPage() {
   }, [product?.shop, shopLocation, userLocation]);
 
   // Disable checkout if location check fails
-  const canCheckout = useMemo(() => {
-    if (!shopLocation) return false; // Shop has no location
-    if (!userLocation) return false; // User hasn't set location
-    if (deliveryCheck && !deliveryCheck.matchedRate) return false; // Out of range
-    return true;
-  }, [shopLocation, userLocation, deliveryCheck]);
+  // const canCheckout = useMemo(() => {
+  //   if (!shopLocation) return false; // Shop has no location
+  //   if (!userLocation) return false; // User hasn't set location
+  //   if (deliveryCheck && !deliveryCheck.matchedRate) return false; // Out of range
+  //   return true;
+  // }, [shopLocation, userLocation, deliveryCheck]);
 
   const handleUseGps = () => {
     if (!navigator?.geolocation) {
@@ -500,7 +500,7 @@ export default function ProductPage() {
                 )}
 
                 {/* Delivery availability check */}
-                <div className="border-2 border-gray-100 dark:border-gray-700 rounded-2xl p-5 bg-white dark:bg-gray-800/60">
+                {/* <div className="border-2 border-gray-100 dark:border-gray-700 rounded-2xl p-5 bg-white dark:bg-gray-800/60">
                   <div className="flex items-center gap-2 mb-3">
                     <MapPin size={18} className="text-gray-600 dark:text-gray-300" />
                     <h3 className="font-bold text-lg text-gray-900 dark:text-white">Check delivery to your location</h3>
@@ -583,7 +583,7 @@ export default function ProductPage() {
                       )}
                     </div>
                   )}
-                </div>
+                </div> */}
 
                 {/* Trust Badges */}
                 <div className="grid grid-cols-2 gap-4">
@@ -633,9 +633,8 @@ export default function ProductPage() {
                     {/* Add to Cart Button */}
                     <button
                       onClick={handleAddToCart}
-                      disabled={!canCheckout || isCartLoading || isBuying}
+                      disabled={isCartLoading || isBuying}
                       className="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-bold py-4 rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title={!canCheckout ? "Please verify delivery to your location first" : ""}
                     >
                       {isCartLoading ? (
                         <Loader2 size={20} className="animate-spin" />
@@ -650,9 +649,8 @@ export default function ProductPage() {
                     {/* Buy Now Button */}
                     <button
                       onClick={handleBuyNow}
-                      disabled={!canCheckout || isBuying || isCartLoading}
+                      disabled={isBuying || isCartLoading}
                       className="flex-1 bg-yellow-500 text-white font-bold py-4 rounded-2xl shadow-lg shadow-yellow-500/30 hover:bg-yellow-600 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                      title={!canCheckout ? "Please verify delivery to your location first" : ""}
                     >
                       {isBuying ? (
                         <Loader2 size={20} className="animate-spin" />
