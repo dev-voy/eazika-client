@@ -508,18 +508,38 @@ export const ShopService = {
     });
     return response.data.data.map((r: any) => ({
       id: r.id,
-      name: r.user.name || "Unknown",
-      phone: r.user.phone,
+      userId: r.userId,
+      shopkeeperId: r.shopkeeperId,
+      aadharNumber: r.aadharNumber,
+      panNumber: r.panNumber,
+      licenseNumber: r.licenseNumber,
+      licenseImage: r.licenseImage,
+      vehicleOwnerName: r.vehicleOwnerName,
+      vehicleName: r.vehicleName,
+      vehicleNo: r.vehicleNo,
+      currentLat: r.currentLat,
+      currentLng: r.currentLng,
+      isAvailable: r.isAvailable,
+      isVerified: r.isVerified,
+      lastLocationUpdate: r.lastLocationUpdate,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
       status: !r.isVerified
         ? "pending"
         : r.isAvailable
           ? "available"
           : "offline",
+      user: r.user,
+      totalOrdersAccepted: r.totalOrdersAccepted || 0,
+      totalOrdersDelivered: r.totalOrdersDelivered || 0,
+      totalOrdersCancelled: r.totalOrdersCancelled || 0,
+      // Legacy fields for backward compatibility
+      name: r.user?.name || "Unknown",
+      phone: r.user?.phone,
+      image: r.user?.image,
       activeOrders: 0,
-      totalDeliveries: 0,
+      totalDeliveries: r.totalOrdersDelivered || 0,
       rating: 4.5,
-      image: r.user.image,
-      isVerified: r.isVerified,
     }));
   },
 
