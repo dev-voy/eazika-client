@@ -43,7 +43,7 @@ export const AdminService = {
     const response = await axiosInstance.get(`/admin/shops/get-all-addresses`);
     return response.data.data;
   },
-  verifyShop: async (shopId: number, status: "active" | "rejected") => {
+  verifyShop: async (shopId: number, status: "approved" | "rejected") => {
     const response = await axiosInstance.patch(
       `/admin/shops/${shopId}/verify`,
       {
@@ -53,11 +53,11 @@ export const AdminService = {
     return response.data.data;
   },
 
-  toggleShopStatus: async (shopId: number, isActive: boolean) => {
+  toggleShopStatus: async (shopId: number, status: "approved" | "suspended") => {
     const response = await axiosInstance.patch(
       `/admin/shops/${shopId}/status`,
       {
-        isActive,
+        status,
       }
     );
     return response.data.data;

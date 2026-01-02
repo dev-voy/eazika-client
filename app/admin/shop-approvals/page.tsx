@@ -35,7 +35,7 @@ export default function AdminShopsPage() {
             const data = await AdminService.getAllShops(
                 statusFilter === "all" ? undefined : statusFilter
             );
-            console.log(data);
+            // console.log(data);
             setShops(data);
         } catch (error) {
             console.error("Failed to fetch shops", error);
@@ -51,7 +51,7 @@ export default function AdminShopsPage() {
     const handleApprove = async (shopId: number) => {
         if (!confirm("Are you sure you want to approve this shop?")) return;
         try {
-            await AdminService.verifyShop(shopId, "active");
+            await AdminService.verifyShop(shopId, "approved");
             toast.success("Shop approved successfully!");
             fetchShops();
             setSelectedShop(null);
@@ -75,11 +75,22 @@ export default function AdminShopsPage() {
     const handleSuspend = async (shopId: number) => {
         if (!confirm("Are you sure you want to suspend this shop?")) return;
         try {
-            await AdminService.toggleShopStatus(shopId, false);
+            await AdminService.toggleShopStatus(shopId, "suspended");
             toast.success("Shop suspended");
             fetchShops();
         } catch (error) {
             toast.error("Failed to suspend shop");
+        }
+    };
+
+    const handleActivate = async (shopId: number) => {
+        if (!confirm("Are you sure you want to activate this shop?")) return;
+        try {
+            await AdminService.toggleShopStatus(shopId, "approved");
+            toast.success("Shop activated");
+            fetchShops();
+        } catch (error) {
+            toast.error("Failed to activate shop");
         }
     };
 
@@ -206,6 +217,21 @@ export default function AdminShopsPage() {
                                         className="py-2 px-3 bg-green-500 text-white hover:bg-green-600 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors"
                                     >
                                         <CheckCircle size={14} /> Accept
+                                    </button>
+                                    <button
+                                        onClick={() => openShopModal(shop)}
+                                        className="py-2 px-3 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors"
+                                    >
+                                        <Eye size={14} /> View
+                                    </button>
+                                </div>
+                            ) : shop.status === 'suspended' ? (
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        onClick={() => handleActivate(shop.id)}
+                                        className="py-2 px-3 bg-green-500 text-white hover:bg-green-600 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors"
+                                    >
+                                        <CheckCircle size={14} /> Activate
                                     </button>
                                     <button
                                         onClick={() => openShopModal(shop)}
