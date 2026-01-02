@@ -96,18 +96,7 @@ export default function RidersPage() {
         }
     };
 
-    const handleSendInvite = async () => {
-        if (!foundUser) return;
-        setIsSending(true);
-        try {
-            await ShopService.sendRiderInvite(foundUser.id);
-            setInviteSent(true);
-        } catch (error) {
-            alert("Failed to send invite.");
-        } finally {
-            setIsSending(false);
-        }
-    };
+
 
     const resetModal = () => {
         setShowInviteModal(false);
@@ -125,8 +114,8 @@ export default function RidersPage() {
         if (!confirm('Are you sure you want to suspend this rider?')) return;
         try {
             // Add suspend API call here
-            console.log('Suspending rider:', riderId);
-            // await ShopService.suspendRider(riderId);
+            // console.log('Suspending rider:', riderId);
+            await ShopService.riderStatusToggle(riderId, "suspended");
             fetchRiders();
         } catch (error) {
             console.error('Failed to suspend rider', error);
@@ -253,7 +242,7 @@ export default function RidersPage() {
                                                 onClick={async (e) => {
                                                     e.stopPropagation();
                                                     if (!confirm("Reject request?")) return;
-                                                    await ShopService.rejectRider(rider.id);
+                                                    await ShopService.removeRider(rider.id);
                                                     fetchRiders();
                                                 }}
                                                 className="py-2.5 rounded-xl bg-red-100 text-red-700 font-bold text-xs hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 flex items-center justify-center gap-1 transition-colors"
@@ -263,7 +252,7 @@ export default function RidersPage() {
                                             <button
                                                 onClick={async (e) => {
                                                     e.stopPropagation();
-                                                    await ShopService.approveRider(rider.id);
+                                                    await ShopService.riderStatusToggle(rider.id, "approved");
                                                     fetchRiders();
                                                 }}
                                                 className="py-2.5 rounded-xl bg-yellow-500 text-white font-bold text-xs hover:bg-yellow-600 shadow-lg shadow-yellow-500/30 flex items-center justify-center gap-1 transition-all"
@@ -402,13 +391,6 @@ export default function RidersPage() {
                                         </div>
                                     ) : (
                                         <div className="space-y-3">
-                                            <button
-                                                onClick={handleSendInvite}
-                                                disabled={isSending}
-                                                className="w-full py-3.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
-                                            >
-                                                {isSending ? <Loader2 className="animate-spin" /> : <><Send size={18} /> Send Invite</>}
-                                            </button>
                                             <button
                                                 onClick={() => setFoundUser(null)}
                                                 className="w-full py-3.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-white font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
@@ -958,7 +940,7 @@ export default function RidersPage() {
                                         <button
                                             onClick={async (e) => {
                                                 e.stopPropagation();
-                                                await ShopService.approveRider(selectedRider.id);
+                                                await ShopService.riderStatusToggle(selectedRider.id, "approved");
                                                 fetchRiders();
                                             }}
                                             className="py-2 rounded-xl bg-yellow-500 text-white font-bold text-xs hover:bg-yellow-600 shadow-lg shadow-yellow-500/20 flex items-center justify-center gap-1"

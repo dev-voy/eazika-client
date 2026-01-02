@@ -567,9 +567,11 @@ export const ShopService = {
     }));
   },
 
-  approveRider: async (riderId: number) => {
-    const response = await axiosInstance.patch("/shops/approve-rider", {
+
+  riderStatusToggle: async (riderId: number, status: "approved" | "rejected" | "suspended") => {
+    const response = await axiosInstance.patch("/shops/toggle-rider-status", {
       riderId,
+      status
     });
     return response.data.data;
   },
@@ -606,7 +608,7 @@ export const ShopService = {
   },
 
   removeRider: async (riderId: number) => {
-    const response = await axiosInstance.delete(`/shops/riders/${riderId}`);
+    const response = await axiosInstance.delete(`/shops/reject-rider/${riderId}`);
     return response.data;
   },
 
