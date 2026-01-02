@@ -138,7 +138,7 @@ export default function RidersPage() {
         const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
         const delivered = rider.totalOrdersDelivered || 0;
         const baseValue = Math.floor(delivered / 7);
-        
+
         return days.map((day, index) => ({
             day,
             deliveries: Math.max(0, baseValue + Math.floor(Math.random() * 3) - 1),
@@ -212,7 +212,7 @@ export default function RidersPage() {
                             >
                                 {/* Decorative gradient overlay */}
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-yellow-500/5 to-orange-500/5 rounded-full blur-3xl -z-0" />
-                                
+
                                 <div className="relative z-10 flex flex-col h-full">
                                     <div className="flex justify-between items-start mb-5">
                                         <div className="flex items-center gap-3">
@@ -470,7 +470,7 @@ export default function RidersPage() {
                                                 </span>
                                             </div>
                                             <div className='flex flex-row gap-2 items-center justify-start mb-2'>
-                                                <Phone size={14} className="text-blue-500" /> 
+                                                <Phone size={14} className="text-blue-500" />
                                                 <span className="text-sm text-gray-600 dark:text-gray-400">{selectedRider.phone}</span>
                                                 <a href={`tel:${selectedRider.phone}`} className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline font-medium">
                                                     Call Now
@@ -717,36 +717,34 @@ export default function RidersPage() {
                                                     <span className="text-sm font-bold">+12%</span>
                                                 </div>
                                             </div>
-                                            
-                                            {/* Bar Chart */}
-                                            <div className="space-y-4">
-                                                {getPerformanceData(selectedRider).map((data, index) => {
-                                                    const maxDeliveries = Math.max(...getPerformanceData(selectedRider).map(d => d.deliveries));
-                                                    const percentage = maxDeliveries > 0 ? (data.deliveries / maxDeliveries) * 100 : 0;
-                                                    
-                                                    return (
-                                                        <div key={index} className="space-y-1">
-                                                            <div className="flex items-center justify-between text-xs">
-                                                                <span className="font-semibold text-gray-700 dark:text-gray-300 w-12">{data.day}</span>
-                                                                <span className="text-gray-500 dark:text-gray-400">{data.deliveries} deliveries</span>
+
+                                            {/* Vertical Bar Chart with horizontal scroll */}
+                                            <div className="w-full overflow-x-auto">
+                                                <div className="flex items-end gap-4 min-w-[420px]" style={{ height: 180 }}>
+                                                    {getPerformanceData(selectedRider).map((data, index) => {
+                                                        const maxDeliveries = Math.max(...getPerformanceData(selectedRider).map(d => d.deliveries));
+                                                        const barHeight = maxDeliveries > 0 ? (data.deliveries / maxDeliveries) * 120 : 0;
+                                                        return (
+                                                            <div key={index} className="flex flex-col items-center w-12">
+                                                                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">{data.deliveries}</div>
+                                                                <motion.div
+                                                                    initial={{ height: 0 }}
+                                                                    animate={{ height: barHeight }}
+                                                                    transition={{ duration: 0.8, delay: index * 0.1 }}
+                                                                    className="w-8 rounded-t-lg bg-gradient-to-t from-yellow-400 to-yellow-600 flex items-end justify-center relative"
+                                                                    style={{ minHeight: 8 }}
+                                                                >
+                                                                    {data.deliveries > 0 && (
+                                                                        <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs font-bold text-yellow-700 dark:text-yellow-200 bg-white/80 dark:bg-gray-900/80 px-1 rounded">
+                                                                            ₹{data.earnings}
+                                                                        </span>
+                                                                    )}
+                                                                </motion.div>
+                                                                <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mt-2 truncate w-12 text-center">{data.day}</div>
                                                             </div>
-                                                            <div className="flex items-center gap-2">
-                                                                <div className="flex-1 h-8 bg-white/50 dark:bg-gray-800/50 rounded-lg overflow-hidden">
-                                                                    <motion.div
-                                                                        initial={{ width: 0 }}
-                                                                        animate={{ width: `${percentage}%` }}
-                                                                        transition={{ duration: 0.8, delay: index * 0.1 }}
-                                                                        className="h-full bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-end pr-2"
-                                                                    >
-                                                                        {data.deliveries > 0 && (
-                                                                            <span className="text-xs font-bold text-white">₹{data.earnings}</span>
-                                                                        )}
-                                                                    </motion.div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
                                         </div>
 
