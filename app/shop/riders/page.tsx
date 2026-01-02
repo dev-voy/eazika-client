@@ -14,7 +14,15 @@ import {
     X,
     Send,
     User,
-    Star
+    Star,
+    Ban,
+    MapPin,
+    FileText,
+    Eye,
+    XCircle,
+    BarChart3,
+    History,
+    TrendingUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShopService, ShopRider, UserProfile } from '@/services/shopService';
@@ -33,6 +41,10 @@ export default function RidersPage() {
     const [isSending, setIsSending] = useState(false);
     const [inviteSent, setInviteSent] = useState(false);
 
+    // Rider Details Modal State
+    const [selectedRider, setSelectedRider] = useState<ShopRider | null>(null);
+    const [modalTab, setModalTab] = useState<'overview' | 'analytics' | 'history' | 'docs'>('overview');
+
     useEffect(() => {
         fetchRiders();
     }, []);
@@ -40,6 +52,7 @@ export default function RidersPage() {
     const fetchRiders = async () => {
         try {
             const data = await ShopService.getShopRiders();
+            console.log("Riders data:", data);
             setRiders(data);
         } catch (error) {
             console.error("Failed to load riders", error);
@@ -101,6 +114,23 @@ export default function RidersPage() {
         setInvitePhone('');
         setFoundUser(null);
         setInviteSent(false);
+    };
+
+    const openRiderModal = (rider: ShopRider) => {
+        setSelectedRider(rider);
+        setModalTab('overview');
+    };
+
+    const handleSuspend = async (riderId: number) => {
+        if (!confirm('Are you sure you want to suspend this rider?')) return;
+        try {
+            // Add suspend API call here
+            console.log('Suspending rider:', riderId);
+            // await ShopService.suspendRider(riderId);
+            fetchRiders();
+        } catch (error) {
+            console.error('Failed to suspend rider', error);
+        }
     };
 
     return (
@@ -167,8 +197,8 @@ export default function RidersPage() {
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
                                 className={`p-5 rounded-2xl border shadow-sm hover:shadow-md transition-all group ${rider.status === 'pending'
-                                        ? 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-700'
-                                        : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'
+                                    ? 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-700'
+                                    : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'
                                     }`}
                             >
                                 <div className="flex justify-between items-start mb-4">
@@ -181,12 +211,13 @@ export default function RidersPage() {
                                             )}
                                         </div>
                                         <div>
-                                            <h3 className="font-bold text-gray-900 dark:text-white">{rider.name}</h3>
+                                            <h3 className="font-bold text-gray-900 dark:text-white">{rider.vehicleOwnerName}</h3>
+                                            <span>{rider.user.phone}</span>
                                             <div className="flex items-center gap-1.5 mt-0.5">
                                                 <span className={`w-2 h-2 rounded-full ${rider.status === 'available' ? 'bg-green-500' :
-                                                        rider.status === 'busy' ? 'bg-orange-500' :
-                                                            rider.status === 'pending' ? 'bg-yellow-500' :
-                                                                'bg-gray-400'
+                                                    rider.status === 'busy' ? 'bg-orange-500' :
+                                                        rider.status === 'pending' ? 'bg-yellow-500' :
+                                                            'bg-gray-400'
                                                     }`} />
                                                 <span className="text-xs text-gray-500 capitalize font-medium">
                                                     {rider.status === 'pending' ? 'Pending Approval' : rider.status}
@@ -202,25 +233,36 @@ export default function RidersPage() {
                                 </div>
 
                                 {rider.status === 'pending' ? (
-                                    <div className="mt-4 grid grid-cols-2 gap-3">
+                                    <div className="mt-4 grid grid-cols-3 gap-2 sm:mt-20">
                                         <button
-                                            onClick={async () => {
+                                            onClick={async (e) => {
+                                                e.stopPropagation();
                                                 if (!confirm("Reject request?")) return;
                                                 await ShopService.rejectRider(rider.id);
                                                 fetchRiders();
                                             }}
-                                            className="py-2 rounded-xl bg-red-100 text-red-700 font-bold text-sm hover:bg-red-200"
+                                            className="py-2 rounded-xl bg-red-100 text-red-700 font-bold text-xs hover:bg-red-200 flex items-center justify-center gap-1"
                                         >
-                                            Reject
+                                            <XCircle size={14} /> Reject
                                         </button>
                                         <button
-                                            onClick={async () => {
+                                            onClick={async (e) => {
+                                                e.stopPropagation();
                                                 await ShopService.approveRider(rider.id);
                                                 fetchRiders();
                                             }}
-                                            className="py-2 rounded-xl bg-yellow-500 text-white font-bold text-sm hover:bg-yellow-600 shadow-lg shadow-yellow-500/20"
+                                            className="py-2 rounded-xl bg-yellow-500 text-white font-bold text-xs hover:bg-yellow-600 shadow-lg shadow-yellow-500/20 flex items-center justify-center gap-1"
                                         >
-                                            Accept
+                                            <CheckCircle size={14} /> Accept
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                openRiderModal(rider);
+                                            }}
+                                            className="py-2 rounded-xl bg-blue-100 text-blue-700 font-bold text-xs hover:bg-blue-200 flex items-center justify-center gap-1"
+                                        >
+                                            <Eye size={14} /> View
                                         </button>
                                     </div>
                                 ) : (
@@ -242,9 +284,26 @@ export default function RidersPage() {
                                             </div>
                                         </div>
 
-                                        <a href={`tel:${rider.phone}`} className="mt-4 flex items-center justify-center gap-2 w-full py-2.5 bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                                            <Phone size={16} /> Call Rider
-                                        </a>
+                                        <div className="mt-4 grid grid-cols-2 gap-2">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleSuspend(rider.id);
+                                                }}
+                                                className="py-2 rounded-xl bg-red-50 text-red-600 font-bold text-xs hover:bg-red-100 flex items-center justify-center gap-1"
+                                            >
+                                                <Ban size={14} /> Suspend
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    openRiderModal(rider);
+                                                }}
+                                                className="py-2 rounded-xl bg-blue-100 text-blue-700 font-bold text-xs hover:bg-blue-200 flex items-center justify-center gap-1"
+                                            >
+                                                <Eye size={14} /> View
+                                            </button>
+                                        </div>
                                     </>
                                 )}
                             </motion.div>
@@ -353,6 +412,370 @@ export default function RidersPage() {
                                     )}
                                 </div>
                             )}
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* --- Rider Details Modal --- */}
+            <AnimatePresence>
+                {selectedRider && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]"
+                        >
+                            {/* Modal Header */}
+                            <div className="p-6 pb-0 bg-gray-50 dark:bg-gray-800/50">
+                                <div className="flex justify-between items-start mb-6">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center overflow-hidden">
+                                            {selectedRider.image ? (
+                                                <Image src={selectedRider.image} alt={selectedRider.name} width={64} height={64} className="object-cover" />
+                                            ) : (
+                                                <Bike size={32} className="text-yellow-600" />
+                                            )}
+                                        </div>
+                                        <div>
+                                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{selectedRider.name}</h2>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold capitalize ${selectedRider.status === 'available' ? 'bg-green-100 text-green-700' :
+                                                    selectedRider.status === 'busy' ? 'bg-orange-100 text-orange-700' :
+                                                        selectedRider.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                                                            'bg-gray-100 text-gray-700'
+                                                    }`}>
+                                                    {selectedRider.status}
+                                                </span>
+                                                <span className="text-gray-400 text-xs">• ID: #{selectedRider.id}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setSelectedRider(null)} className="p-2 text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full">
+                                        <X size={20} />
+                                    </button>
+                                </div>
+
+                                {/* Tabs */}
+                                <div className="flex gap-1 overflow-x-auto">
+                                    <button
+                                        onClick={() => setModalTab('overview')}
+                                        className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${modalTab === 'overview'
+                                            ? 'border-yellow-500 text-yellow-600 dark:text-yellow-400'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                                            }`}
+                                    >
+                                        Overview
+                                    </button>
+                                    {selectedRider.status !== 'pending' && (
+                                        <>
+                                            <button
+                                                onClick={() => setModalTab('analytics')}
+                                                className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${modalTab === 'analytics'
+                                                    ? 'border-yellow-500 text-yellow-600 dark:text-yellow-400'
+                                                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                                                    }`}
+                                            >
+                                                Analytics
+                                            </button>
+                                            <button
+                                                onClick={() => setModalTab('history')}
+                                                className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${modalTab === 'history'
+                                                    ? 'border-yellow-500 text-yellow-600 dark:text-yellow-400'
+                                                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                                                    }`}
+                                            >
+                                                History
+                                            </button>
+                                        </>
+                                    )}
+                                    <button
+                                        onClick={() => setModalTab('docs')}
+                                        className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${modalTab === 'docs'
+                                            ? 'border-yellow-500 text-yellow-600 dark:text-yellow-400'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                                            }`}
+                                    >
+                                        Documents
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Modal Content */}
+                            <div className="p-6 overflow-y-auto">
+                                {/* TAB: OVERVIEW */}
+                                {modalTab === 'overview' && (
+                                    <div className="space-y-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+                                                <p className="text-xs text-gray-500 uppercase font-bold mb-2">Contact Information</p>
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center gap-2 text-gray-800 dark:text-white font-medium">
+                                                        <Phone size={16} className="text-blue-500" /> {selectedRider.phone}
+                                                    </div>
+                                                    <a href={`tel:${selectedRider.phone}`} className="inline-flex items-center gap-2 text-sm text-blue-600 hover:underline">
+                                                        Call Now
+                                                    </a>
+                                                </div>
+                                            </div>
+                                            <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+                                                <p className="text-xs text-gray-500 uppercase font-bold mb-2">Verification Status</p>
+                                                <div className="flex items-center gap-2 text-gray-800 dark:text-white font-medium">
+                                                    {selectedRider.isVerified ? (
+                                                        <><CheckCircle size={16} className="text-green-500" /> Verified</>
+                                                    ) : (
+                                                        <><Clock size={16} className="text-orange-500" /> Pending Verification</>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+                                                <p className="text-xs text-gray-500 uppercase font-bold mb-1">Aadhar Number</p>
+                                                <p className="text-sm font-bold text-gray-900 dark:text-white">{selectedRider.aadharNumber || 'N/A'}</p>
+                                            </div>
+                                            <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+                                                <p className="text-xs text-gray-500 uppercase font-bold mb-1">PAN Number</p>
+                                                <p className="text-sm font-bold text-gray-900 dark:text-white">{selectedRider.panNumber || 'N/A'}</p>
+                                            </div>
+                                            <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+                                                <p className="text-xs text-gray-500 uppercase font-bold mb-1">License Number</p>
+                                                <p className="text-sm font-bold text-gray-900 dark:text-white">{selectedRider.licenseNumber || 'N/A'}</p>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <h3 className="font-bold text-gray-900 dark:text-white mb-3">Vehicle Details</h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                                                    <p className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase mb-1">Owner Name</p>
+                                                    <p className="text-sm font-bold text-gray-900 dark:text-white">{selectedRider.vehicleOwnerName || 'N/A'}</p>
+                                                </div>
+                                                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                                                    <p className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase mb-1">Vehicle Name</p>
+                                                    <p className="text-sm font-bold text-gray-900 dark:text-white">{selectedRider.vehicleName || 'N/A'}</p>
+                                                </div>
+                                                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                                                    <p className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase mb-1">Vehicle Number</p>
+                                                    <p className="text-sm font-bold text-gray-900 dark:text-white">{selectedRider.vehicleNo || 'N/A'}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {selectedRider.status !== 'pending' && (
+                                            <div>
+                                                <h3 className="font-bold text-gray-900 dark:text-white mb-3">Performance Stats</h3>
+                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                                                    <div className="p-4 border border-gray-100 dark:border-gray-700 rounded-lg">
+                                                        <p className="text-2xl font-bold text-green-600">{selectedRider.totalOrdersAccepted || 0}</p>
+                                                        <p className="text-xs text-gray-500 mt-1">Orders Accepted</p>
+                                                    </div>
+                                                    <div className="p-4 border border-gray-100 dark:border-gray-700 rounded-lg">
+                                                        <p className="text-2xl font-bold text-blue-600">{selectedRider.totalOrdersDelivered || 0}</p>
+                                                        <p className="text-xs text-gray-500 mt-1">Delivered</p>
+                                                    </div>
+                                                    <div className="p-4 border border-gray-100 dark:border-gray-700 rounded-lg">
+                                                        <p className="text-2xl font-bold text-red-600">{selectedRider.totalOrdersCancelled || 0}</p>
+                                                        <p className="text-xs text-gray-500 mt-1">Cancelled</p>
+                                                    </div>
+                                                    <div className="p-4 border border-gray-100 dark:border-gray-700 rounded-lg">
+                                                        <p className="text-2xl font-bold text-yellow-500">{selectedRider.rating}</p>
+                                                        <p className="text-xs text-gray-500 mt-1">Avg Rating</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div>
+                                            <h3 className="font-bold text-gray-900 dark:text-white mb-3">Location & Availability</h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+                                                    <p className="text-xs text-gray-500 uppercase font-bold mb-2">Current Location</p>
+                                                    <div className="flex items-center gap-2 text-gray-800 dark:text-white font-medium">
+                                                        <MapPin size={16} className="text-red-500" />
+                                                        {selectedRider.currentLat && selectedRider.currentLng ? (
+                                                            <span className="text-sm">{selectedRider.currentLat.toFixed(4)}, {selectedRider.currentLng.toFixed(4)}</span>
+                                                        ) : (
+                                                            <span className="text-sm text-gray-500">Location not available</span>
+                                                        )}
+                                                    </div>
+                                                    {selectedRider.lastLocationUpdate && (
+                                                        <p className="text-xs text-gray-500 mt-1">
+                                                            Last updated: {new Date(selectedRider.lastLocationUpdate).toLocaleString()}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+                                                    <p className="text-xs text-gray-500 uppercase font-bold mb-2">Availability</p>
+                                                    <div className="flex items-center gap-2 text-gray-800 dark:text-white font-medium">
+                                                        {selectedRider.isAvailable ? (
+                                                            <><CheckCircle size={16} className="text-green-500" /> Available</>
+                                                        ) : (
+                                                            <><XCircle size={16} className="text-red-500" /> Unavailable</>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <h3 className="font-bold text-gray-900 dark:text-white mb-3">Account Information</h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+                                                    <p className="text-xs text-gray-500 uppercase font-bold mb-1">Joined Date</p>
+                                                    <p className="text-sm font-bold text-gray-900 dark:text-white">
+                                                        {new Date(selectedRider.createdAt || '').toLocaleDateString()}
+                                                    </p>
+                                                </div>
+                                                <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+                                                    <p className="text-xs text-gray-500 uppercase font-bold mb-1">Last Updated</p>
+                                                    <p className="text-sm font-bold text-gray-900 dark:text-white">
+                                                        {new Date(selectedRider.updatedAt || '').toLocaleDateString()}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {selectedRider.status !== 'pending' && (
+                                            <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+                                                <h3 className="font-bold text-gray-900 dark:text-white mb-3">Account Actions</h3>
+                                                <button
+                                                    onClick={() => handleSuspend(selectedRider.id)}
+                                                    className="w-full py-3 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors"
+                                                >
+                                                    <Ban size={18} /> Suspend Rider
+                                                </button>
+                                                <p className="text-xs text-gray-500 text-center mt-2">
+                                                    Suspending will prevent the rider from accepting new orders.
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* TAB: ANALYTICS */}
+                                {modalTab === 'analytics' && selectedRider.status !== 'pending' && (
+                                    <div className="space-y-6">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <BarChart3 size={20} className="text-yellow-600" />
+                                            <h3 className="font-bold text-gray-900 dark:text-white">Delivery Performance</h3>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                            <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
+                                                <p className="text-xs text-green-600 dark:text-green-400 font-bold uppercase">Accepted</p>
+                                                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{selectedRider.totalOrdersAccepted || 0}</p>
+                                            </div>
+                                            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                                                <p className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase">Completed</p>
+                                                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{selectedRider.totalOrdersDelivered || 0}</p>
+                                            </div>
+                                            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-xl">
+                                                <p className="text-xs text-red-600 dark:text-red-400 font-bold uppercase">Cancelled</p>
+                                                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{selectedRider.totalOrdersCancelled || 0}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <TrendingUp size={16} className="text-purple-600" />
+                                                    <p className="text-xs text-purple-600 dark:text-purple-400 font-bold uppercase">Success Rate</p>
+                                                </div>
+                                                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                                                    {selectedRider.totalOrdersAccepted
+                                                        ? ((selectedRider.totalOrdersDelivered / selectedRider.totalOrdersAccepted) * 100).toFixed(1)
+                                                        : 0}%
+                                                </p>
+                                            </div>
+                                            <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <Star size={16} className="text-yellow-600" />
+                                                    <p className="text-xs text-yellow-600 dark:text-yellow-400 font-bold uppercase">Rating</p>
+                                                </div>
+                                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{selectedRider.rating}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* TAB: HISTORY */}
+                                {modalTab === 'history' && selectedRider.status !== 'pending' && (
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <History size={20} className="text-yellow-600" />
+                                            <h3 className="font-bold text-gray-900 dark:text-white">Recent Orders</h3>
+                                        </div>
+                                        <div className="text-center py-12 text-gray-500">
+                                            <History size={48} className="mx-auto mb-4 opacity-30" />
+                                            <p className="text-sm">Order history will be displayed here</p>
+                                            <p className="text-xs mt-1">Integration coming soon</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* TAB: DOCS */}
+                                {modalTab === 'docs' && (
+                                    <div className="space-y-6">
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <FileText size={20} className="text-yellow-600" />
+                                                <h3 className="font-bold text-gray-900 dark:text-white">License / RC Document</h3>
+                                            </div>
+                                            <div className="aspect-video bg-gray-100 dark:bg-gray-700 rounded-xl relative overflow-hidden border border-gray-200 dark:border-gray-600">
+                                                {selectedRider.licenseImage && selectedRider.licenseImage.length > 0 ? (
+                                                    <Image
+                                                        src={selectedRider.licenseImage[0]}
+                                                        alt="License document"
+                                                        fill
+                                                        className="object-contain"
+                                                        sizes="(max-width: 768px) 100vw, 50vw"
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full flex flex-col items-center justify-center text-gray-500">
+                                                        <FileText size={48} className="mb-2 opacity-30" />
+                                                        <p className="text-sm">No document uploaded</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center justify-between mt-3">
+                                                <div className={`flex items-center gap-1 text-xs font-bold ${selectedRider.isVerified ? 'text-green-600' : 'text-orange-600'}`}>
+                                                    {selectedRider.isVerified ? (
+                                                        <><CheckCircle size={14} /> Verified</>
+                                                    ) : (
+                                                        <><Clock size={14} /> Pending Verification</>
+                                                    )}
+                                                </div>
+                                                {selectedRider.licenseImage && selectedRider.licenseImage.length > 0 && (
+                                                    <a
+                                                        href={selectedRider.licenseImage[0]}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-xs text-blue-600 hover:underline"
+                                                    >
+                                                        View Full Size
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                                            <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+                                                <p className="text-xs text-gray-500 uppercase font-bold mb-1">License Number</p>
+                                                <p className="text-sm font-bold text-gray-900 dark:text-white">{selectedRider.licenseNumber || 'N/A'}</p>
+                                            </div>
+                                            <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+                                                <p className="text-xs text-gray-500 uppercase font-bold mb-1">Document Status</p>
+                                                <p className={`text-sm font-bold ${selectedRider.isVerified ? 'text-green-600' : 'text-orange-600'}`}>
+                                                    {selectedRider.isVerified ? 'Verified' : 'Under Review'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </motion.div>
                     </div>
                 )}
