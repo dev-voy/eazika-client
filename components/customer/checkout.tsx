@@ -41,14 +41,14 @@ const AddressList = ({
       key={addr.id}
       onClick={() => setSelectedAddressId(Number(addr.id))}
       className={`p-4 mt-1 md:mt-2 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 ${selectedAddressId === addr.id
-          ? "border-yellow-500 bg-yellow-50 dark:bg-yellow-500/10"
-          : "border-gray-100 dark:border-gray-700 hover:border-gray-300"
+        ? "border-yellow-500 bg-yellow-50 dark:bg-yellow-500/10"
+        : "border-gray-100 dark:border-gray-700 hover:border-gray-300"
         }`}
     >
       <div
         className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedAddressId === addr.id
-            ? "border-yellow-500"
-            : "border-gray-300"
+          ? "border-yellow-500"
+          : "border-gray-300"
           }`}
       >
         {selectedAddressId === addr.id && (

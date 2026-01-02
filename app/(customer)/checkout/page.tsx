@@ -63,10 +63,10 @@ export default function CheckoutPage() {
     );
 
     if (!selectedAddress || !selectedAddress.geoLocation) {
-      return { 
-        isValid: false, 
-        unavailableItems: [], 
-        reasons: ["Selected address doesn't have geo location"] 
+      return {
+        isValid: false,
+        unavailableItems: [],
+        reasons: ["Selected address doesn't have geo location"]
       };
     }
 
@@ -75,10 +75,10 @@ export default function CheckoutPage() {
       .map((coord) => parseFloat(coord.trim()));
 
     if (!Number.isFinite(userLat) || !Number.isFinite(userLng)) {
-      return { 
-        isValid: false, 
-        unavailableItems: [], 
-        reasons: ["Invalid geo location format"] 
+      return {
+        isValid: false,
+        unavailableItems: [],
+        reasons: ["Invalid geo location format"]
       };
     }
 
@@ -389,8 +389,8 @@ export default function CheckoutPage() {
                   !selectedAddressId
                     ? "Please select a delivery address"
                     : !deliveryValidation.isValid
-                    ? "Some items cannot be delivered to your address"
-                    : ""
+                      ? "Some items cannot be delivered to your address"
+                      : ""
                 }
               >
                 {isOrderLoading ? (
