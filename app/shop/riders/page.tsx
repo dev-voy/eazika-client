@@ -1,15 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { 
-    Search, 
-    Plus, 
-    Users, 
-    Bike, 
-    CheckCircle, 
-    Clock, 
-    Phone, 
-    MoreVertical, 
+import {
+    Search,
+    Plus,
+    Users,
+    Bike,
+    CheckCircle,
+    Clock,
+    Phone,
+    MoreVertical,
     Loader2,
     X,
     Send,
@@ -56,8 +56,8 @@ export default function RidersPage() {
         { title: 'Total Deliveries', value: riders.reduce((acc, r) => acc + (r.totalDeliveries || 0), 0), icon: CheckCircle, color: 'text-purple-600', bg: 'bg-purple-100 dark:bg-purple-900/30' },
     ];
 
-    const filteredRiders = riders.filter(r => 
-        r.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const filteredRiders = riders.filter(r =>
+        r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         r.phone.includes(searchQuery)
     );
 
@@ -72,7 +72,7 @@ export default function RidersPage() {
         setIsSearching(true);
         setFoundUser(null);
         setInviteSent(false);
-        
+
         try {
             const user = await ShopService.searchUserByPhone(invitePhone);
             setFoundUser(user);
@@ -111,7 +111,7 @@ export default function RidersPage() {
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Delivery Partners</h1>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Manage your delivery fleet.</p>
                 </div>
-                <button 
+                <button
                     onClick={() => setShowInviteModal(true)}
                     className="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-yellow-500/20 transition-transform active:scale-95 flex items-center justify-center gap-2 text-sm"
                 >
@@ -124,7 +124,7 @@ export default function RidersPage() {
                 {stats.map((stat, index) => {
                     const Icon = stat.icon;
                     return (
-                        <motion.div 
+                        <motion.div
                             key={stat.title}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -144,9 +144,9 @@ export default function RidersPage() {
             {/* Search Bar */}
             <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                <input 
-                    type="text" 
-                    placeholder="Search riders by name or phone..." 
+                <input
+                    type="text"
+                    placeholder="Search riders by name or phone..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-yellow-500 outline-none transition-all shadow-sm"
@@ -166,11 +166,10 @@ export default function RidersPage() {
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className={`p-5 rounded-2xl border shadow-sm hover:shadow-md transition-all group ${
-                                    rider.status === 'pending' 
-                                    ? 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-700' 
-                                    : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'
-                                }`}
+                                className={`p-5 rounded-2xl border shadow-sm hover:shadow-md transition-all group ${rider.status === 'pending'
+                                        ? 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-700'
+                                        : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'
+                                    }`}
                             >
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex items-center gap-3">
@@ -184,12 +183,11 @@ export default function RidersPage() {
                                         <div>
                                             <h3 className="font-bold text-gray-900 dark:text-white">{rider.name}</h3>
                                             <div className="flex items-center gap-1.5 mt-0.5">
-                                                <span className={`w-2 h-2 rounded-full ${
-                                                    rider.status === 'available' ? 'bg-green-500' : 
-                                                    rider.status === 'busy' ? 'bg-orange-500' : 
-                                                    rider.status === 'pending' ? 'bg-yellow-500' :
-                                                    'bg-gray-400'
-                                                }`} />
+                                                <span className={`w-2 h-2 rounded-full ${rider.status === 'available' ? 'bg-green-500' :
+                                                        rider.status === 'busy' ? 'bg-orange-500' :
+                                                            rider.status === 'pending' ? 'bg-yellow-500' :
+                                                                'bg-gray-400'
+                                                    }`} />
                                                 <span className="text-xs text-gray-500 capitalize font-medium">
                                                     {rider.status === 'pending' ? 'Pending Approval' : rider.status}
                                                 </span>
@@ -205,9 +203,9 @@ export default function RidersPage() {
 
                                 {rider.status === 'pending' ? (
                                     <div className="mt-4 grid grid-cols-2 gap-3">
-                                        <button 
+                                        <button
                                             onClick={async () => {
-                                                if(!confirm("Reject request?")) return;
+                                                if (!confirm("Reject request?")) return;
                                                 await ShopService.rejectRider(rider.id);
                                                 fetchRiders();
                                             }}
@@ -215,7 +213,7 @@ export default function RidersPage() {
                                         >
                                             Reject
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={async () => {
                                                 await ShopService.approveRider(rider.id);
                                                 fetchRiders();
@@ -243,7 +241,7 @@ export default function RidersPage() {
                                                 <p className="text-[10px] text-gray-500 uppercase font-bold">Rating</p>
                                             </div>
                                         </div>
-                                        
+
                                         <a href={`tel:${rider.phone}`} className="mt-4 flex items-center justify-center gap-2 w-full py-2.5 bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                                             <Phone size={16} /> Call Rider
                                         </a>
@@ -265,7 +263,7 @@ export default function RidersPage() {
             <AnimatePresence>
                 {showInviteModal && (
                     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                        <motion.div 
+                        <motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
@@ -282,9 +280,9 @@ export default function RidersPage() {
                                 /* Step 1: Search */
                                 <form onSubmit={handleSearchUser} className="space-y-6">
                                     <div>
-                                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">Rider's Phone Number</label>
-                                        <input 
-                                            type="tel" 
+                                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">Rider&apos;s Phone Number</label>
+                                        <input
+                                            type="tel"
                                             placeholder="Enter 10-digit mobile number"
                                             value={invitePhone}
                                             onChange={(e) => setInvitePhone(e.target.value)}
@@ -295,7 +293,7 @@ export default function RidersPage() {
                                             The user must be registered on Eazika to be invited.
                                         </p>
                                     </div>
-                                    <button 
+                                    <button
                                         type="submit"
                                         disabled={isSearching || invitePhone.length < 10}
                                         className="w-full py-3.5 bg-yellow-500 text-white font-bold rounded-xl hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -329,14 +327,14 @@ export default function RidersPage() {
                                         </div>
                                     ) : (
                                         <div className="space-y-3">
-                                            <button 
+                                            <button
                                                 onClick={handleSendInvite}
                                                 disabled={isSending}
                                                 className="w-full py-3.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
                                             >
                                                 {isSending ? <Loader2 className="animate-spin" /> : <><Send size={18} /> Send Invite</>}
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => setFoundUser(null)}
                                                 className="w-full py-3.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-white font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                                             >
@@ -346,7 +344,7 @@ export default function RidersPage() {
                                     )}
 
                                     {inviteSent && (
-                                        <button 
+                                        <button
                                             onClick={resetModal}
                                             className="w-full py-3.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-white font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                                         >
