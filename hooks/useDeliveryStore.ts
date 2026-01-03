@@ -118,7 +118,7 @@ export const useDeliveryStore = create<DeliveryState>((set, get) => ({
     if (!activeOrder) return false;
 
     try {
-      await DeliveryService.updateOrderStatus(activeOrder.id, 'delivered', otp);
+      await DeliveryService.updateOrderStatus(activeOrder.id, 'delivered', parseInt(otp));
     } catch (e) {
       console.warn("API failed, proceeding optimistically");
     }
