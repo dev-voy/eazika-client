@@ -35,6 +35,36 @@ export default function AdminShopDetailsPage() {
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedOrder, setSelectedOrder] = useState<any>(null);
+    const [trend, setTrend] = useState<any[]>([]);
+    const [startDate, setStartDate] = useState<string>("");
+    const [endDate, setEndDate] = useState<string>("");
+    const [riders, setRiders] = useState<any[]>([]);
+    const [customers, setCustomers] = useState<any[]>([]);
+    const [activeTab, setActiveTab] = useState<'orders' | 'riders' | 'customers'>('orders');
+
+    const deriveShop = (payload: any) => {
+        if (!payload) return {} as any;
+        const base = payload.shop || payload;
+        const metrics = base.metrics || payload.metrics || {};
+        return {
+            id: base.id,
+            shopName: base.shopName || base.name || "Shop Details",
+            location: base.location || base.address || "Location not set",
+            status: base.status || (base.isActive ? "active" : "inactive"),
+            isActive: base.isActive,
+            user: base.user || base.contact || {},
+            riders: base.riders,
+            phone: base.user?.phone || base.contact?.phone || base.phone,
+            email: base.user?.email || base.contact?.email || base.email,
+            averageRating: base.averageRating || base.rating || 0,
+            totalCustomers: base.totalCustomers || metrics.totalCustomers || 0,
+            totalOrders: base.totalOrders ?? metrics.totalOrders ?? 0,
+            totalEarning: base.totalEarning ?? metrics.totalEarnings ?? 0,
+            activeOrders: base.activeOrders ?? metrics.totalActiveOrders ?? 0,
+            createdAt: base.createdAt,
+            updatedAt: base.updatedAt,
+        };
+    };
 
     useEffect(() => {
         if (shopId) {
@@ -45,17 +75,17 @@ export default function AdminShopDetailsPage() {
     const fetchShopDetails = async () => {
         try {
             setLoading(true);
-            // Fetch shop details and orders
-            const allShops = await AdminService.getAllShops?.();
-            const shopData = allShops?.find((s: any) => s.id == shopId);
-            if (shopData) {
-                setShop(shopData);
+            const data = await AdminService.getShopAnalytics(Number(shopId));
+            // console.log("Fetched shop analytics:", data);
+            // Expected shape: { shop, metrics, orders, trend }
+            if (data?.shop || data) {
+                const normalizedShop = deriveShop(data);
+                setShop(normalizedShop);
             }
-
-            // Fetch shop orders
-            const allOrders = await AdminService.getAllOrders?.();
-            const shopOrders = allOrders?.filter((o: any) => o.shopId == shopId) || [];
-            setOrders(shopOrders);
+            if (data?.orders) setOrders(Array.isArray(data.orders) ? data.orders : []);
+            if (data?.trend) setTrend(Array.isArray(data.trend) ? data.trend : []);
+            if (data?.riders) setRiders(Array.isArray(data.riders) ? data.riders : []);
+            if (data?.customers) setCustomers(Array.isArray(data.customers) ? data.customers : []);
         } catch (error) {
             console.error("Failed to fetch shop details", error);
         } finally {
@@ -85,28 +115,64 @@ export default function AdminShopDetailsPage() {
         );
     }
 
-    const activeOrders = orders.filter(o => ['pending', 'shipped'].includes(o.status));
+    const inRange = (dateStr?: string) => {
+        if (!dateStr) return true;
+        const ts = new Date(dateStr).getTime();
+        const afterStart = startDate ? ts >= new Date(startDate).getTime() : true;
+        const beforeEnd = endDate ? ts <= new Date(endDate).getTime() : true;
+        return afterStart && beforeEnd;
+    };
+
+    const filteredOrders = orders.filter(o => inRange(o.createdAt));
+    const activeOrders = filteredOrders.filter(o => ['pending', 'shipped'].includes(o.status));
+    const derivedTrend = trend.filter(t => inRange(t.date));
+
     const totalEarnings = shop.totalEarning || 0;
-    const avgOrderValue = (shop.totalOrders && shop.totalOrders > 0) ? Math.round(totalEarnings / shop.totalOrders) : 0;
+    const totalOrders = shop.totalOrders || 0;
+    const avgOrderValue = totalOrders > 0 ? Math.round(totalEarnings / totalOrders) : 0;
+    const totalActiveOrders = shop.activeOrders || 0;
 
     return (
         <div className="space-y-6 pb-12">
-            {/* Header */}
-            <div className="flex items-center gap-4">
-                <button
-                    onClick={() => router.back()}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                >
-                    <ArrowLeft size={24} className="text-gray-600 dark:text-gray-400" />
-                </button>
-                <div className="flex-1">
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                        {shop.shopName || 'Shop Details'}
-                        {shop.status === 'active' && <span className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-sm px-3 py-1 rounded-full">Active</span>}
-                    </h1>
-                    <p className="text-sm text-gray-500 flex items-center gap-2 mt-1">
-                        <MapPin size={14} /> {shop.location || 'Location not set'}
-                    </p>
+            {/* Header + Date Filter */}
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => router.back()}
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                    >
+                        <ArrowLeft size={24} className="text-gray-600 dark:text-gray-400" />
+                    </button>
+                    <div className="flex-1">
+                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                            {shop.shopName || 'Shop Details'}
+                            {shop.status === 'active' && <span className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-sm px-3 py-1 rounded-full">Active</span>}
+                        </h1>
+                        <p className="text-sm text-gray-500 flex items-center gap-2 mt-1">
+                            <MapPin size={14} /> {shop.location || 'Location not set'}
+                        </p>
+                    </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                    <div className="flex items-center gap-2">
+                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">From</label>
+                        <input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">To</label>
+                        <input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -149,7 +215,7 @@ export default function AdminShopDetailsPage() {
                         <h3 className="text-sm text-gray-700 dark:text-gray-300 uppercase font-bold">Active Orders</h3>
                         <TrendingUp className="text-orange-600 dark:text-orange-400" size={20} />
                     </div>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white">{activeOrders.length}</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">{totalActiveOrders}</p>
                     <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">Being prepared/shipped</p>
                 </motion.div>
 
@@ -169,7 +235,7 @@ export default function AdminShopDetailsPage() {
             </div>
 
             {/* Information Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700">
                     <h3 className="text-sm text-gray-500 uppercase font-bold mb-4">Contact Information</h3>
                     <div className="space-y-4">
@@ -229,83 +295,274 @@ export default function AdminShopDetailsPage() {
                         </div>
                     </div>
                 </div>
-            </div>
+            </div> */}
 
-            {/* Earnings Graph Placeholder */}
+            {/* Earnings Graph */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex items-center gap-3 mb-6">
-                    <BarChart3 className="text-blue-500" size={24} />
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Earnings Overview (Weekly)</h2>
+                    <DollarSign className="text-green-500" size={24} />
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Earnings Trend</h2>
                 </div>
-                <div className="h-64 flex items-end justify-around gap-3 p-6 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
-                    {[
-                        { day: 'Mon', value: 45, label: '₹5.2K' },
-                        { day: 'Tue', value: 52, label: '₹6.1K' },
-                        { day: 'Wed', value: 42, label: '₹4.9K' },
-                        { day: 'Thu', value: 62, label: '₹7.2K' },
-                        { day: 'Fri', value: 58, label: '₹6.8K' },
-                        { day: 'Sat', value: 70, label: '₹8.1K' },
-                        { day: 'Sun', value: 65, label: '₹7.5K' }
-                    ].map((item) => (
-                        <div key={item.day} className="flex flex-col items-center gap-2 flex-1">
-                            <div
-                                className="w-full bg-gradient-to-t from-blue-400 to-blue-600 rounded-t-lg transition-all hover:from-blue-500 hover:to-blue-700"
-                                style={{ height: `${item.value * 3}px` }}
-                            />
-                            <div className="text-center">
-                                <p className="text-xs font-bold text-gray-900 dark:text-white">{item.day}</p>
-                                <p className="text-xs text-gray-500">{item.label}</p>
-                            </div>
-                        </div>
-                    ))}
+                <div className="h-64 flex items-end justify-around gap-3 p-6 bg-gray-50 dark:bg-gray-700/30 rounded-xl relative">
+                    {derivedTrend.length > 0 ? (
+                        derivedTrend.map((item) => {
+                            const earnings = item.earnings || item.totalEarnings || 0;
+                            const maxEarnings = Math.max(...derivedTrend.map(t => t.earnings || t.totalEarnings || 0));
+                            const barHeight = maxEarnings > 0 ? (earnings / maxEarnings) * 200 : 0;
+                            return (
+                                <div key={item.date} className="flex flex-col items-center gap-2 flex-1 group">
+                                    <div className="relative w-full flex items-end justify-center">
+                                        <div
+                                            className="w-full bg-gradient-to-t from-green-400 to-green-600 rounded-t-lg transition-all hover:from-green-500 hover:to-green-700 hover:scale-105 cursor-pointer"
+                                            style={{ height: `${Math.max(barHeight, 20)}px` }}
+                                        />
+                                        {/* Hover Tooltip */}
+                                        <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 dark:bg-gray-700 text-white px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap shadow-lg z-10">
+                                            ₹{earnings.toLocaleString()}
+                                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-700"></div>
+                                        </div>
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-[11px] font-bold text-gray-900 dark:text-white">{item.date}</p>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    ) : (
+                        <div className="text-center text-gray-500 w-full">No earnings data in selected range</div>
+                    )}
                 </div>
             </div>
 
-            {/* Current Active Orders */}
+            {/* Orders Graph */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-                    <Package size={24} className="text-blue-500" />
-                    Current Active Orders ({activeOrders.length})
-                </h2>
+                <div className="flex items-center gap-3 mb-6">
+                    <Package className="text-blue-500" size={24} />
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Orders Trend</h2>
+                </div>
+                <div className="h-64 flex items-end justify-around gap-3 p-6 bg-gray-50 dark:bg-gray-700/30 rounded-xl relative">
+                    {derivedTrend.length > 0 ? (
+                        derivedTrend.map((item) => {
+                            const ordersCount = item.orders || item.totalOrders || 0;
+                            const maxOrders = Math.max(...derivedTrend.map(t => t.orders || t.totalOrders || 0));
+                            const barHeight = maxOrders > 0 ? (ordersCount / maxOrders) * 200 : 0;
+                            return (
+                                <div key={item.date} className="flex flex-col items-center gap-2 flex-1 group">
+                                    <div className="relative w-full flex items-end justify-center">
+                                        <div
+                                            className="w-full bg-gradient-to-t from-blue-400 to-blue-600 rounded-t-lg transition-all hover:from-blue-500 hover:to-blue-700 hover:scale-105 cursor-pointer"
+                                            style={{ height: `${Math.max(barHeight, 20)}px` }}
+                                        />
+                                        {/* Hover Tooltip */}
+                                        <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 dark:bg-gray-700 text-white px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap shadow-lg z-10">
+                                            {ordersCount} {ordersCount === 1 ? 'Order' : 'Orders'}
+                                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-700"></div>
+                                        </div>
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-[11px] font-bold text-gray-900 dark:text-white">{item.date}</p>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    ) : (
+                        <div className="text-center text-gray-500 w-full">No orders data in selected range</div>
+                    )}
+                </div>
+            </div>
 
-                {activeOrders.length > 0 ? (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm">
-                            <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 uppercase text-xs font-bold">
-                                <tr>
-                                    <th className="px-4 py-3">Order ID</th>
-                                    <th className="px-4 py-3">Customer</th>
-                                    <th className="px-4 py-3">Items</th>
-                                    <th className="px-4 py-3">Amount</th>
-                                    <th className="px-4 py-3">Status</th>
-                                    <th className="px-4 py-3">Ordered</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                {activeOrders.slice(0, 8).map(order => (
-                                    <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/20 transition-colors">
-                                        <td className="px-4 py-3 font-bold text-gray-900 dark:text-white">{order.id}</td>
-                                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{order.customer || 'Customer'}</td>
-                                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{order.items || '2-3 items'}</td>
-                                        <td className="px-4 py-3 font-bold text-gray-900 dark:text-white">{order.amount || '₹0'}</td>
-                                        <td className="px-4 py-3">
-                                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase ${order.status === 'pending' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                                                    order.status === 'shipped' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                                                        'bg-gray-100 text-gray-700'
-                                                }`}>
-                                                {order.status}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs">{new Date().toLocaleDateString()}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+            {/* Tabbed Data View */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+                {/* Tab Headers */}
+                <div className="flex gap-4 mb-6 border-b border-gray-200 dark:border-gray-700">
+                    <button
+                        onClick={() => setActiveTab('orders')}
+                        className={`pb-3 px-4 font-bold text-sm transition-all relative ${activeTab === 'orders'
+                            ? 'text-blue-600 dark:text-blue-400'
+                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                            }`}
+                    >
+                        <div className="flex items-center gap-2">
+                            <Package size={18} />
+                            All Orders ({filteredOrders.length})
+                        </div>
+                        {activeTab === 'orders' && (
+                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
+                        )}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('riders')}
+                        className={`pb-3 px-4 font-bold text-sm transition-all relative ${activeTab === 'riders'
+                            ? 'text-blue-600 dark:text-blue-400'
+                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                            }`}
+                    >
+                        <div className="flex items-center gap-2">
+                            <Users size={18} />
+                            Riders ({riders.length})
+                        </div>
+                        {activeTab === 'riders' && (
+                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
+                        )}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('customers')}
+                        className={`pb-3 px-4 font-bold text-sm transition-all relative ${activeTab === 'customers'
+                            ? 'text-blue-600 dark:text-blue-400'
+                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                            }`}
+                    >
+                        <div className="flex items-center gap-2">
+                            <Users size={18} />
+                            Customers ({customers.length})
+                        </div>
+                        {activeTab === 'customers' && (
+                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
+                        )}
+                    </button>
+                </div>
+
+                {/* Orders Tab */}
+                {activeTab === 'orders' && (
+                    <div>
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">All Orders</h2>
+                        {filteredOrders.length > 0 ? (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 uppercase text-xs font-bold">
+                                        <tr>
+                                            <th className="px-4 py-3">Order ID</th>
+                                            <th className="px-4 py-3">Customer</th>
+                                            <th className="px-4 py-3">Items</th>
+                                            <th className="px-4 py-3">Amount</th>
+                                            <th className="px-4 py-3">Status</th>
+                                            <th className="px-4 py-3">Ordered</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                                        {filteredOrders.map(order => (
+                                            <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/20 transition-colors">
+                                                <td className="px-4 py-3 font-bold text-gray-900 dark:text-white">{order.id}</td>
+                                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{order.customer || 'Customer'}</td>
+                                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{order.items || '—'}</td>
+                                                <td className="px-4 py-3 font-bold text-gray-900 dark:text-white">₹{order.totalAmount || order.amount || 0}</td>
+                                                <td className="px-4 py-3">
+                                                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase ${order.status === 'pending' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                                                        order.status === 'shipped' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                                                            order.status === 'delivered' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                                                order.status === 'cancelled' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                                                    'bg-gray-100 text-gray-700'
+                                                        }`}>
+                                                        {order.status}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs">{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : '-'}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="text-center py-12 text-gray-500">
+                                <Package size={48} className="mx-auto mb-4 opacity-30" />
+                                <p>No orders found</p>
+                            </div>
+                        )}
                     </div>
-                ) : (
-                    <div className="text-center py-12 text-gray-500">
-                        <Package size={48} className="mx-auto mb-4 opacity-30" />
-                        <p>No active orders at the moment</p>
+                )}
+
+                {/* Riders Tab */}
+                {activeTab === 'riders' && (
+                    <div>
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">All Riders</h2>
+                        {riders.length > 0 ? (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 uppercase text-xs font-bold">
+                                        <tr>
+                                            <th className="px-4 py-3">Rider ID</th>
+                                            <th className="px-4 py-3">Name</th>
+                                            <th className="px-4 py-3">Phone</th>
+                                            <th className="px-4 py-3">Email</th>
+                                            <th className="px-4 py-3">Total Deliveries</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                                        {riders.map(rider => (
+                                            <tr key={rider.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/20 transition-colors">
+                                                <td className="px-4 py-3 font-bold text-gray-900 dark:text-white">#{rider.id}</td>
+                                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{rider.name || 'N/A'}</td>
+                                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                                                    <div className="flex items-center gap-2">
+                                                        <Phone size={14} className="text-blue-500" />
+                                                        {rider.phone || 'N/A'}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{rider.email || 'N/A'}</td>
+                                                <td className="px-4 py-3">
+                                                    <span className="px-3 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full text-xs font-bold">
+                                                        {rider.totalDeliveries || 0} deliveries
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="text-center py-12 text-gray-500">
+                                <Users size={48} className="mx-auto mb-4 opacity-30" />
+                                <p>No riders found</p>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Customers Tab */}
+                {activeTab === 'customers' && (
+                    <div>
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">All Customers</h2>
+                        {customers.length > 0 ? (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 uppercase text-xs font-bold">
+                                        <tr>
+                                            <th className="px-4 py-3">Customer ID</th>
+                                            <th className="px-4 py-3">Name</th>
+                                            <th className="px-4 py-3">Phone</th>
+                                            <th className="px-4 py-3">Email</th>
+                                            <th className="px-4 py-3">Joined Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                                        {customers.map(customer => (
+                                            <tr key={customer.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/20 transition-colors">
+                                                <td className="px-4 py-3 font-bold text-gray-900 dark:text-white">#{customer.id}</td>
+                                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{customer.name || 'N/A'}</td>
+                                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                                                    <div className="flex items-center gap-2">
+                                                        <Phone size={14} className="text-blue-500" />
+                                                        {customer.phone || 'N/A'}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{customer.email || 'N/A'}</td>
+                                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs">
+                                                    <div className="flex items-center gap-2">
+                                                        <Calendar size={14} className="text-green-500" />
+                                                        {customer.joinedAt ? new Date(customer.joinedAt).toLocaleDateString() : 'N/A'}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="text-center py-12 text-gray-500">
+                                <Users size={48} className="mx-auto mb-4 opacity-30" />
+                                <p>No customers found</p>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

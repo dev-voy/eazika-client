@@ -30,8 +30,20 @@ export const AdminService = {
     });
     return response.data.data;
   },
-
-
+  getAllShopsDetails: async (status = "all") => {
+    const response = await axiosInstance.get(`/admin/shops/get-all-shops-details`, {
+      params: { status },
+    });
+    // console.log("Fetched shops:", response.data.data);
+    return response.data.data;
+  },
+  getShopAnalytics: async (shopId: number, start?: string, end?: string) => {
+    const params: Record<string, string> = {};
+    if (start) params.start = start;
+    if (end) params.end = end;
+    const { data } = await axiosInstance.get(`/admin/shops/${shopId}/analytics`, { params });
+    return data.data;
+  },
   getAllShops: async (status = "all") => {
     const response = await axiosInstance.get(`/admin/shops/get-pending-verification`, {
       params: { status },
