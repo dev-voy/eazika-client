@@ -263,12 +263,12 @@ export default function AdminRidersPage() {
                                 <p className="text-xs text-gray-500 uppercase font-bold">Deliveries</p>
                                 <p className="text-lg font-bold text-gray-900 dark:text-white">{rider.totalDeliveries}</p>
                             </div>
-                            <div className="text-center">
+                            {/* <div className="text-center">
                                 <p className="text-xs text-gray-500 uppercase font-bold">Rating</p>
                                 <p className="text-lg font-bold text-yellow-500 flex items-center justify-center gap-1">
                                     {rider.rating} <Star size={14} fill="currentColor" />
                                 </p>
-                            </div>
+                            </div> */}
                         </div>
 
                         <div className="mt-auto">
@@ -420,10 +420,6 @@ export default function AdminRidersPage() {
                                             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
                                                 <p className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase">Avg Delivery Time</p>
                                                 <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">24m</p>
-                                            </div>
-                                            <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl">
-                                                <p className="text-xs text-purple-600 dark:text-purple-400 font-bold uppercase">Total Earnings</p>
-                                                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">₹12.4k</p>
                                             </div>
                                         </div>
                                     </div>
