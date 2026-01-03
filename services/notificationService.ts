@@ -36,9 +36,9 @@ export const notificationService = {
 
     /** Register a push subscription for the current user. */
     subscribe: async (subscription: PushSubscriptionPayload) => {
-        console.log("Subscribing with payload:", subscription);
+        // console.log("Subscribing with payload:", subscription);
         const response = await axios.post("/notifications/push/subscribe", subscription);
-        console.log("Subscription response:", response);
+        // console.log("Subscription response:", response);
         return response.data;
     },
 

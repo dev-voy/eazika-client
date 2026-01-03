@@ -81,7 +81,7 @@ function PushNotificationProvider({ children }: { children: React.ReactNode }) {
         userVisibleOnly: true,
         applicationServerKey: await urlBase64ToUint8Array(publicKey),
       };
-      console.log("Subscribe Options:", subscribeOptions);
+      // console.log("Subscribe Options:", subscribeOptions);
       const existingSubscription = await registration.pushManager.getSubscription();
       const pushSubscription =
         existingSubscription ||
