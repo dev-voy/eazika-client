@@ -499,11 +499,12 @@ export const ShopService = {
   // --- ORDER MANAGEMENT ---
   getShopOrders: async (
     pageOrStatus: number | string = 1,
-    limit: number | string = 10
+    limit: number | string = 10,
+    status = "all"
   ) => {
-    const response = await axios.get(
-      `/shops/orders/get-current-orders?page=${pageOrStatus}&limit=${limit}`
-    );
+    const response = await axios.get("/shops/orders/get-current-orders", {
+      params: { page: pageOrStatus, limit, status }
+    });
     return response.data.data;
   },
 

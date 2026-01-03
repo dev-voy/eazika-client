@@ -71,10 +71,8 @@ export default function ShopOrdersPage() {
     const loadOrders = async () => {
       setIsLoading(true);
       try {
-        // In real app, pass activeTab to API if backend filters
-        const data = await shopService.getShopOrders(
-          activeTab === "all" ? undefined : activeTab
-        );
+        // Always send activeTab as status to API
+        const data = await shopService.getShopOrders(1, 10, activeTab);
         setOrders(data.orders || []);
       } catch (error) {
         console.error("Failed to load orders", error);
@@ -110,7 +108,9 @@ export default function ShopOrdersPage() {
           {TABS.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                if (activeTab !== tab.id) setActiveTab(tab.id);
+              }}
               className={`px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap shrink-0 ${activeTab === tab.id
                 ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm"
                 : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
@@ -154,7 +154,7 @@ export default function ShopOrdersPage() {
                 <div className="flex justify-between items-start mb-2">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center font-bold text-gray-500 text-sm">
-                      {order.name.charAt(0).toUpperCase()}
+                      {(order.name?.charAt(0) || order.customerName?.charAt(0) || "#").toUpperCase()}
                     </div>
                     <div>
                       <h3 className="font-bold text-gray-900 dark:text-white text-sm">
