@@ -41,6 +41,7 @@ export default function AdminLayout({
     { name: "Live Map", href: "/admin/map", icon: Map }, // Added Map Link
     { name: "Global Products", href: "/admin/products/add", icon: Package }, // Added Global Products Link
     { name: "Global Catogery", href: "/admin/categories", icon: Box },
+    { name: "Shop Approvals", href: "/admin/shop-approvals", icon: Store },
     { name: "Manage Shops", href: "/admin/shops", icon: Store },
     { name: "Manage Riders", href: "/admin/riders", icon: Bike },
     { name: "Notifications", href: "/admin/notification", icon: Bell },
