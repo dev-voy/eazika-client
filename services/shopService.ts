@@ -110,28 +110,37 @@ export interface ShopOrderDetail extends ShopOrder {
 
 export interface ShopRider {
   id: number;
+  userId: number;
+  shopkeeperId: number;
   name: string;
   phone: string;
-  status: "available" | "busy" | "offline" | "pending";
+  status: "available" | "busy" | "offline" | "pending" | "approved" | "suspended";
   activeOrders: number;
   image?: string;
+  avatar?: string;
   totalDeliveries?: number;
   rating?: number;
   isVerified?: boolean;
   vehicleOwnerName?: string;
   user: {
     id: number;
+    name?: string;
     phone: string;
+    email?: string;
+    image?: string;
+    role?: string;
   }
   aadharNumber?: string;
   panNumber?: string;
   licenseNumber?: string;
-  licenseImage?: string;
+  licenseImage?: string | string[];
   vehicleName?: string;
   vehicleNo?: string;
   currentLat?: number;
   currentLng?: number;
   isAvailable?: boolean;
+  isBusy?: boolean;
+  assignedOrdersCount?: number;
   lastLocationUpdate: string;
   totalOrdersAccepted: number;
   totalOrdersDelivered: number;
@@ -541,41 +550,59 @@ export const ShopService = {
     const response = await axiosInstance.get<any>("/shops/get-riders", {
       params: { status },
     });
-    return response.data.data.map((r: any) => ({
-      id: r.id,
-      userId: r.userId,
-      shopkeeperId: r.shopkeeperId,
-      aadharNumber: r.aadharNumber,
-      panNumber: r.panNumber,
-      licenseNumber: r.licenseNumber,
-      licenseImage: r.licenseImage,
-      vehicleOwnerName: r.vehicleOwnerName,
-      vehicleName: r.vehicleName,
-      vehicleNo: r.vehicleNo,
-      currentLat: r.currentLat,
-      currentLng: r.currentLng,
-      isAvailable: r.isAvailable,
-      isVerified: r.isVerified,
-      lastLocationUpdate: r.lastLocationUpdate,
-      createdAt: r.createdAt,
-      updatedAt: r.updatedAt,
-      status: !r.isVerified
-        ? "pending"
-        : r.isAvailable
-          ? "available"
-          : "offline",
-      user: r.user,
-      totalOrdersAccepted: r.totalOrdersAccepted || 0,
-      totalOrdersDelivered: r.totalOrdersDelivered || 0,
-      totalOrdersCancelled: r.totalOrdersCancelled || 0,
-      // Legacy fields for backward compatibility
-      name: r.user?.name || "Unknown",
-      phone: r.user?.phone,
-      image: r.user?.image,
-      activeOrders: 0,
-      totalDeliveries: r.totalOrdersDelivered || 0,
-      rating: 4.5,
-    }));
+
+    // Support multiple response shapes to avoid empty UI when the API shape changes
+    const raw = response?.data?.data?.riders
+      ?? response?.data?.data
+      ?? response?.data
+      ?? [];
+    const riders = Array.isArray(raw) ? raw : [];
+
+    return riders.map((r: any) => {
+      const name = r.vehicleOwnerName || r.user?.name || "Unknown";
+      const phone = r.user?.phone || r.phone || "";
+      const normalizedStatus = r.status
+        || (!r.isVerified ? "pending" : r.isAvailable ? "available" : "offline");
+
+      return {
+        id: r.id,
+        userId: r.userId,
+        shopkeeperId: r.shopkeeperId,
+        aadharNumber: r.aadharNumber,
+        panNumber: r.panNumber,
+        licenseNumber: r.licenseNumber,
+        licenseImage: Array.isArray(r.licenseImage)
+          ? r.licenseImage
+          : r.licenseImage
+            ? [r.licenseImage]
+            : [],
+        vehicleOwnerName: r.vehicleOwnerName,
+        vehicleName: r.vehicleName,
+        vehicleNo: r.vehicleNo,
+        currentLat: r.currentLat,
+        currentLng: r.currentLng,
+        isAvailable: r.isAvailable,
+        isVerified: r.isVerified,
+        isBusy: r.isBusy || false,
+        lastLocationUpdate: r.lastLocationUpdate,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+        status: normalizedStatus,
+        avatar: r.avatar || r.user?.image,
+        user: r.user,
+        totalOrdersAccepted: r.totalOrdersAccepted || 0,
+        totalOrdersDelivered: r.totalOrdersDelivered || 0,
+        totalOrdersCancelled: r.totalOrdersCancelled || 0,
+        assignedOrdersCount: r.assignedOrdersCount || 0,
+        // Legacy fields for backward compatibility
+        name,
+        phone,
+        image: r.avatar || r.user?.image,
+        activeOrders: r.assignedOrdersCount || 0,
+        totalDeliveries: r.totalOrdersDelivered || 0,
+        rating: 4.5,
+      } as ShopRider;
+    });
   },
 
 

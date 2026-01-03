@@ -52,7 +52,7 @@ export default function RidersPage() {
     const fetchRiders = async () => {
         try {
             const data = await ShopService.getShopRiders();
-            // console.log("Riders data:", data);
+            console.log("Riders data:", data);
             setRiders(data);
         } catch (error) {
             console.error("Failed to load riders", error);
@@ -64,9 +64,9 @@ export default function RidersPage() {
     // Stats Calculation
     const stats = [
         { title: 'Total Riders', value: riders.length, icon: Users, color: 'text-blue-600', bg: 'bg-blue-100 dark:bg-blue-900/30' },
-        { title: 'Active Now', value: riders.filter(r => r.status !== 'offline').length, icon: Bike, color: 'text-green-600', bg: 'bg-green-100 dark:bg-green-900/30' },
-        { title: 'Busy', value: riders.filter(r => r.status === 'busy').length, icon: Clock, color: 'text-orange-600', bg: 'bg-orange-100 dark:bg-orange-900/30' },
-        { title: 'Total Deliveries', value: riders.reduce((acc, r) => acc + (r.totalDeliveries || 0), 0), icon: CheckCircle, color: 'text-purple-600', bg: 'bg-purple-100 dark:bg-purple-900/30' },
+        { title: 'Active Now', value: riders.filter(r => r.status === 'available' || r.status === 'busy' || r.isAvailable).length, icon: Bike, color: 'text-green-600', bg: 'bg-green-100 dark:bg-green-900/30' },
+        { title: 'Busy', value: riders.filter(r => r.isBusy || r.status === 'busy').length, icon: Clock, color: 'text-orange-600', bg: 'bg-orange-100 dark:bg-orange-900/30' },
+        { title: 'Total Deliveries', value: riders.reduce((acc, r) => acc + (r.totalOrdersDelivered || 0), 0), icon: CheckCircle, color: 'text-purple-600', bg: 'bg-purple-100 dark:bg-purple-900/30' },
     ];
 
     const filteredRiders = riders.filter(r =>
@@ -207,13 +207,13 @@ export default function RidersPage() {
                                         <div className="flex items-center gap-3">
                                             <div className="relative">
                                                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center overflow-hidden ring-2 ring-white dark:ring-gray-800 shadow-md">
-                                                    {rider.image ? (
-                                                        <Image src={rider.image} alt={rider.name} width={56} height={56} className="object-cover" />
+                                                    {rider.avatar || rider.image ? (
+                                                        <Image src={rider.avatar || rider.image || ''} alt={rider.vehicleOwnerName || rider.name} width={56} height={56} className="object-cover" />
                                                     ) : (
                                                         <User className="text-gray-400" size={24} />
                                                     )}
                                                 </div>
-                                                <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white dark:border-gray-800 ${rider.status === 'available' ? 'bg-green-500' :
+                                                <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white dark:border-gray-800 ${rider.isAvailable || rider.status === 'available' ? 'bg-green-500' :
                                                     rider.status === 'busy' ? 'bg-orange-500' :
                                                         rider.status === 'pending' ? 'bg-yellow-500' :
                                                             'bg-gray-400'
@@ -223,6 +223,9 @@ export default function RidersPage() {
                                                 <h3 className="font-bold text-gray-900 dark:text-white text-base mb-0.5">{rider.vehicleOwnerName}</h3>
                                                 <span className="text-xs text-gray-500 dark:text-gray-400">{rider.user.phone}</span>
                                                 <div className="flex items-center gap-1.5 mt-1">
+                                                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
+                                                        {rider.isAvailable || rider.status === 'available' ? 'Active' : 'Inactive'}
+                                                    </span>
                                                     <span className="text-xs text-gray-500 capitalize font-medium">
                                                         {rider.status === 'pending' ? 'Pending Approval' : rider.status}
                                                     </span>
@@ -273,18 +276,22 @@ export default function RidersPage() {
                                         <>
                                             <div className="flex items-center justify-between py-4 border-y border-gray-100 dark:border-gray-700 mb-4">
                                                 <div className="text-center flex-1 border-r border-gray-100 dark:border-gray-700">
-                                                    <p className="text-xl font-bold text-gray-900 dark:text-white">{rider.activeOrders}</p>
-                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wide">Active</p>
+                                                    <p className="text-xl font-bold text-gray-900 dark:text-white">{rider.assignedOrdersCount || 0}</p>
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wide">Assigned</p>
                                                 </div>
                                                 <div className="text-center flex-1 border-r border-gray-100 dark:border-gray-700">
-                                                    <p className="text-xl font-bold text-gray-900 dark:text-white">{rider.totalDeliveries}</p>
-                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wide">Total</p>
+                                                    <p className="text-xl font-bold text-gray-900 dark:text-white">{rider.totalOrdersDelivered || 0}</p>
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wide">Completed</p>
                                                 </div>
-                                                <div className="text-center flex-1">
+                                                {/* <div className="text-center flex-1">
                                                     <p className="text-xl font-bold text-yellow-500 flex items-center justify-center gap-1">
                                                         {rider.rating} <Star size={14} fill="currentColor" />
                                                     </p>
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wide">Rating</p>
+                                                </div> */}
+                                                <div className="text-center flex-1 border-r border-gray-100 dark:border-gray-700">
+                                                    <p className="text-xl font-bold text-gray-900 dark:text-white">{rider.totalOrdersCancelled || 0}</p>
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wide">Cancelled</p>
                                                 </div>
                                             </div>
 
@@ -431,8 +438,8 @@ export default function RidersPage() {
                                     <div className="flex items-center gap-4">
                                         <div className="relative">
                                             <div className="w-20 h-20 bg-gradient-to-br from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30 rounded-2xl flex items-center justify-center overflow-hidden ring-4 ring-white dark:ring-gray-800 shadow-lg">
-                                                {selectedRider.image ? (
-                                                    <Image src={selectedRider.image} alt={selectedRider.name} width={80} height={80} className="object-cover" />
+                                                {selectedRider.avatar || selectedRider.image ? (
+                                                    <Image src={selectedRider.avatar || selectedRider.image || ''} alt={selectedRider.vehicleOwnerName || selectedRider.name} width={80} height={80} className="object-cover" />
                                                 ) : (
                                                     <Bike size={36} className="text-yellow-600" />
                                                 )}
@@ -805,7 +812,7 @@ export default function RidersPage() {
                                                 </div>
                                             </div>
 
-                                            <div className="p-5 bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-2xl border border-yellow-200 dark:border-yellow-800/30">
+                                            {/* <div className="p-5 bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-2xl border border-yellow-200 dark:border-yellow-800/30">
                                                 <div className="flex items-center justify-between mb-4">
                                                     <div className="flex items-center gap-2">
                                                         <Star size={18} className="text-yellow-600" />
@@ -822,7 +829,7 @@ export default function RidersPage() {
                                                         />
                                                     ))}
                                                 </div>
-                                            </div>
+                                            </div> */}
                                         </div>
 
                                         {/* Additional Insights */}
