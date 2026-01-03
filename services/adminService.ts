@@ -17,7 +17,10 @@ export const AdminService = {
     const response = await axiosInstance.get("/admin/stats");
     return response.data.data;
   },
-
+  getGeoLocation: async () => {
+    const response = await axiosInstance.get("/admin/map/active-locations");
+    return response.data.data;
+  },
   getLiveMapData: async () => {
     const response = await axiosInstance.get("/admin/map/live-data");
     return response.data.data;
