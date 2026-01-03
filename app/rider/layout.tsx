@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MapPin, List, User, Bike, Power, History } from "lucide-react";
@@ -13,7 +13,7 @@ export default function DeliveryLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { isOnline, toggleOnline } = useDeliveryStore();
+  const { isOnline, toggleOnline, fetchProfile } = useDeliveryStore();
 
   const navItems = [
     { name: "Orders", href: "/rider", icon: List },
@@ -21,6 +21,9 @@ export default function DeliveryLayout({
     { name: "History", href: "/rider/history", icon: History },
     { name: "Profile", href: "/rider/profile", icon: User },
   ];
+  useEffect(() => {
+    fetchProfile();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-900 flex flex-col">

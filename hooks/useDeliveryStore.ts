@@ -9,7 +9,7 @@ interface DeliveryState {
   profile: DeliveryProfile | null;
   isSessionActive: boolean;
   isLoading: boolean;
-  isOnline: boolean; // New State
+  isOnline: boolean; // Online status from backend
 
   fetchOrders: () => Promise<void>;
   fetchHistory: () => Promise<void>;
@@ -28,7 +28,7 @@ export const useDeliveryStore = create<DeliveryState>((set, get) => ({
   profile: null,
   isSessionActive: false,
   isLoading: false,
-  isOnline: true, // Default to online
+  isOnline: false, // Will be set from backend profile
 
   fetchOrders: async () => {
     set({ isLoading: true });
@@ -71,7 +71,11 @@ export const useDeliveryStore = create<DeliveryState>((set, get) => ({
     set({ isLoading: true });
     try {
       const data = await DeliveryService.getProfile();
-      set({ profile: data });
+      // Normalize possible backend flags
+      // console.log("fetched data", data)
+      const onlineFlag = (data as any)?.isOnline ?? (data as any)?.is_online ?? (data as any)?.online ?? (data as any)?.isAvailable ?? false;
+      // console.log(onlineFlag)
+      set({ profile: data, isOnline: !!onlineFlag });
     } catch (error) {
       console.error("Failed to fetch profile", error);
     } finally {
@@ -146,7 +150,9 @@ export const useDeliveryStore = create<DeliveryState>((set, get) => ({
     // Optimistic Update
     set({ isOnline: !currentStatus });
     try {
-      await DeliveryService.toggleAvailability(!currentStatus);
+      const resp = await DeliveryService.toggleAvailability(!currentStatus);
+      const onlineFlag = (resp as any)?.isOnline ?? (resp as any)?.is_online ?? (resp as any)?.online ?? (resp as any)?.isAvailable ?? !currentStatus;
+      set({ isOnline: !!onlineFlag });
     } catch (error) {
       console.error("Failed to toggle availability", error);
       set({ isOnline: currentStatus }); // Revert

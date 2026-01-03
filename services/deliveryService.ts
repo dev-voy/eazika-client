@@ -38,7 +38,7 @@ export interface DeliveryProfile {
   updatedAt: string;
   name?: string;
   phone?: string;
-  image?: string;
+  avatar?: string;
   totalEarnings?: number;
 }
 
@@ -169,8 +169,11 @@ export const DeliveryService = {
       if (!uploadResponse.ok) {
         throw new Error(`Upload failed: ${uploadResponse.statusText}`);
       }
+      console.log("Image uploaded successfully", data.publicUrl);
+      // 3. Return Public URL
+      const res = await axiosInstance.put('/delivery/update-avatar', { avatar: data.publicUrl });
+      return res.data.data.avatar;
 
-      return data.publicUrl;
     } catch (error) {
       console.error("Image upload failed", error);
       throw error;
