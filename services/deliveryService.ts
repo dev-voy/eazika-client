@@ -127,7 +127,10 @@ export const DeliveryService = {
     const response = await axiosInstance.get<any>('/delivery/get-assigned-orders', { params });
     return (response.data.data.orders || []) as DeliveryOrder[];
   },
-
+  getOrderHistory: async (): Promise<DeliveryOrder[]> => {
+    const response = await axiosInstance.get<any>('/delivery/get-order-history');
+    return (response.data.data.orders || []) as DeliveryOrder[];
+  },
   // PATCH /delivery/update-order-status
   updateOrderStatus: async (orderId: number, status: string) => {
     const response = await axiosInstance.patch(`/delivery/update-order-status`, { orderId, status });
