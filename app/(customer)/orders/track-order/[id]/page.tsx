@@ -113,7 +113,9 @@ const OrderDetailsContent = ({
   const handleCall = () => {
     if (tracking.deliveryBoy?.phone) {
       navigator.clipboard.writeText(tracking.deliveryBoy.phone);
-      alert(`Copied ${tracking.deliveryBoy.phone} to clipboard!`);
+      window.location.href = `tel:${tracking.deliveryBoy.phone}`;
+
+      // alert(`Copied ${tracking.deliveryBoy.phone} to clipboard!`);
     }
   };
 
@@ -132,22 +134,31 @@ const OrderDetailsContent = ({
       <div className="flex items-center justify-between pb-6 border-b border-gray-100 dark:border-gray-700">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-full bg-yellow-500 text-white flex items-center justify-center font-bold text-xl ring-4 ring-yellow-50 dark:ring-yellow-900/20 shadow-sm shrink-0">
-            {tracking.deliveryBoy?.name.charAt(0) || 'D'}
+            {tracking.deliveryBoy?.name?.charAt(0) || 'D'}
           </div>
           <div>
             <h3 className="font-bold text-lg text-gray-900 dark:text-white">
               {tracking.deliveryBoy?.name || "Assigning Driver..."}
             </h3>
             <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-              <div className="flex items-center text-yellow-500 font-bold">
+              {/* <div className="flex items-center text-yellow-500 font-bold">
                 <Star size={14} className="fill-current mr-1" />
                 {tracking.deliveryBoy?.rating || "4.9"}
-              </div>
+              </div> */}
               <span>•</span>
               <span>{tracking.deliveryBoy?.vehicle || "Standard Delivery"}</span>
             </div>
             {tracking.deliveryBoy?.phone && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Phone: {tracking.deliveryBoy.phone}</p>
+              <div className="mt-2 flex items-center gap-2">
+                <a
+                  href={`tel:${tracking.deliveryBoy.phone}`}
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-semibold hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-xs"
+                  style={{ textDecoration: 'none' }}
+                >
+                  <Phone size={16} />
+                  Call Driver: {tracking.deliveryBoy.phone}
+                </a>
+              </div>
             )}
           </div>
         </div>
@@ -202,7 +213,7 @@ const OrderDetailsContent = ({
             <Clock size={12} /> ETA
           </div>
           <p className="text-xl font-bold text-gray-900 dark:text-white">
-            15 <span className="text-sm font-normal text-gray-500">mins</span>
+            2 <span className="text-sm font-normal text-gray-500">hrs</span>
           </p>
         </div>
         <div className="bg-yellow-50 dark:bg-yellow-900/10 rounded-2xl p-4 text-center border border-yellow-100 dark:border-yellow-900/30">
@@ -214,6 +225,7 @@ const OrderDetailsContent = ({
       </div>
 
       {/* Delivery Location */}
+      { }
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 flex items-center justify-center">
@@ -254,21 +266,41 @@ const OrderDetailsContent = ({
       <div className="space-y-4">
         <h4 className="font-bold text-gray-900 dark:text-white text-sm uppercase tracking-wide">Delivery Status</h4>
         <div className="relative pl-4 border-l-2 border-gray-100 dark:border-gray-700 space-y-8 ml-1">
-          <div className="relative">
-            <div className="absolute -left-[21px] top-1 w-3 h-3 rounded-full bg-green-500 ring-4 ring-white dark:ring-gray-900" />
-            <p className="text-sm font-medium text-gray-900 dark:text-white">Order Confirmed</p>
-            <p className="text-xs text-gray-500 mt-0.5">Your order has been received</p>
-          </div>
-          <div className="relative">
-            <div className="absolute -left-[21px] top-1 w-3 h-3 rounded-full bg-green-500 ring-4 ring-white dark:ring-gray-900" />
-            <p className="text-sm font-medium text-gray-900 dark:text-white">Order Picked Up</p>
-            <p className="text-xs text-gray-500 mt-0.5">Driver is on the way to you</p>
-          </div>
-          <div className="relative">
-            <div className="absolute -left-[21px] top-1 w-3 h-3 rounded-full bg-yellow-500 ring-4 ring-white dark:ring-gray-900 animate-pulse" />
-            <p className="text-sm font-medium text-gray-900 dark:text-white">On the way</p>
-            <p className="text-xs text-gray-500 mt-0.5">{tracking.currentLocation}</p>
-          </div>
+          {(() => {
+            const currentStatus = tracking.status?.toLowerCase() || 'pending';
+            const statusSteps = [
+              { key: 'pending', label: 'Order Placed', description: 'Your order has been received' },
+              { key: 'confirmed', label: 'Order Confirmed', description: 'Shop confirmed your order' },
+              { key: 'shipped', label: 'Out for Delivery', description: 'Driver is on the way to you' },
+              { key: 'delivered', label: 'Delivered', description: 'Order delivered successfully' },
+            ];
+
+            const currentIndex = statusSteps.findIndex(s => s.key === currentStatus);
+
+            return statusSteps.map((step, index) => {
+              const isCompleted = index < currentIndex;
+              const isCurrent = index === currentIndex;
+              const isPending = index > currentIndex;
+
+              return (
+                <div key={step.key} className="relative">
+                  <div className={`absolute -left-[21px] top-1 w-3 h-3 rounded-full ring-4 ring-white dark:ring-gray-900 ${isCompleted ? 'bg-green-500' :
+                    isCurrent ? 'bg-yellow-500 animate-pulse' :
+                      'bg-gray-300 dark:bg-gray-600'
+                    }`} />
+                  <p className={`text-sm font-medium ${isCompleted || isCurrent ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500'
+                    }`}>
+                    {step.label}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {isCurrent && step.key === 'shipped' && tracking.currentLocation
+                      ? tracking.currentLocation
+                      : step.description}
+                  </p>
+                </div>
+              );
+            });
+          })()}
         </div>
       </div>
 
@@ -283,7 +315,13 @@ const OrderDetailsContent = ({
         </button>
         <button
           onClick={onCancel}
-          className="flex items-center justify-center gap-2 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-semibold hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+          disabled={!(tracking.status === 'pending' || tracking.status === 'confirmed')}
+          className={
+            `flex items-center justify-center gap-2 p-4 rounded-xl font-semibold transition-colors ` +
+            `bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 ` +
+            `hover:bg-red-100 dark:hover:bg-red-900/30 ` +
+            `disabled:opacity-50 disabled:cursor-not-allowed`
+          }
         >
           <X size={20} />
           <span>Cancel Order</span>
@@ -352,7 +390,7 @@ function TrackOrderContent() {
     const loadTracking = async () => {
       try {
         const data = await CartService.trackOrder(Number(orderId));
-        console.log(data);
+        // console.log(data);
         // console.log("Track order data fetched", data);
         setTracking(data);
       } catch (error) {
