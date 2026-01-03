@@ -761,7 +761,7 @@ export default function ProductsPage() {
                 <th className="border-b p-4">Product Name</th>
                 <th className="border-b p-4">Product Category</th>
                 <th className="border-b p-4">Brand </th>
-                <th className="border-b p-4">Reating</th>
+                <th className="border-b p-4">Rating </th>
                 <th className="border-b p-4">Is Active</th>
 
                 <th className="border-b p-4">Pricing</th>
