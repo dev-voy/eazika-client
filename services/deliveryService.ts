@@ -132,8 +132,8 @@ export const DeliveryService = {
     return (response.data.data.orders || []) as DeliveryOrder[];
   },
   // PATCH /delivery/update-order-status
-  updateOrderStatus: async (orderId: number, status: string) => {
-    const response = await axiosInstance.patch(`/delivery/update-order-status`, { orderId, status });
+  updateOrderStatus: async (orderId: number, status: string, otp: number) => {
+    const response = await axiosInstance.patch(`/delivery/update-order-status`, { orderId, status, otp });
     return response.data;
   },
 
