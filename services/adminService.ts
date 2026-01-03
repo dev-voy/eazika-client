@@ -44,6 +44,10 @@ export const AdminService = {
     const { data } = await axiosInstance.get(`/admin/shops/${shopId}/analytics`, { params });
     return data.data;
   },
+  getOrderDeliveryAnalytics: async (filter: string) => {
+    const { data } = await axiosInstance.get(`/admin/orders/delivered/analytics?filter=${filter}`);
+    return data.data;
+  },
   getAllShops: async (status = "all") => {
     const response = await axiosInstance.get(`/admin/shops/get-pending-verification`, {
       params: { status },

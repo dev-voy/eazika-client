@@ -3,6 +3,15 @@
 import React, { useEffect, useState } from 'react';
 import { AdminChart } from '@/app/components/admin/AdminChart';
 import {
+    ResponsiveContainer,
+    AreaChart,
+    Area,
+    CartesianGrid,
+    XAxis,
+    Tooltip,
+    Legend,
+} from 'recharts';
+import {
     Search,
     Bike,
     X,
@@ -50,12 +59,19 @@ export default function AdminRidersPage() {
     const [riders, setRiders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
-    const [globalChartRange, setGlobalChartRange] = useState('7'); // For main page chart
     const [selectedRider, setSelectedRider] = useState<any | null>(null);
+    const [analyticsFilter, setAnalyticsFilter] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('daily');
+    const [analyticsTrend, setAnalyticsTrend] = useState<any[]>([]);
+    const [analyticsMetrics, setAnalyticsMetrics] = useState<{ totalDeliveredOrders: number; totalDeliveredAmount: number }>({ totalDeliveredOrders: 0, totalDeliveredAmount: 0 });
+    const [analyticsLoading, setAnalyticsLoading] = useState<boolean>(false);
 
     useEffect(() => {
         fetchRiders();
     }, []);
+
+    useEffect(() => {
+        fetchAnalytics(analyticsFilter);
+    }, [analyticsFilter]);
 
     const fetchRiders = async () => {
         try {
@@ -66,6 +82,25 @@ export default function AdminRidersPage() {
             console.error("Failed to fetch riders", err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchAnalytics = async (filter: 'daily' | 'weekly' | 'monthly' | 'yearly') => {
+        try {
+            setAnalyticsLoading(true);
+            const resp = await AdminService.getOrderDeliveryAnalytics(filter);
+            const trend = Array.isArray(resp?.trend) ? resp.trend : [];
+            setAnalyticsTrend(trend);
+            setAnalyticsMetrics({
+                totalDeliveredOrders: resp?.metrics?.totalDeliveredOrders || 0,
+                totalDeliveredAmount: resp?.metrics?.totalDeliveredAmount || 0,
+            });
+        } catch (err) {
+            console.error('Failed to fetch delivery analytics', err);
+            setAnalyticsTrend([]);
+            setAnalyticsMetrics({ totalDeliveredOrders: 0, totalDeliveredAmount: 0 });
+        } finally {
+            setAnalyticsLoading(false);
         }
     };
 
@@ -124,13 +159,79 @@ export default function AdminRidersPage() {
                 </div>
             </div>
 
-            {/* Main Page Graph (Global Stats) */}
-            <AdminChart
-                title="Fleet Activity"
-                data={globalChartRange === '7' ? riderActivityData7Days : riderActivityData30Days}
-                color="blue"
-                onRangeChange={setGlobalChartRange}
-            />
+            {/* Delivery Analytics Chart */}
+            <div className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                    <div>
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white"> Orders Analytics</h2>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Total Delivered: {analyticsMetrics.totalDeliveredOrders} · Amount: ₹{analyticsMetrics.totalDeliveredAmount}</p>
+                    </div>
+                    <div className="flex gap-2">
+                        {(['daily', 'weekly', 'monthly', 'yearly'] as const).map((f) => (
+                            <button
+                                key={f}
+                                onClick={() => setAnalyticsFilter(f)}
+                                className={`px-3 py-2 rounded-lg text-sm font-bold capitalize border transition-colors ${analyticsFilter === f
+                                    ? 'bg-blue-500 text-white border-blue-500'
+                                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                    }`}
+                            >
+                                {f}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="h-72">
+                    {analyticsLoading ? (
+                        <div className="h-full flex items-center justify-center text-gray-500">Loading...</div>
+                    ) : analyticsTrend.length ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={analyticsTrend} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="delivOrders" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.25} />
+                                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                                    </linearGradient>
+                                    <linearGradient id="delivAmount" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.25} />
+                                        <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
+                                <Tooltip
+                                    formatter={(value: any, key) => {
+                                        if (key === 'deliveredAmount') return [value, 'Amount'];
+                                        return [value, 'Delivered Orders'];
+                                    }}
+                                />
+                                <Legend />
+                                <Area
+                                    type="monotone"
+                                    dataKey="deliveredOrders"
+                                    stroke="#3B82F6"
+                                    fill="url(#delivOrders)"
+                                    strokeWidth={2}
+                                    dot={{ r: 3, strokeWidth: 1.5, fill: '#3B82F6' }}
+                                    activeDot={{ r: 5 }}
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey="deliveredAmount"
+                                    stroke="#10B981"
+                                    fill="url(#delivAmount)"
+                                    strokeWidth={2}
+                                    dot={{ r: 3, strokeWidth: 1.5, fill: '#10B981' }}
+                                    activeDot={{ r: 5 }}
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <div className="h-full flex items-center justify-center text-gray-500">No analytics data</div>
+                    )}
+                </div>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredRiders.map((rider) => (

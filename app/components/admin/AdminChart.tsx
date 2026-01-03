@@ -31,30 +31,32 @@ export function AdminChart({ title, data, color = 'indigo', onRangeChange }: Adm
     <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
       <div className="flex justify-between items-center mb-6">
         <h3 className="font-bold text-gray-900 dark:text-white">{title}</h3>
-        <select 
-            className="text-xs bg-gray-100 dark:bg-gray-700 border-none rounded-lg px-2 py-1 text-gray-600 dark:text-gray-300 focus:ring-0 cursor-pointer outline-none"
-            onChange={(e) => onRangeChange && onRangeChange(e.target.value)}
+        <select
+          className="text-xs bg-gray-100 dark:bg-gray-700 border-none rounded-lg px-2 py-1 text-gray-600 dark:text-gray-300 focus:ring-0 cursor-pointer outline-none"
+          onChange={(e) => onRangeChange && onRangeChange(e.target.value)}
         >
-            <option value="7">Last 7 Days</option>
-            <option value="30">Last 30 Days</option>
+          <option value="daily">daily</option>
+          <option value="weekly">weekly</option>
+          <option value="monthly">monthly</option>
+          <option value="yearly">yearly</option>
         </select>
       </div>
-      
+
       <div className="h-48 flex items-end justify-between gap-2 md:gap-4">
         {data.map((item, i) => {
           // Calculate height percentage, ensure min-height for visibility if value > 0
           const heightPercent = maxValue > 0 ? Math.max((item.value / maxValue) * 100, 10) : 0;
-          
+
           return (
             <div key={i} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
               <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-t-md relative h-full overflow-hidden flex flex-col-reverse">
-                <div 
+                <div
                   className={`w-full transition-all duration-500 rounded-t-md relative group-hover:shadow-lg ${barColor} flex items-start justify-center pt-1`}
                   style={{ height: `${heightPercent}%` }}
                 >
-                   {/* Value inside the bar */}
-                   <span className="text-[10px] text-white/90 font-bold group-hover:text-white transition-colors">
-                      {item.value}
+                  {/* Value inside the bar */}
+                  <span className="text-[10px] text-white/90 font-bold group-hover:text-white transition-colors">
+                    {item.value}
                   </span>
                 </div>
               </div>
