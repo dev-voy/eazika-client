@@ -74,6 +74,7 @@ const coustomerServices = {
 
   getProductById: async (productId: number): Promise<ProductDetailType> => {
     const response = await axios.get(`/customers/products/${productId}`);
+    // console.log("Product details response:", response.data.data);
     return response.data.data.product;
   },
 
@@ -97,9 +98,20 @@ const coustomerServices = {
     }
   },
 
+  getEligibleForRating: async (productId: number): Promise<{ eligible: boolean; hasReviewed: boolean; message: string }> => {
+    const response = await axios.get(`/customers/products/${productId}/rating-eligibility`);
+    return response.data.data;
+  },
+
+  submitRating: async (productId: number, data: { rating: number; review: string }): Promise<void> => {
+    const response = await axios.post(`/customers/products/${productId}/rating`, data);
+    // console.log(response.data);
+    return response.data;
+  },
+
   cartMethods: allCartMethods,
 };
 
 export default coustomerServices;
-export const { getProducts, getProductById, getAvailableCities, getCategories, cartMethods } =
+export const { getProducts, getProductById, getAvailableCities, getCategories, cartMethods, getEligibleForRating, submitRating } =
   coustomerServices;

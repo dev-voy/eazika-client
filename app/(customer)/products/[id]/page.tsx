@@ -22,13 +22,14 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { motion } from "framer-motion";
-// import { ShopService, ShopProduct } from "@/services/shopService";
+import { ShopService, ShopProduct } from "@/services/shopService";
 // import { useCartStore } from "@/hooks/useCartStore";
 import { useCartStore } from "@/store";
 import { useWishlistStore } from "@/hooks/useWishlistStore";
 import { useLocationStore } from "@/store/locationStore";
-import coustomerService from "@/services/customerService";
+import coustomerService, { submitRating } from "@/services/customerService";
 import type { ProductDetailType, ProductPriceType } from "@/types";
+import Link from "next/link";
 
 export default function ProductPage() {
   const params = useParams();
@@ -43,7 +44,7 @@ export default function ProductPage() {
 
   // State
   const [product, setProduct] = useState<ProductDetailType | null>(null);
-  // const [relatedProducts, setRelatedProducts] = useState<ShopProduct[]>([]);
+  const [relatedProducts, setRelatedProducts] = useState<ShopProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isBuying, setIsBuying] = useState(false); // State for Buy Now loading
   const [quantity, setQuantity] = useState(1);
@@ -60,6 +61,17 @@ export default function ProductPage() {
   const [selectedPrice, setSelectedPrice] = useState<ProductPriceType | null>(
     null
   );
+
+  // Rating Form State
+  const [showRatingForm, setShowRatingForm] = useState(false);
+  const [ratingFormData, setRatingFormData] = useState({
+    rating: 0,
+    heading: '',
+    description: ''
+  });
+  const [isEligible, setIsEligible] = useState(false);
+  const [isSubmittingRating, setIsSubmittingRating] = useState(false);
+  const [hasUserReviewed, setHasUserReviewed] = useState(false);
 
   const parseGeo = (geo?: string | null): { lat: number; lng: number } | null => {
     if (!geo) return null;
@@ -177,8 +189,20 @@ export default function ProductPage() {
       try {
         const numericId = parseInt(id.replace(/\D/g, "")) || 0;
         const productData = await coustomerService.getProductById(numericId);
+        // console.log("Fetched product data:", productData);
         setProduct(productData);
         setSelectedPrice(productData.prices[0]);
+
+        // Check if user is eligible to rate this product
+        try {
+          const eligibilityData = await coustomerService.getEligibleForRating(Number(productData.id));
+          setIsEligible(eligibilityData.eligible);
+          setHasUserReviewed(eligibilityData.hasReviewed);
+        } catch (error) {
+          console.warn("Failed to check rating eligibility", error);
+          setIsEligible(false);
+          setHasUserReviewed(false);
+        }
       } catch (error) {
         console.error("Failed to load product", error);
       } finally {
@@ -228,6 +252,48 @@ export default function ProductPage() {
     if (typeof window !== "undefined") {
       navigator.clipboard.writeText(window.location.href);
     }
+  };
+
+  const handleRatingFormSubmit = async () => {
+    if (ratingFormData.rating === 0) {
+      alert('Please select a rating');
+      return;
+    }
+    if (!ratingFormData.description.trim()) {
+      alert('Please add a description');
+      return;
+    }
+
+    if (!product) return;
+
+    setIsSubmittingRating(true);
+    try {
+      await submitRating(Number(product.id), {
+        rating: ratingFormData.rating,
+        review: ratingFormData.description.trim()
+      });
+
+      // Reset form and close
+      setRatingFormData({ rating: 0, heading: '', description: '' });
+      setShowRatingForm(false);
+
+      // Refresh product data to show new rating
+      const numericId = parseInt(id!.replace(/\D/g, "")) || 0;
+      const productData = await coustomerService.getProductById(numericId);
+      setProduct(productData);
+      setHasUserReviewed(true);
+
+      alert('Thank you for your review!');
+    } catch (error) {
+      console.error('Failed to submit rating:', error);
+      alert('Failed to submit review. Please try again.');
+    } finally {
+      setIsSubmittingRating(false);
+    }
+  };
+
+  const handleStarClick = (starIndex: number) => {
+    setRatingFormData({ ...ratingFormData, rating: starIndex });
   };
 
   return (
@@ -675,9 +741,134 @@ export default function ProductPage() {
                 </div>
               </div>
             </div>
+            {/* Rating of Product */}
+            <div className="mt-12 px-4 md:px-0">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    Customer Reviews
+                  </h2>
+                  {isEligible && (
+                    <button
+                      onClick={() => setShowRatingForm(true)}
+                      disabled={hasUserReviewed}
+                      className={`px-4 py-2 font-semibold rounded-xl transition-colors flex items-center gap-2 ${hasUserReviewed
+                        ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                        : 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                        }`}
+                    >
+                      <Star size={18} />
+                      {hasUserReviewed ? 'Already Reviewed' : 'Add Review'}
+                    </button>
+                  )}
+                </div>
+
+                {/* Overall Rating Summary */}
+                {product.rating.count > 0 ? (
+                  <div className="mb-8">
+                    <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
+                      {/* Average Rating */}
+                      <div className="flex flex-col items-center justify-center p-6 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                        <div className="text-5xl font-bold text-gray-900 dark:text-white mb-2">
+                          {product.rating.rate.toFixed(1)}
+                        </div>
+                        <div className="flex items-center gap-1 mb-2">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              size={20}
+                              className={
+                                i < Math.round(product.rating.rate)
+                                  ? "fill-yellow-500 text-yellow-500"
+                                  : "text-gray-300 dark:text-gray-600"
+                              }
+                            />
+                          ))}
+                        </div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {product.rating.count} {product.rating.count === 1 ? 'Review' : 'Reviews'}
+                        </p>
+                      </div>
+
+                      {/* Rating Distribution (if needed later) */}
+                      <div className="flex-1">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Based on {product.rating.count} verified purchase{product.rating.count !== 1 ? 's' : ''}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Individual Ratings */}
+                    {product.rating.ratings && product.rating.ratings.length > 0 && (
+                      <div className="mt-8 space-y-4">
+                        <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-4">
+                          Customer Feedback
+                        </h3>
+                        {product.rating.ratings.map((review: any, index: number) => (
+                          <div
+                            key={index}
+                            className="border-b border-gray-100 dark:border-gray-700 pb-4 last:border-0"
+                          >
+                            <div className="flex items-start gap-4">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <div className="flex flex-col">
+                                    {review.userName && (
+                                      <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                                        {review.userName}
+                                      </div>
+                                    )}
+                                    <div className="flex items-center gap-1">
+                                      {[...Array(5)].map((_, i) => (
+                                        <Star
+                                          key={i}
+                                          size={14}
+                                          className={
+                                            i < (review.rating || 0)
+                                              ? "fill-yellow-500 text-yellow-500"
+                                              : "text-gray-300 dark:text-gray-600"
+                                          }
+                                        />
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  {review.date && (
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                      {new Date(review.date).toLocaleDateString()}
+                                    </span>
+                                  )}
+                                </div>
+                                {review.review && (
+                                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                                    {review.review}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+                      <Star size={32} className="text-gray-400 dark:text-gray-500" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                      No ratings yet
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+                      Be the first to review this product! Share your experience with other customers.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {/* --- RELATED PRODUCTS --- */}
-            {/* {relatedProducts.length > 0 && (
+            {relatedProducts.length > 0 && (
               <div className="mt-16 px-4 md:px-0 mb-20 md:mb-0">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
                   You might also like
@@ -715,7 +906,97 @@ export default function ProductPage() {
                   ))}
                 </div>
               </div>
-            )} */}
+            )}
+          </div>
+        )}
+
+        {/* Rating Form Modal */}
+        {showRatingForm && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowRatingForm(false)}>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  Write a Review
+                </h3>
+                <button
+                  onClick={() => setShowRatingForm(false)}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <Plus size={24} className="rotate-45 text-gray-500 dark:text-gray-400" />
+                </button>
+              </div>
+
+              {/* Star Rating Selector */}
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                  Your Rating
+                </label>
+                <div className="flex items-center gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => handleStarClick(star)}
+                      className="transition-transform hover:scale-110 active:scale-95"
+                    >
+                      <Star
+                        size={40}
+                        className={
+                          star <= ratingFormData.rating
+                            ? "fill-yellow-500 text-yellow-500"
+                            : "text-gray-300 dark:text-gray-600"
+                        }
+                      />
+                    </button>
+                  ))}
+                  {ratingFormData.rating > 0 && (
+                    <span className="ml-2 text-lg font-bold text-gray-900 dark:text-white">
+                      {ratingFormData.rating}/5
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Heading Input */}
+              {/* Description Textarea */}
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={ratingFormData.description}
+                  onChange={(e) => setRatingFormData({ ...ratingFormData, description: e.target.value })}
+                  placeholder="Share your experience with this product..."
+                  rows={4}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500 resize-none"
+                />
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowRatingForm(false)}
+                  disabled={isSubmittingRating}
+                  className="flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleRatingFormSubmit}
+                  disabled={isSubmittingRating}
+                  className="flex-1 px-4 py-3 rounded-xl bg-yellow-500 hover:bg-yellow-600 text-white font-semibold shadow-lg shadow-yellow-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isSubmittingRating ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    'Submit Review'
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </Suspense>
