@@ -64,6 +64,7 @@ export interface TrackingDetails {
   status: string;
   currentLocation: string;
   estimatedDelivery: string;
+  deliveryOtp: number;
   orderItems?: OrderItem[];
   items?: Array<{
     id: number;

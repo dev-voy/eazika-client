@@ -118,7 +118,6 @@ const OrderDetailsContent = ({
       // alert(`Copied ${tracking.deliveryBoy.phone} to clipboard!`);
     }
   };
-
   const handleCopyLocation = () => {
     const valueToCopy = customerLocation
       ? `${customerLocation.lat},${customerLocation.lng}`
@@ -219,7 +218,7 @@ const OrderDetailsContent = ({
         <div className="bg-yellow-50 dark:bg-yellow-900/10 rounded-2xl p-4 text-center border border-yellow-100 dark:border-yellow-900/30">
           <p className="text-xs font-bold text-yellow-600/70 dark:text-yellow-500/70 uppercase tracking-wider mb-1">Delivery OTP</p>
           <p className="text-xl font-bold text-yellow-600 dark:text-yellow-500 tracking-widest">
-            4829
+            {tracking.deliveryOtp || '----'}
           </p>
         </div>
       </div>
@@ -393,6 +392,7 @@ function TrackOrderContent() {
         // console.log(data);
         // console.log("Track order data fetched", data);
         setTracking(data);
+        // console.log(data)
       } catch (error) {
         console.error("Failed to track order", error);
       } finally {
