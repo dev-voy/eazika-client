@@ -81,10 +81,13 @@ export const AdminService = {
 
   getAllRiders: async () => {
     const response = await axiosInstance.get(`/admin/riders/get-all`);
-    console.log(response.data.data);
+    // console.log(response.data.data);
     return response.data.data;
   },
-
+  getRiderAnalytics: async (riderId: number, filter: string) => {
+    const { data } = await axiosInstance.get(`/admin/riders/${riderId}/analytics?filter=${filter}`);
+    return data.data;
+  },
   getAllOrders: async () => {
     const response = await axiosInstance.get(`/admin/orders/get-all`);
     return response.data.data;

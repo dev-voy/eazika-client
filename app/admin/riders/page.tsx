@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { AdminChart } from '@/app/components/admin/AdminChart';
 import {
     ResponsiveContainer,
     AreaChart,
@@ -31,21 +30,6 @@ import Image from 'next/image';
 
 // --- Local Mock Data ---
 
-const riderActivityData7Days = [
-    { label: 'Mon', value: 12 }, { label: 'Tue', value: 15 }, { label: 'Wed', value: 8 },
-    { label: 'Thu', value: 20 }, { label: 'Fri', value: 25 }, { label: 'Sat', value: 30 }, { label: 'Sun', value: 28 },
-];
-
-const riderActivityData30Days = [
-    { label: 'W1', value: 120 }, { label: 'W2', value: 145 },
-    { label: 'W3', value: 110 }, { label: 'W4', value: 160 },
-];
-
-const riderActivityDataYear = [
-    { label: 'Jan', value: 400 }, { label: 'Feb', value: 450 }, { label: 'Mar', value: 500 },
-    { label: 'Apr', value: 480 }, { label: 'May', value: 520 }, { label: 'Jun', value: 600 }
-];
-
 const mockRiderHistory = [
     { id: '#ORD-9981', date: 'Today, 10:30 AM', amount: '₹450', status: 'Delivered' },
     { id: '#ORD-9972', date: 'Yesterday, 2:15 PM', amount: '₹120', status: 'Delivered' },
@@ -60,10 +44,15 @@ export default function AdminRidersPage() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [selectedRider, setSelectedRider] = useState<any | null>(null);
+    const [modalTab, setModalTab] = useState<'overview' | 'analytics' | 'history' | 'docs'>('overview');
     const [analyticsFilter, setAnalyticsFilter] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('daily');
     const [analyticsTrend, setAnalyticsTrend] = useState<any[]>([]);
     const [analyticsMetrics, setAnalyticsMetrics] = useState<{ totalDeliveredOrders: number; totalDeliveredAmount: number }>({ totalDeliveredOrders: 0, totalDeliveredAmount: 0 });
     const [analyticsLoading, setAnalyticsLoading] = useState<boolean>(false);
+    const [riderAnalyticsFilter, setRiderAnalyticsFilter] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('daily');
+    const [riderAnalyticsTrend, setRiderAnalyticsTrend] = useState<any[]>([]);
+    const [riderAnalyticsMetrics, setRiderAnalyticsMetrics] = useState<{ totalDeliveredOrders: number; totalDeliveredAmount: number }>({ totalDeliveredOrders: 0, totalDeliveredAmount: 0 });
+    const [riderAnalyticsLoading, setRiderAnalyticsLoading] = useState<boolean>(false);
 
     useEffect(() => {
         fetchRiders();
@@ -72,6 +61,12 @@ export default function AdminRidersPage() {
     useEffect(() => {
         fetchAnalytics(analyticsFilter);
     }, [analyticsFilter]);
+
+    useEffect(() => {
+        if (modalTab === 'analytics' && selectedRider) {
+            fetchRiderAnalytics(selectedRider.id, riderAnalyticsFilter);
+        }
+    }, [modalTab, riderAnalyticsFilter, selectedRider]);
 
     const fetchRiders = async () => {
         try {
@@ -128,9 +123,24 @@ export default function AdminRidersPage() {
         }
     };
 
-    // Modal States
-    const [modalTab, setModalTab] = useState<'overview' | 'analytics' | 'history' | 'docs'>('overview');
-    const [modalChartRange, setModalChartRange] = useState<'7' | '30' | '365'>('7');
+    const fetchRiderAnalytics = async (riderId: number, filter: 'daily' | 'weekly' | 'monthly' | 'yearly') => {
+        try {
+            setRiderAnalyticsLoading(true);
+            const resp = await AdminService.getRiderAnalytics(riderId, filter);
+            const trend = Array.isArray(resp?.trend) ? resp.trend : [];
+            setRiderAnalyticsTrend(trend);
+            setRiderAnalyticsMetrics({
+                totalDeliveredOrders: resp?.metrics?.totalDeliveredOrders || 0,
+                totalDeliveredAmount: resp?.metrics?.totalDeliveredAmount || 0,
+            });
+        } catch (err) {
+            console.error('Failed to fetch rider analytics', err);
+            setRiderAnalyticsTrend([]);
+            setRiderAnalyticsMetrics({ totalDeliveredOrders: 0, totalDeliveredAmount: 0 });
+        } finally {
+            setRiderAnalyticsLoading(false);
+        }
+    };
 
     const handleSuspendToggle = (id: number) => {
         // Implement suspend logic if backend supports it. For now just optimistic UI update or alert.
@@ -141,7 +151,6 @@ export default function AdminRidersPage() {
         // console.log("Opening Rider Modal for:", rider);
         setSelectedRider(rider);
         setModalTab('overview'); // Reset tab
-        setModalChartRange('7'); // Reset chart
     };
 
     const filteredRiders = riders.filter(r =>
@@ -157,15 +166,6 @@ export default function AdminRidersPage() {
             case 'offline': return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
             case 'suspended': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
             default: return 'bg-gray-100 text-gray-600';
-        }
-    };
-
-    // Determine data for modal chart
-    const getModalChartData = () => {
-        switch (modalChartRange) {
-            case '30': return riderActivityData30Days;
-            case '365': return riderActivityDataYear;
-            default: return riderActivityData7Days;
         }
     };
 
@@ -423,32 +423,72 @@ export default function AdminRidersPage() {
                                 {modalTab === 'analytics' && (
                                     <div className="space-y-6">
                                         <div className="flex justify-between items-center">
-                                            <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                                <BarChart3 size={18} /> Delivery Performance
-                                            </h3>
+                                            <div>
+                                                <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                                    <BarChart3 size={18} /> Delivery Performance
+                                                </h3>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">Delivered: {riderAnalyticsMetrics.totalDeliveredOrders} · Amount: ₹{riderAnalyticsMetrics.totalDeliveredAmount}</p>
+                                            </div>
                                             <select
-                                                value={modalChartRange}
-                                                onChange={(e) => setModalChartRange(e.target.value as any)}
+                                                value={riderAnalyticsFilter}
+                                                onChange={(e) => setRiderAnalyticsFilter(e.target.value as any)}
                                                 className="text-xs bg-gray-100 dark:bg-gray-700 border-none rounded-lg px-2 py-1 text-gray-600 dark:text-gray-300"
                                             >
-                                                <option value="7">This Week</option>
-                                                <option value="30">This Month</option>
-                                                <option value="365">This Year</option>
+                                                <option value="daily">Daily</option>
+                                                <option value="weekly">Weekly</option>
+                                                <option value="monthly">Monthly</option>
+                                                <option value="yearly">Yearly</option>
                                             </select>
                                         </div>
 
-                                        {/* Reusing AdminChart */}
-                                        <AdminChart
-                                            title="" // Title handled above
-                                            data={getModalChartData()}
-                                            color="green"
-                                        />
-
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-                                                <p className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase">Avg Delivery Time</p>
-                                                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">24m</p>
-                                            </div>
+                                        <div className="h-64">
+                                            {riderAnalyticsLoading ? (
+                                                <div className="h-full flex items-center justify-center text-gray-500">Loading...</div>
+                                            ) : riderAnalyticsTrend.length ? (
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <AreaChart data={riderAnalyticsTrend} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                                                        <defs>
+                                                            <linearGradient id="riderDelivOrders" x1="0" y1="0" x2="0" y2="1">
+                                                                <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.25} />
+                                                                <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                                                            </linearGradient>
+                                                            <linearGradient id="riderDelivAmount" x1="0" y1="0" x2="0" y2="1">
+                                                                <stop offset="5%" stopColor="#10B981" stopOpacity={0.25} />
+                                                                <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                                                            </linearGradient>
+                                                        </defs>
+                                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                                        <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
+                                                        <Tooltip
+                                                            formatter={(value: any, key) => {
+                                                                if (key === 'deliveredAmount') return [value, 'Amount'];
+                                                                return [value, 'Delivered Orders'];
+                                                            }}
+                                                        />
+                                                        <Legend />
+                                                        <Area
+                                                            type="monotone"
+                                                            dataKey="deliveredOrders"
+                                                            stroke="#3B82F6"
+                                                            fill="url(#riderDelivOrders)"
+                                                            strokeWidth={2}
+                                                            dot={{ r: 3, strokeWidth: 1.5, fill: '#3B82F6' }}
+                                                            activeDot={{ r: 5 }}
+                                                        />
+                                                        <Area
+                                                            type="monotone"
+                                                            dataKey="deliveredAmount"
+                                                            stroke="#10B981"
+                                                            fill="url(#riderDelivAmount)"
+                                                            strokeWidth={2}
+                                                            dot={{ r: 3, strokeWidth: 1.5, fill: '#10B981' }}
+                                                            activeDot={{ r: 5 }}
+                                                        />
+                                                    </AreaChart>
+                                                </ResponsiveContainer>
+                                            ) : (
+                                                <div className="h-full flex items-center justify-center text-gray-500">No analytics data</div>
+                                            )}
                                         </div>
                                     </div>
                                 )}
