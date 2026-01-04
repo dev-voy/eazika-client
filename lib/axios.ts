@@ -49,7 +49,7 @@ axiosInstance.interceptors.response.use(
     //     console.warn("Unauthorized! Please log in again.");
     //   }
     // }
-    toast.error(error.response?.data?.message || "An error occurred");
+    // toast.error(error.response?.data?.message || "An error occurred");
     return Promise.reject(error);
   }
 );
