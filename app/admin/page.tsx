@@ -127,7 +127,7 @@ export default function AdminDashboard() {
         </Link>
 
         {/* Orders */}
-        <Link href="/admin/orders">
+        <Link href="/admin/shops">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow cursor-pointer h-full">
             <div className="flex justify-between items-start">
               <div>
@@ -146,7 +146,7 @@ export default function AdminDashboard() {
         </Link>
 
         {/* Users */}
-        <Link href="/admin/users">
+        <Link href="/admin/shops">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow cursor-pointer h-full">
             <div className="flex justify-between items-start">
               <div>
