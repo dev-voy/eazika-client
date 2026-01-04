@@ -218,59 +218,106 @@ export default function HomePage() {
     };
 
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
-        <div className="w-full max-w-lg bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 p-6 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center text-yellow-600">
-              <MapPin size={22} />
+      <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-white to-orange-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-lg"
+        >
+          {/* Logo/Brand Section */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 shadow-lg mb-4">
+              <MapPin size={40} className="text-white" />
             </div>
-            <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Select your city</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Choose a city to load nearby products.</p>
-            </div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Welcome to Eazika</h1>
+            <p className="text-gray-600 dark:text-gray-400">Discover local shops near you</p>
           </div>
 
-          {normalizedSupported.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {normalizedSupported.map((city) => (
-                <button
-                  key={city}
-                  onClick={() => handleCitySelect(city)}
-                  className={`px-3 py-2 rounded-full text-sm border transition ${cityInput === city ? "border-yellow-500 text-yellow-700 dark:text-yellow-200 bg-yellow-50 dark:bg-yellow-900/20" : "border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-yellow-400"}`}
-                >
-                  {city}
-                </button>
-              ))}
+          {/* City Selection Card */}
+          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700 p-8 space-y-6">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Select your city</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Choose your location to see nearby shops and products</p>
             </div>
-          )}
 
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">City name</label>
-            <input
-              value={cityInput}
-              onChange={(e) => setCityInput(e.target.value)}
-              placeholder={normalizedSupported[0] || "Enter your city"}
-              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-3 text-gray-900 dark:text-white focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/30"
-            />
-          </div>
+            {/* Selected City Display */}
+            {cityInput && (
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-2xl p-4 border-2 border-yellow-300 dark:border-yellow-600"
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <MapPin size={20} className="text-yellow-600 dark:text-yellow-400" />
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Selected City:</p>
+                  <p className="text-lg font-bold text-yellow-600 dark:text-yellow-400">{cityInput}</p>
+                </div>
+              </motion.div>
+            )}
 
-          <div className="flex gap-3 flex-col sm:flex-row">
-            <button
-              onClick={handleUseMyLocation}
-              disabled={detecting}
-              className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-yellow-500 text-white font-bold py-3 hover:bg-yellow-600 transition disabled:opacity-70"
-            >
-              {detecting ? <Loader2 className="animate-spin" size={16} /> : <Navigation size={16} />}
-              {detecting ? "Detecting..." : "Use my location"}
-            </button>
-            <button
-              onClick={handleSaveCity}
-              className="flex-1 inline-flex items-center justify-center rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-white font-semibold py-3 hover:border-yellow-400"
-            >
-              Save city
-            </button>
+            {/* Available Cities */}
+            {normalizedSupported.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Available Cities</p>
+                <div className="flex flex-wrap gap-2">
+                  {normalizedSupported.map((city) => (
+                    <motion.button
+                      key={city}
+                      onClick={() => handleCitySelect(city)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className={`px-4 py-2.5 rounded-full text-sm font-medium border-2 transition-all ${cityInput === city
+                          ? "border-yellow-500 text-white bg-gradient-to-r from-yellow-500 to-orange-500 shadow-md"
+                          : "border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
+                        }`}
+                    >
+                      {city}
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Manual City Input */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                <MapPin size={16} className="text-yellow-500" />
+                Or enter your city manually
+              </label>
+              <input
+                value={cityInput}
+                onChange={(e) => setCityInput(e.target.value)}
+                placeholder={normalizedSupported[0] || "Enter your city name"}
+                className="w-full rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-3.5 text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-yellow-500 focus:ring-4 focus:ring-yellow-500/20 transition-all"
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 flex-col sm:flex-row pt-2">
+              <button
+                onClick={handleUseMyLocation}
+                disabled={detecting}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold py-3.5 hover:from-blue-600 hover:to-cyan-600 transition-all shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {detecting ? <Loader2 className="animate-spin" size={18} /> : <Navigation size={18} />}
+                {detecting ? "Detecting..." : "Use my location"}
+              </button>
+              <button
+                onClick={handleSaveCity}
+                disabled={!cityInput.trim()}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold py-3.5 hover:from-yellow-600 hover:to-orange-600 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <MapPin size={18} />
+                Save & Continue
+              </button>
+            </div>
+
+            {/* Help Text */}
+            <p className="text-xs text-center text-gray-500 dark:text-gray-400 pt-2">
+              We'll show you shops and products available in <span className="font-semibold text-yellow-600 dark:text-yellow-400">{cityInput || "your city"}</span>
+            </p>
           </div>
-        </div>
+        </motion.div>
       </div>
     );
   }
