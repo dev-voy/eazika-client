@@ -150,6 +150,26 @@ export const AdminService = {
     );
     return response.data.data;
   },
+
+  searchGlobalProducts: async (
+    searchQuery: string,
+    page: number | string = 1,
+    limit: number | string = 10
+  ): Promise<GlobalProductListType> => {
+    const params = new URLSearchParams();
+    params.append("search", String(searchQuery));
+    params.append("pagination[currentPage]", String(page));
+    params.append("pagination[itemsPerPage]", String(limit));
+    params.append("currentPage", String(page));
+    params.append("itemsPerPage", String(limit));
+    params.append("page", String(page));
+    params.append("limit", String(limit));
+    const response = await axiosInstance.get(
+      `/admin/products/search-global-products?${params.toString()}`
+    );
+    return response.data.data;
+  },
+
   updateProductDetails: async (productId: number, data: any) => {
     const response = await axiosInstance.patch(
       `/admin/products/update-global-product/${productId}`,

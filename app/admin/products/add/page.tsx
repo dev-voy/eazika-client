@@ -52,6 +52,9 @@ export default function GlobalProductPage() {
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [globalProducts, setGlobalProducts] = useState<GlobalProduct[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState<GlobalProduct[]>([]);
+  const [hasSearched, setHasSearched] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -83,6 +86,34 @@ export default function GlobalProductPage() {
     fetchCategories();
     fetchGlobalProducts();
   }, [currentPage]);
+
+  // Debounced search effect for global products
+  useEffect(() => {
+    const debounceTimer = setTimeout(async () => {
+      if (searchQuery.trim() === "") {
+        setSearchResults([]);
+        setHasSearched(false);
+        return;
+      }
+
+      try {
+        setSearchLoading(true);
+        setHasSearched(true);
+
+        // Call the search API for global products
+        const response = await shopService.searchGlobalProducts(searchQuery, 1, 50);
+        setSearchResults((response as any).globalProducts || response.products || []);
+      } catch (error) {
+        console.error("Search failed:", error);
+        toast.error("Search failed. Please try again.");
+        setSearchResults([]);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery]);
 
   const fetchCategories = async () => {
     try {
@@ -245,10 +276,13 @@ export default function GlobalProductPage() {
     }
   };
 
-  const filteredProducts = globalProducts.filter(p =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.brand?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Use API search results if search is active, otherwise use local filtering
+  const filteredProducts = hasSearched
+    ? searchResults
+    : globalProducts.filter(p =>
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.brand?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
   return (
     <div className="space-y-6 pb-24">
@@ -545,6 +579,12 @@ export default function GlobalProductPage() {
       {/* Search Bar */}
       <div className="relative">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+        {searchLoading && (
+          <Loader2
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 animate-spin"
+            size={20}
+          />
+        )}
         <input
           type="text"
           placeholder="Search products..."
@@ -625,6 +665,12 @@ export default function GlobalProductPage() {
                 </div>
               </div>
             ))}
+          </div>
+        ) : hasSearched && filteredProducts.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500 dark:text-gray-400 text-lg">
+              No products found for &quot;{searchQuery}&quot;
+            </p>
           </div>
         ) : (
           <div className="text-center py-12 text-gray-500">
