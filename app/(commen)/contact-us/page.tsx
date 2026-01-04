@@ -1,44 +1,45 @@
 "use client";
 
 import React from 'react';
-import { 
-    ArrowLeft, 
-    ChevronRight, 
-    User, 
-    Package, 
-    MapPin, 
-    MessageSquare,
-    Phone
+import {
+  ArrowLeft,
+  ChevronRight,
+  User,
+  Package,
+  MapPin,
+  MessageSquare,
+  Phone,
+  Mail,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast'; // Import toast
 
 // --- Mock Support Topics ---
 const supportTopics = [
-  { 
-    id: 'account', 
-    title: 'Account & Billing', 
+  {
+    id: 'account',
+    title: 'Account & Billing',
     description: 'Manage your account, payments, and billing issues.',
     icon: User,
     href: '/support/account' // Placeholder link
   },
-  { 
-    id: 'orders', 
-    title: 'Order Issues', 
+  {
+    id: 'orders',
+    title: 'Order Issues',
     description: 'Help with missing items, refunds, and cancellations.',
     icon: Package,
     href: '/support/orders'
   },
-  { 
-    id: 'delivery', 
-    title: 'Delivery & Address', 
+  {
+    id: 'delivery',
+    title: 'Delivery & Address',
     description: 'Track your order or manage delivery addresses.',
     icon: MapPin,
     href: '/support/delivery'
   },
-  { 
-    id: 'feedback', 
-    title: 'App Feedback & Suggestions', 
+  {
+    id: 'feedback',
+    title: 'App Feedback & Suggestions',
     description: 'Report a bug or share your ideas with us.',
     icon: MessageSquare,
     href: '/support/feedback'
@@ -93,15 +94,15 @@ export default function SupportPage() {
           animate="visible"
         >
           {/* Support Topics List */}
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          {/* <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Common Topics
           </h2>
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
             <ul className="divide-y dark:divide-gray-700">
               {supportTopics.map((topic) => (
                 <motion.li key={topic.id} variants={itemVariants}>
-                  <a 
-                    href={topic.href} 
+                  <a
+                    href={topic.href}
                     className="flex items-center justify-between p-5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                   >
                     <div className="flex items-center gap-4">
@@ -118,15 +119,42 @@ export default function SupportPage() {
                 </motion.li>
               ))}
             </ul>
-          </div>
+          </div> */}
 
           {/* Contact Us Section */}
           <motion.div variants={itemVariants} className="mt-8">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
               Need more help?
             </h2>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-              <button 
+            <div>
+              <p className="text-gray-700 dark:text-gray-300 mb-4">
+                If you can't find the answer you're looking for, our support team is here to help! You can reach out to us via phone or email, and we'll get back to you as soon as possible.
+              </p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden mb-5">
+              <button
+                onClick={() => {
+                  const dummyEmail = "support@eazika.com";
+                  window.location.href = `mailto:${dummyEmail}`;
+                }}
+                className="w-full flex items-center justify-between p-5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+                    <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-800 dark:text-white">Email Us</span>
+                    <br />
+                    <span>support@eazika.com</span>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Email us 24/7</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-gray-400 shrink-0" />
+              </button>
+            </div>
+            {/* <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+              <button
                 onClick={handleCall}
                 className="w-full flex items-center justify-between p-5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left"
               >
@@ -141,7 +169,8 @@ export default function SupportPage() {
                 </div>
                 <ChevronRight className="w-5 h-5 text-gray-400 shrink-0" />
               </button>
-            </div>
+            </div> */}
+
           </motion.div>
 
         </motion.div>
