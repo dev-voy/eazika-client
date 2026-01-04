@@ -169,10 +169,10 @@ export const DeliveryService = {
       if (!uploadResponse.ok) {
         throw new Error(`Upload failed: ${uploadResponse.statusText}`);
       }
-      console.log("Image uploaded successfully", data.publicUrl);
+      // console.log("Image uploaded successfully", data.publicUrl);
       // 3. Return Public URL
-      const res = await axiosInstance.put('/delivery/update-avatar', { avatar: data.publicUrl });
-      return res.data.data.avatar;
+      // const res = await axiosInstance.put('/uploads/avatar', { avatar: data.publicUrl });
+      return data.publicUrl;
 
     } catch (error) {
       console.error("Image upload failed", error);
