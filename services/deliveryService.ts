@@ -134,6 +134,7 @@ export const DeliveryService = {
   // PATCH /delivery/update-order-status
   updateOrderStatus: async (orderId: number, status: string, otp: number) => {
     const response = await axiosInstance.patch(`/delivery/update-order-status`, { orderId, status, otp });
+    console.log(response)
     return response.data;
   },
 
