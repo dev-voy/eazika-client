@@ -5,6 +5,7 @@ import { AdminService } from "@/services/adminService";
 import { uploadImage } from "@/action/upload";
 import { Plus, Tag, Loader2, Save, X, Edit } from "lucide-react";
 import { toast } from "sonner";
+import Image from "next/image";
 
 interface ProductCategory {
   id: string;
@@ -329,7 +330,9 @@ export default function AdminCategoriesPage() {
                     className="flex-1 text-sm text-gray-700 dark:text-gray-300"
                   />
                   {(editCatImagePreview || editingCategory.image) && (
-                    <img
+                    <Image
+                      width={48}
+                      height={48}
                       src={editCatImagePreview || editingCategory.image || ""}
                       alt={editCat.name}
                       className="h-12 w-12 rounded-lg object-cover border border-gray-200 dark:border-gray-700"
