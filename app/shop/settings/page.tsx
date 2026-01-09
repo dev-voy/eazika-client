@@ -269,14 +269,24 @@ export default function ShopSettingsPage() {
     };
 
     const upsertAddress = async () => {
-        if (!addressForm.geoLocation) {
-            toast.error("Geo location is required.");
+        // Validate all required fields
+        const emptyFields = [];
+
+        if (!addressForm.name?.trim()) emptyFields.push("Contact Name");
+        if (!addressForm.phone?.trim() || addressForm.phone.length !== 10) emptyFields.push("Phone (must be 10 digits)");
+        if (!addressForm.line1?.trim()) emptyFields.push("Address Line");
+        if (!addressForm.street?.trim()) emptyFields.push("Street");
+        if (!addressForm.city?.trim()) emptyFields.push("City");
+        if (!addressForm.state?.trim()) emptyFields.push("State");
+        if (!addressForm.country?.trim()) emptyFields.push("Country");
+        if (!addressForm.pinCode?.trim() || addressForm.pinCode.length !== 6) emptyFields.push("Pin Code (must be 6 digits)");
+        if (!addressForm.geoLocation?.trim()) emptyFields.push("Geo Location");
+
+        if (emptyFields.length > 0) {
+            toast.error(`Please fill all required fields:\n${emptyFields.join(", ")}`);
             return;
         }
-        if (!addressForm.line1 || !addressForm.city || !addressForm.pinCode) {
-            toast.error("Please fill required address fields.");
-            return;
-        }
+
         try {
             const addressPayload = {
                 name: addressForm.name,
@@ -482,8 +492,10 @@ export default function ShopSettingsPage() {
                     {!addressLoading && (isEditingAddress || !primaryAddress) && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1">
-                                <label className="text-xs font-semibold text-gray-500 uppercase">Contact Name</label>
+                                <label className="text-xs font-semibold text-gray-500 uppercase">Contact Name <span className="text-red-500">*</span></label>
                                 <input
+                                    required
+                                    maxLength={100}
                                     value={addressForm.name}
                                     onChange={(e) => setAddressForm({ ...addressForm, name: e.target.value })}
                                     className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-3 text-sm"
@@ -493,15 +505,25 @@ export default function ShopSettingsPage() {
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-gray-500 uppercase">Phone</label>
                                 <input
+                                    type="tel"
                                     value={addressForm.phone}
-                                    onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })}
+                                    onChange={(e) => {
+                                        const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                        setAddressForm({ ...addressForm, phone: value });
+                                    }}
+                                    maxLength={10}
+                                    minLength={10}
+                                    pattern="[0-9]{10}"
                                     className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-3 text-sm"
                                     placeholder="10-digit phone"
                                 />
+                                <p className="text-[10px] text-gray-400">Indian standard: 10 digits</p>
                             </div>
                             <div className="space-y-1">
-                                <label className="text-xs font-semibold text-gray-500 uppercase">Address line</label>
+                                <label className="text-xs font-semibold text-gray-500 uppercase">Address line <span className="text-red-500">*</span></label>
                                 <input
+                                    required
+                                    maxLength={100}
                                     value={addressForm.line1}
                                     onChange={(e) => setAddressForm({ ...addressForm, line1: e.target.value })}
                                     className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-3 text-sm"
@@ -509,8 +531,10 @@ export default function ShopSettingsPage() {
                                 />
                             </div>
                             <div className="space-y-1">
-                                <label className="text-xs font-semibold text-gray-500 uppercase">Street</label>
+                                <label className="text-xs font-semibold text-gray-500 uppercase">Street <span className="text-red-500">*</span></label>
                                 <input
+                                    required
+                                    maxLength={100}
                                     value={addressForm.street || ""}
                                     onChange={(e) => setAddressForm({ ...addressForm, street: e.target.value })}
                                     className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-3 text-sm"
@@ -518,8 +542,10 @@ export default function ShopSettingsPage() {
                                 />
                             </div>
                             <div className="space-y-1">
-                                <label className="text-xs font-semibold text-gray-500 uppercase">City</label>
+                                <label className="text-xs font-semibold text-gray-500 uppercase">City <span className="text-red-500">*</span></label>
                                 <input
+                                    required
+                                    maxLength={50}
                                     value={addressForm.city}
                                     onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
                                     className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-3 text-sm"
@@ -527,8 +553,9 @@ export default function ShopSettingsPage() {
                                 />
                             </div>
                             <div className="space-y-1">
-                                <label className="text-xs font-semibold text-gray-500 uppercase">State</label>
+                                <label className="text-xs font-semibold text-gray-500 uppercase">State <span className="text-red-500">*</span></label>
                                 <select
+                                    required
                                     value={addressForm.state}
                                     onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
                                     className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-3 text-sm appearance-none"
@@ -565,8 +592,10 @@ export default function ShopSettingsPage() {
                                 </select>
                             </div>
                             <div className="space-y-1">
-                                <label className="text-xs font-semibold text-gray-500 uppercase">Country</label>
+                                <label className="text-xs font-semibold text-gray-500 uppercase">Country <span className="text-red-500">*</span></label>
                                 <input
+                                    required
+                                    maxLength={50}
                                     value={addressForm.country}
                                     onChange={(e) => setAddressForm({ ...addressForm, country: e.target.value })}
                                     className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-3 text-sm"
@@ -576,16 +605,25 @@ export default function ShopSettingsPage() {
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-gray-500 uppercase">Pin code</label>
                                 <input
+                                    type="text"
                                     value={addressForm.pinCode}
-                                    onChange={(e) => setAddressForm({ ...addressForm, pinCode: e.target.value })}
+                                    onChange={(e) => {
+                                        const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                                        setAddressForm({ ...addressForm, pinCode: value });
+                                    }}
+                                    maxLength={6}
+                                    minLength={6}
+                                    pattern="[0-9]{6}"
                                     className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-3 text-sm"
                                     placeholder="Postal code"
                                 />
+                                <p className="text-[10px] text-gray-400">Indian standard: 6 digits</p>
                             </div>
                             <div className="space-y-1 md:col-span-2">
-                                <label className="text-xs font-semibold text-gray-500 uppercase">Geo location (lat,lng)</label>
+                                <label className="text-xs font-semibold text-gray-500 uppercase">Geo location (lat,lng) <span className="text-red-500">*</span></label>
                                 <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
                                     <input
+                                        required
                                         value={addressForm.geoLocation || ""}
                                         onChange={(e) => setAddressForm({ ...addressForm, geoLocation: e.target.value })}
                                         className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-3 text-sm"
@@ -745,27 +783,35 @@ export default function ShopSettingsPage() {
                                         <label className="text-xs font-semibold text-gray-500 uppercase">Distance (km)</label>
                                         <input
                                             type="number"
+                                            min="0"
+                                            max="50"
+                                            step="0.1"
                                             value={band.km}
                                             onChange={(e) => {
-                                                const km = e.target.value;
+                                                const km = Math.min(50, Math.max(0, parseFloat(e.target.value) || 0)).toString();
                                                 setDeliveryBands((prev) => prev.map((b, i) => (i === idx ? { ...b, km } : b)));
                                                 setDeliveryBandsDirty(true);
                                             }}
                                             className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-3 py-2 text-sm"
                                         />
+                                        <p className="text-[10px] text-gray-400">Max 50 km</p>
                                     </div>
                                     <div>
                                         <label className="text-xs font-semibold text-gray-500 uppercase">Fee (₹)</label>
                                         <input
                                             type="number"
+                                            min="0"
+                                            max="1000"
+                                            step="0.01"
                                             value={band.price}
                                             onChange={(e) => {
-                                                const price = e.target.value;
+                                                const price = Math.min(1000, Math.max(0, parseFloat(e.target.value) || 0)).toString();
                                                 setDeliveryBands((prev) => prev.map((b, i) => (i === idx ? { ...b, price } : b)));
                                                 setDeliveryBandsDirty(true);
                                             }}
                                             className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-3 py-2 text-sm"
                                         />
+                                        <p className="text-[10px] text-gray-400">Max ₹1000</p>
                                     </div>
                                     <div className="flex justify-start sm:justify-start">
                                         <button
@@ -809,15 +855,21 @@ export default function ShopSettingsPage() {
                             {minOrderLoading ? (
                                 <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse" />
                             ) : (
-                                <input
-                                    type="number"
-                                    value={minOrderValue}
-                                    onChange={(e) => {
-                                        setMinOrderValue(parseFloat(e.target.value) || 0);
-                                        setMinOrderDirty(true);
-                                    }}
-                                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-3 text-sm"
-                                />
+                                <>
+                                    <input
+                                        min="0"
+                                        max="100000"
+                                        step="1"
+                                        value={minOrderValue}
+                                        onChange={(e) => {
+                                            const value = Math.min(100000, Math.max(0, parseFloat(e.target.value) || 0));
+                                            setMinOrderValue(value);
+                                            setMinOrderDirty(true);
+                                        }}
+                                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-3 text-sm"
+                                    />
+                                    <p className="text-[10px] text-gray-400">Max ₹1,00,000</p>
+                                </>
                             )}
                         </div>
                         <div className="sm:col-span-2 flex flex-col sm:flex-row sm:justify-end gap-3 items-stretch sm:items-center">
