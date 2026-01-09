@@ -279,9 +279,14 @@ export default function CheckoutPage() {
     }
 
     try {
+      const deliveryFee = deliveryFeeCalculation.totalDeliveryFee;
+      const totalAmount = cartTotalAmount + deliveryFee;
+
       await placeOrder({
         addressId: selectedAddressId,
         paymentMethod: "cash_on_delivery",
+        deliveryFee,
+        totalAmount,
         orderItems: items.map((item) => ({
           productId: item.productId,
           priceId: item.priceId,

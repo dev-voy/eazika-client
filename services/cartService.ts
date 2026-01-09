@@ -124,6 +124,8 @@ export interface UpdateCartPayload {
 export interface OrderPayload {
   addressId: number;
   paymentMethod: string;
+  deliveryFee?: number;
+  totalAmount?: number;
 }
 
 export const CartService = {

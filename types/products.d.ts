@@ -111,6 +111,8 @@ export interface OrderPayload {
     priceId: number | string;
     quantity: number;
   }[];
+  deliveryFee?: number;
+  totalAmount?: number;
 }
 
 export {
