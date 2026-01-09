@@ -100,6 +100,53 @@ export default function CartPage() {
 
   const grandTotal = selectedTotal + deliveryTotal;
 
+  // Calculate minimum order requirements by shop
+  const shopOrderDetails = useMemo(() => {
+    const byShop: Record<string | number, {
+      total: number;
+      minOrder: number;
+      shopName?: string;
+      itemIds: (string | number)[];
+    }> = {};
+
+    items.forEach((item) => {
+      if (!effectiveSelected.has(item.id)) return;
+
+      const itemAvailability = availability.byItemId[item.id];
+      if (!itemAvailability) return;
+
+      const shopId = itemAvailability.shopId;
+
+      if (!byShop[shopId]) {
+        byShop[shopId] = {
+          total: 0,
+          minOrder: itemAvailability.minOrder,
+          shopName: itemAvailability.shopName,
+          itemIds: [],
+        };
+      }
+
+      byShop[shopId].total += item.product.price * item.quantity;
+      byShop[shopId].itemIds.push(item.id);
+    });
+
+    return byShop;
+  }, [items, effectiveSelected, availability.byItemId]);
+
+  // Check if all shops meet minimum order requirements
+  const minimumOrderMet = useMemo(() => {
+    return Object.values(shopOrderDetails).every(
+      (shop) => shop.total >= shop.minOrder
+    );
+  }, [shopOrderDetails]);
+
+  // Get shops that don't meet minimum order
+  const shopsNotMeetingMinimum = useMemo(() => {
+    return Object.entries(shopOrderDetails).filter(
+      ([_, shop]) => shop.total < shop.minOrder
+    );
+  }, [shopOrderDetails]);
+
   // Toggle item selection
   const toggleItemSelection = (itemId: string | number) => {
     if (!availability.byItemId[itemId]?.selectable) return;
@@ -208,14 +255,38 @@ export default function CartPage() {
                 </div>
               </div>
 
-              <Link href={selectedItems.size > 0 ? "/checkout" : "#"} className="block w-full">
+              {/* Minimum Order Warnings */}
+              {shopsNotMeetingMinimum.length > 0 && effectiveSelected.size > 0 && (
+                <div className="mb-4 space-y-2">
+                  {shopsNotMeetingMinimum.map(([shopId, shop]) => (
+                    <div
+                      key={shopId}
+                      className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-3 text-sm"
+                    >
+                      <p className="font-semibold text-orange-800 dark:text-orange-300 mb-1">
+                        {shop.shopName || "Shop"} - Minimum Order Not Met
+                      </p>
+                      <p className="text-orange-700 dark:text-orange-400">
+                        Current: ₹{shop.total.toFixed(2)} / Required: ₹{shop.minOrder.toFixed(2)}
+                      </p>
+                      <p className="text-orange-600 dark:text-orange-500 text-xs mt-1">
+                        Add ₹{(shop.minOrder - shop.total).toFixed(2)} more to proceed
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <Link href={selectedItems.size > 0 && minimumOrderMet ? "/checkout" : "#"} className="block w-full">
                 <button
-                  disabled={effectiveSelected.size === 0}
-                  className="w-full bg-yellow-500 text-white font-bold py-4 rounded-xl hover:bg-yellow-600 transition-colors shadow-lg shadow-yellow-500/30 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={effectiveSelected.size === 0 || !minimumOrderMet}
+                  className="w-full bg-yellow-500 text-white font-bold py-4 rounded-xl hover:bg-yellow-600 transition-colors shadow-lg shadow-yellow-500/30 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-yellow-500"
                   title={
                     effectiveSelected.size === 0
                       ? "Please select at least one product"
-                      : ""
+                      : !minimumOrderMet
+                        ? "Minimum order value not met"
+                        : ""
                   }
                 >
                   Proceed to Checkout <ArrowRight size={20} />
