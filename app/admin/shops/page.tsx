@@ -186,7 +186,7 @@ export default function AdminShopsPage() {
             className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
           />
         </div>
-        <select
+        {/* <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
           className="px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer dark:text-white"
@@ -194,7 +194,7 @@ export default function AdminShopsPage() {
           <option value="active">Active Shops</option>
           <option value="pending">Pending Approval</option>
           <option value="all">All Shops</option>
-        </select>
+        </select> */}
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value)}
