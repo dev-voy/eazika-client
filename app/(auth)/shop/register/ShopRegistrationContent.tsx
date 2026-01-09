@@ -731,17 +731,25 @@ export default function ShopRegistrationContent() {
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                                            Pincode <span className="text-red-500">*</span>
+                                            Pin Code <span className="text-red-500">*</span>
                                         </label>
                                         <input
+                                            type="text"
                                             required
-                                            placeholder="Pincode"
+                                            maxLength={6}
+                                            minLength={6}
+                                            pattern="[0-9]{6}"
+                                            placeholder="6-digit pin code"
                                             className="input-field"
                                             value={formData.address?.pinCode}
-                                            onChange={(e) =>
-                                                updateNestedForm("address", "pinCode", e.target.value)
-                                            }
+                                            onChange={(e) => {
+                                                const value = e.target.value.replace(/[^0-9]/g, '');
+                                                updateNestedForm("address", "pinCode", value);
+                                            }}
                                         />
+                                        <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                                            Indian standard: 6 digits
+                                        </p>
                                     </div>
                                 </div>
                             </div>
