@@ -237,15 +237,34 @@ export default function ShopSettingsPage() {
                     ...prev,
                     geoLocation: `${latitude},${longitude}`,
                 }));
-                toast.success("Location captured.");
+                toast.success(`Location captured: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
                 setLoadingGeo(false);
             },
             (err) => {
                 console.error("Geolocation error", err);
-                toast.error("Could not get location. Please allow permission.");
                 setLoadingGeo(false);
+
+                // Handle different error types
+                switch (err.code) {
+                    case err.PERMISSION_DENIED:
+                        toast.error("Location permission denied. Please enable location access in your browser settings.");
+                        break;
+                    case err.POSITION_UNAVAILABLE:
+                        toast.error("Location information is unavailable. Please check your device settings.");
+                        break;
+                    case err.TIMEOUT:
+                        toast.error("Location request timed out. Please try again.");
+                        break;
+                    default:
+                        toast.error("An unknown error occurred while getting location. Please try again.");
+                        break;
+                }
             },
-            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+            {
+                enableHighAccuracy: true,
+                timeout: 30000, // Increased to 30 seconds
+                maximumAge: 60000 // Allow cached position up to 1 minute old
+            }
         );
     };
 
