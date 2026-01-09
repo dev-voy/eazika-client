@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { AdminService } from '@/services/adminService';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function AdminShopDetailsPage() {
     const params = useParams();
@@ -219,7 +220,7 @@ export default function AdminShopDetailsPage() {
                     <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">Being prepared/shipped</p>
                 </motion.div>
 
-                <motion.div
+                {/* <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
@@ -231,7 +232,7 @@ export default function AdminShopDetailsPage() {
                     </div>
                     <p className="text-3xl font-bold text-gray-900 dark:text-white">{(shop.averageRating || 4.5).toFixed(1)}</p>
                     <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">Based on {shop.totalCustomers || 0} customers</p>
-                </motion.div>
+                </motion.div> */}
             </div>
 
             {/* Information Grid */}
@@ -297,78 +298,82 @@ export default function AdminShopDetailsPage() {
                 </div>
             </div> */}
 
-            {/* Earnings Graph */}
+            {/* Earnings Graph - Line Chart */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex items-center gap-3 mb-6">
                     <DollarSign className="text-green-500" size={24} />
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white">Earnings Trend</h2>
                 </div>
-                <div className="h-64 flex items-end justify-around gap-3 p-6 bg-gray-50 dark:bg-gray-700/30 rounded-xl relative">
-                    {derivedTrend.length > 0 ? (
-                        derivedTrend.map((item) => {
-                            const earnings = item.earnings || item.totalEarnings || 0;
-                            const maxEarnings = Math.max(...derivedTrend.map(t => t.earnings || t.totalEarnings || 0));
-                            const barHeight = maxEarnings > 0 ? (earnings / maxEarnings) * 200 : 0;
-                            return (
-                                <div key={item.date} className="flex flex-col items-center gap-2 flex-1 group">
-                                    <div className="relative w-full flex items-end justify-center">
-                                        <div
-                                            className="w-full bg-gradient-to-t from-green-400 to-green-600 rounded-t-lg transition-all hover:from-green-500 hover:to-green-700 hover:scale-105 cursor-pointer"
-                                            style={{ height: `${Math.max(barHeight, 20)}px` }}
-                                        />
-                                        {/* Hover Tooltip */}
-                                        <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 dark:bg-gray-700 text-white px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap shadow-lg z-10">
-                                            ₹{earnings.toLocaleString()}
-                                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-700"></div>
-                                        </div>
-                                    </div>
-                                    <div className="text-center">
-                                        <p className="text-[11px] font-bold text-gray-900 dark:text-white">{item.date}</p>
-                                    </div>
-                                </div>
-                            );
-                        })
-                    ) : (
-                        <div className="text-center text-gray-500 w-full">No earnings data in selected range</div>
-                    )}
-                </div>
+                {derivedTrend.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={derivedTrend.map((item) => ({
+                            date: item.date,
+                            earnings: item.earnings || item.totalEarnings || 0
+                        }))} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-700" />
+                            <XAxis dataKey="date" tick={{ fill: '#6b7280', fontSize: 12 }} />
+                            <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} />
+                            <Tooltip
+                                contentStyle={{
+                                    backgroundColor: '#111827',
+                                    border: 'none',
+                                    borderRadius: 8,
+                                    color: '#e5e7eb'
+                                }}
+                                formatter={(value) => `₹${(value as number).toLocaleString()}`}
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="earnings"
+                                stroke="#10b981"
+                                strokeWidth={3}
+                                dot={{ fill: '#10b981', r: 5 }}
+                                activeDot={{ r: 7 }}
+                            />
+                        </LineChart>
+                    </ResponsiveContainer>
+                ) : (
+                    <div className="text-center py-12 text-gray-500">No earnings data in selected range</div>
+                )}
             </div>
 
-            {/* Orders Graph */}
+            {/* Orders Graph - Line Chart */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex items-center gap-3 mb-6">
                     <Package className="text-blue-500" size={24} />
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white">Orders Trend</h2>
                 </div>
-                <div className="h-64 flex items-end justify-around gap-3 p-6 bg-gray-50 dark:bg-gray-700/30 rounded-xl relative">
-                    {derivedTrend.length > 0 ? (
-                        derivedTrend.map((item) => {
-                            const ordersCount = item.orders || item.totalOrders || 0;
-                            const maxOrders = Math.max(...derivedTrend.map(t => t.orders || t.totalOrders || 0));
-                            const barHeight = maxOrders > 0 ? (ordersCount / maxOrders) * 200 : 0;
-                            return (
-                                <div key={item.date} className="flex flex-col items-center gap-2 flex-1 group">
-                                    <div className="relative w-full flex items-end justify-center">
-                                        <div
-                                            className="w-full bg-gradient-to-t from-blue-400 to-blue-600 rounded-t-lg transition-all hover:from-blue-500 hover:to-blue-700 hover:scale-105 cursor-pointer"
-                                            style={{ height: `${Math.max(barHeight, 20)}px` }}
-                                        />
-                                        {/* Hover Tooltip */}
-                                        <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 dark:bg-gray-700 text-white px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap shadow-lg z-10">
-                                            {ordersCount} {ordersCount === 1 ? 'Order' : 'Orders'}
-                                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-700"></div>
-                                        </div>
-                                    </div>
-                                    <div className="text-center">
-                                        <p className="text-[11px] font-bold text-gray-900 dark:text-white">{item.date}</p>
-                                    </div>
-                                </div>
-                            );
-                        })
-                    ) : (
-                        <div className="text-center text-gray-500 w-full">No orders data in selected range</div>
-                    )}
-                </div>
+                {derivedTrend.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={derivedTrend.map((item) => ({
+                            date: item.date,
+                            orders: item.orders || item.totalOrders || 0
+                        }))} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-700" />
+                            <XAxis dataKey="date" tick={{ fill: '#6b7280', fontSize: 12 }} />
+                            <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} allowDecimals={false} />
+                            <Tooltip
+                                contentStyle={{
+                                    backgroundColor: '#111827',
+                                    border: 'none',
+                                    borderRadius: 8,
+                                    color: '#e5e7eb'
+                                }}
+                                formatter={(value) => `${value} ${(value as number) === 1 ? 'Order' : 'Orders'}`}
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="orders"
+                                stroke="#3b82f6"
+                                strokeWidth={3}
+                                dot={{ fill: '#3b82f6', r: 5 }}
+                                activeDot={{ r: 7 }}
+                            />
+                        </LineChart>
+                    </ResponsiveContainer>
+                ) : (
+                    <div className="text-center py-12 text-gray-500">No orders data in selected range</div>
+                )}
             </div>
 
             {/* Tabbed Data View */}
