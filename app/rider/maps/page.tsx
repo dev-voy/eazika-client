@@ -144,7 +144,7 @@ export default function RiderMapPage() {
                     <Marker
                         position={riderLocation}
                         icon={{
-                            url: "https://cdn-icons-png.flaticon.com/512/3755/3755376.png",
+                            url: "/rider.png",
                             scaledSize: new google.maps.Size(44, 44),
                             anchor: new google.maps.Point(22, 22),
                         }}
