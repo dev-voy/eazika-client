@@ -453,11 +453,15 @@ export default function ProductPage() {
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
                       Total Price
                     </p>
+                    <p className="text-lg font-semibold text-gray-400 line-through">
+                      ₹
+                      {(selectedPrice ? selectedPrice.price : product.prices[0].price) * quantity}
+                    </p>
                     <p className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-600">
                       ₹
                       {selectedPrice
-                        ? (selectedPrice.price * quantity).toFixed(2)
-                        : (product.prices[0].price * quantity).toFixed(2)}
+                        ? (selectedPrice.price * quantity * 0.9).toFixed(2)
+                        : (product.prices[0].price * quantity * 0.9).toFixed(2)}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 bg-white dark:bg-gray-700 rounded-2xl p-2 shadow-lg border border-gray-200 dark:border-gray-600">
@@ -506,6 +510,13 @@ export default function ProductPage() {
                           }`}
                       >
                         {`${price.weight}${price.unit} - ₹${price.price}`}
+
+                        {price.discount > 0 && (
+                          <span className="ml-2 text-xs text-green-600 dark:text-green-400 font-medium">
+                            (Save {price.discount}%)
+                          </span>
+                        )}
+
                       </motion.button>
                     ))}
                   </div>
@@ -736,8 +747,8 @@ export default function ProductPage() {
                       onClick={isInCart ? () => router.push('/cart') : handleAddToCart}
                       disabled={isCartLoading || isBuying}
                       className={`flex-1 font-bold py-4 rounded-2xl active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-base ${isInCart
-                          ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:shadow-lg hover:shadow-green-500/30 shadow-md shadow-green-500/20'
-                          : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 hover:shadow-sm'
+                        ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:shadow-lg hover:shadow-green-500/30 shadow-md shadow-green-500/20'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 hover:shadow-sm'
                         }`}
                     >
                       {isCartLoading ? (
