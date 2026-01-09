@@ -159,9 +159,23 @@ export function ProductForm({
         value: ProductPriceType[K]
     ) => {
         setFormData((prev) => {
-            const updatedPricing = prev.pricing.map((price, i) =>
-                i === index ? { ...price, [key]: value } : price
-            );
+            const updatedPricing = prev.pricing.map((price, i) => {
+                if (i !== index) return price;
+
+                let validatedValue: ProductPriceType[K] = value;
+
+                // Validate numeric fields to prevent negative values
+                if (typeof value === 'number') {
+                    validatedValue = Math.max(0, value) as ProductPriceType[K];
+
+                    // Additional validation for discount (max 100)
+                    if (key === 'discount' && value > 100) {
+                        validatedValue = 100 as ProductPriceType[K];
+                    }
+                }
+
+                return { ...price, [key]: validatedValue };
+            });
             return { ...prev, pricing: updatedPricing };
         });
     };
@@ -420,7 +434,7 @@ export function ProductForm({
                             </div>
 
                             {formData.pricing.map((price, index) => (
-                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-5" key={index}>
+                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-1" key={index}>
                                     <div className="space-y-1.5">
                                         <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">
                                             Price <span className="text-red-500">*</span>
@@ -429,10 +443,12 @@ export function ProductForm({
                                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₹</span>
                                             <input
                                                 name="price"
-                                                type="number"
+
+                                                min="0"
+                                                step="0.01"
                                                 value={price.price}
                                                 onChange={(e) =>
-                                                    handlePriceChange(index, "price", parseFloat(e.target.value) || 0)
+                                                    handlePriceChange(index, "price", Math.max(0, parseFloat(e.target.value) || 0))
                                                 }
                                                 className="w-full pl-8 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:border-yellow-500 dark:text-white transition-colors text-sm md:text-base"
                                                 placeholder="e.g. 100"
@@ -445,10 +461,12 @@ export function ProductForm({
                                         <div className="relative">
                                             <input
                                                 name="weight"
-                                                type="number"
+
+                                                min="0"
+                                                step="0.01"
                                                 value={price.weight}
                                                 onChange={(e) =>
-                                                    handlePriceChange(index, "weight", parseFloat(e.target.value) || 0)
+                                                    handlePriceChange(index, "weight", Math.max(0, parseFloat(e.target.value) || 0))
                                                 }
                                                 className="w-full pl-4 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:border-yellow-500 dark:text-white transition-colors text-sm md:text-base"
                                                 placeholder="e.g. 500"
@@ -480,10 +498,12 @@ export function ProductForm({
                                             <Box className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                                             <input
                                                 name="stock"
-                                                type="number"
+
+                                                min="0"
+                                                step="1"
                                                 value={price.stock}
                                                 onChange={(e) =>
-                                                    handlePriceChange(index, "stock", parseInt(e.target.value, 10) || 0)
+                                                    handlePriceChange(index, "stock", Math.max(0, parseInt(e.target.value, 10) || 0))
                                                 }
                                                 className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:border-yellow-500 dark:text-white transition-colors text-sm md:text-base"
                                                 placeholder="e.g. 50"

@@ -41,7 +41,12 @@ export function PriceForm({ initialPricing, submitLabel = "Save Pricing", onSubm
     const handleChange = (index: number, field: keyof ProductPriceType, value: string | number) => {
         setPricing((prev) => {
             const next = [...prev];
-            next[index] = { ...next[index], [field]: field === "unit" ? value : Number(value) || 0 } as ProductPriceType;
+            if (field === "unit") {
+                next[index] = { ...next[index], [field]: value } as ProductPriceType;
+            } else {
+                const numValue = Math.max(0, Number(value) || 0);
+                next[index] = { ...next[index], [field]: numValue } as ProductPriceType;
+            }
             return next;
         });
     };
@@ -57,6 +62,23 @@ export function PriceForm({ initialPricing, submitLabel = "Save Pricing", onSubm
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validate that all values are non-negative
+        const isValid = pricing.every((item) => {
+            return (
+                item.price >= 0 &&
+                item.discount >= 0 &&
+                item.weight >= 0 &&
+                item.stock >= 0 &&
+                item.discount <= 100
+            );
+        });
+
+        if (!isValid) {
+            alert("Please ensure all values are non-negative and discount is not more than 100%");
+            return;
+        }
+
         onSubmit(normalizeList(pricing));
     };
 
@@ -94,7 +116,7 @@ export function PriceForm({ initialPricing, submitLabel = "Save Pricing", onSubm
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">₹</span>
                                     <input
-                                        type="number"
+
                                         min="0"
                                         value={option.price}
                                         onChange={(e) => handleChange(index, "price", e.target.value)}
@@ -105,9 +127,10 @@ export function PriceForm({ initialPricing, submitLabel = "Save Pricing", onSubm
                             <div className="space-y-1">
                                 <label className="text-xs font-medium text-gray-500">Discount (%)</label>
                                 <input
-                                    type="number"
+
                                     min="0"
                                     max="100"
+                                    step="0.01"
                                     value={option.discount || 0}
                                     onChange={(e) => handleChange(index, "discount", e.target.value)}
                                     className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm focus:border-indigo-500"
@@ -116,7 +139,7 @@ export function PriceForm({ initialPricing, submitLabel = "Save Pricing", onSubm
                             <div className="space-y-1">
                                 <label className="text-xs font-medium text-gray-500">Weight</label>
                                 <input
-                                    type="number"
+
                                     min="0"
                                     value={option.weight}
                                     onChange={(e) => handleChange(index, "weight", e.target.value)}
@@ -140,7 +163,7 @@ export function PriceForm({ initialPricing, submitLabel = "Save Pricing", onSubm
                             <div className="space-y-1 md:col-span-2">
                                 <label className="text-xs font-medium text-gray-500">Stock</label>
                                 <input
-                                    type="number"
+
                                     min="0"
                                     value={option.stock}
                                     onChange={(e) => handleChange(index, "stock", e.target.value)}

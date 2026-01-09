@@ -76,6 +76,7 @@ export default function ProductsPage() {
   const [pendingNav, setPendingNav] = useState<(() => void) | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [selectedGlobalProduct, setSelectedGlobalProduct] = useState<null | (typeof globalProductList)[number]>(null);
+  const [addingProductId, setAddingProductId] = useState<number | null>(null);
   const [inventoryLoadingMore, setInventoryLoadingMore] = useState(false);
   const [globalLoadingMore, setGlobalLoadingMore] = useState(false);
   const [activityModalProduct, setActivityModalProduct] = useState<null | { id: number; name: string; isActive: boolean }>(null);
@@ -306,7 +307,19 @@ export default function ProductsPage() {
   ) => {
     setEditablePricing((prev) => {
       const current = prev[productId] ?? [];
-      const updated = current.map((row, i) => (i === index ? { ...row, [key]: value } : row));
+      let validatedValue: ProductPriceType[K] = value;
+
+      // Validate numeric fields to prevent negative values
+      if (typeof value === 'number') {
+        validatedValue = Math.max(0, value) as ProductPriceType[K];
+
+        // Additional validation for discount (max 100)
+        if (key === 'discount' && value > 100) {
+          validatedValue = 100 as ProductPriceType[K];
+        }
+      }
+
+      const updated = current.map((row, i) => (i === index ? { ...row, [key]: validatedValue } : row));
       return { ...prev, [productId]: updated };
     });
     setDirtyProductIds((prev) => new Set(prev).add(productId));
@@ -587,7 +600,9 @@ export default function ProductsPage() {
                                 <div>
                                   <label className="block text-gray-600 dark:text-gray-400 font-medium mb-1">Price (₹)</label>
                                   <input
-                                    type="number"
+
+                                    min="0"
+                                    step="0.01"
                                     className="w-full bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded px-2 py-1 text-xs outline-none"
                                     value={price.price}
                                     onChange={(e) =>
@@ -595,7 +610,7 @@ export default function ProductsPage() {
                                         Number(product.id),
                                         index,
                                         "price",
-                                        parseFloat(e.target.value) || 0
+                                        Math.max(0, parseFloat(e.target.value) || 0)
                                       )
                                     }
                                   />
@@ -603,7 +618,10 @@ export default function ProductsPage() {
                                 <div>
                                   <label className="block text-gray-600 dark:text-gray-400 font-medium mb-1">Discount (%)</label>
                                   <input
-                                    type="number"
+
+                                    min="0"
+                                    max="100"
+                                    step="0.01"
                                     className="w-full bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded px-2 py-1 text-xs outline-none"
                                     value={price.discount || 0}
                                     onChange={(e) =>
@@ -611,7 +629,7 @@ export default function ProductsPage() {
                                         Number(product.id),
                                         index,
                                         "discount",
-                                        parseFloat(e.target.value) || 0
+                                        Math.min(100, Math.max(0, parseFloat(e.target.value) || 0))
                                       )
                                     }
                                   />
@@ -619,7 +637,9 @@ export default function ProductsPage() {
                                 <div>
                                   <label className="block text-gray-600 dark:text-gray-400 font-medium mb-1">Stock</label>
                                   <input
-                                    type="number"
+
+                                    min="0"
+                                    step="1"
                                     className="w-full bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded px-2 py-1 text-xs outline-none"
                                     value={price.stock}
                                     onChange={(e) =>
@@ -627,7 +647,7 @@ export default function ProductsPage() {
                                         Number(product.id),
                                         index,
                                         "stock",
-                                        parseInt(e.target.value, 10) || 0
+                                        Math.max(0, parseInt(e.target.value, 10) || 0)
                                       )
                                     }
                                   />
@@ -635,7 +655,9 @@ export default function ProductsPage() {
                                 <div>
                                   <label className="block text-gray-600 dark:text-gray-400 font-medium mb-1">Weight</label>
                                   <input
-                                    type="number"
+
+                                    min="0"
+                                    step="0.01"
                                     className="w-full bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded px-2 py-1 text-xs outline-none"
                                     value={price.weight}
                                     onChange={(e) =>
@@ -643,7 +665,7 @@ export default function ProductsPage() {
                                         Number(product.id),
                                         index,
                                         "weight",
-                                        parseFloat(e.target.value) || 0
+                                        Math.max(0, parseFloat(e.target.value) || 0)
                                       )
                                     }
                                   />
@@ -816,8 +838,17 @@ export default function ProductsPage() {
                             <Check size={14} /> Added
                           </button>
                         ) : (
-                          <button onClick={() => handleAddProductFromGlobalProducts(product)} className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1 active:scale-95">
-                            <Plus size={14} /> Add
+                          <button
+                            onClick={() => handleAddProductFromGlobalProducts(product)}
+                            disabled={addingProductId === product.id}
+                            className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {addingProductId === product.id ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <Plus size={14} />
+                            )}
+                            {addingProductId === product.id ? "Adding..." : "Add"}
                           </button>
                         )}
                       </div>
@@ -1035,18 +1066,32 @@ export default function ProductsPage() {
             <PriceForm
               initialPricing={normalizePricing(selectedGlobalProduct)}
               submitLabel="Add Product"
-              onCancel={() => setAddModalOpen(false)}
-              onSubmit={async (pricing) => {
-                const data = {
-                  // productCategoryId: Number(selectedGlobalProduct.id || selectedGlobalProduct.categoryId || selectedGlobalProduct.category?.id || 0),
-                  globalProductId: Number(selectedGlobalProduct.id),
-                  pricing: pricing.map((p) => ({
-                    ...p,
-                    globalProductId: Number(selectedGlobalProduct.id),
-                  })),
-                };
-                await shopService.addProductFromGlobalCatalog(data);
+              onCancel={() => {
                 setAddModalOpen(false);
+                setAddingProductId(null);
+              }}
+              onSubmit={async (pricing) => {
+                const productId = Number(selectedGlobalProduct.id);
+                setAddingProductId(productId);
+                try {
+                  const data = {
+                    // productCategoryId: Number(selectedGlobalProduct.id || selectedGlobalProduct.categoryId || selectedGlobalProduct.category?.id || 0),
+                    globalProductId: productId,
+                    pricing: pricing.map((p) => ({
+                      ...p,
+                      globalProductId: productId,
+                    })),
+                  };
+                  await shopService.addProductFromGlobalCatalog(data);
+                  await fetchProducts();
+                  setAddModalOpen(false);
+                  toast.success("Product added successfully!");
+                } catch (error) {
+                  console.error("Failed to add product:", error);
+                  toast.error("Failed to add product. Please try again.");
+                } finally {
+                  setAddingProductId(null);
+                }
               }}
             />
           </div>
