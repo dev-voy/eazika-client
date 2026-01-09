@@ -92,8 +92,8 @@ export default function CategoriesPage() {
 
   // Tabs: All + each category
   const tabs = useMemo(() => [
-    { id: "all", name: "All" },
-    ...categories.map((cat) => ({ id: cat.id.toString(), name: cat.name, icon: cat.icon })),
+    { id: "all", name: "All", image: undefined },
+    ...categories.map((cat) => ({ id: cat.id.toString(), name: cat.name, image: cat.image })),
   ], [categories]);
 
   // Filtered products by search
@@ -143,16 +143,23 @@ export default function CategoriesPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap shrink-0 md:w-full md:justify-start md:text-left ${activeTab === tab.id
+              className={`flex sm:flex-row flex-col items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap shrink-0 md:w-full md:justify-start md:text-left ${activeTab === tab.id
                 ? "bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 shadow-sm"
                 : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                 }`}
             >
-              {/* {tab.icon && typeof tab.icon === "function" && (
-                <span className="w-5 h-5 flex items-center justify-center">
-                  <tab.icon size={18} />
+
+              {tab?.image && (
+                <span className="w-10 h-10 flex items-center justify-center">
+                  <Image
+                    src={tab.image}
+                    alt={tab.name}
+                    width={40}
+                    height={40}
+                    className="object-contain rounded-sm"
+                  />
                 </span>
-              )} */}
+              )}
               {tab.name}
             </button>
           ))}

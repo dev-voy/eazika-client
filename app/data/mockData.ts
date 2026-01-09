@@ -38,14 +38,14 @@ export interface Product {
 // }
 
 export const categories: Category[] = [
-  { id: "cat-01", name: "Fresh Fruits", slug: "fresh-fruits", icon: Apple },
-  { id: "cat-02", name: "Vegetables", slug: "vegetables", icon: Carrot },
-  { id: "cat-03", name: "Dairy & Eggs", slug: "dairy-eggs", icon: Milk },
-  { id: "cat-04", name: "Beverages", slug: "beverages", icon: Coffee },
-  { id: "cat-05", name: "Snacks", slug: "snacks", icon: Cookie },
-  { id: "cat-06", name: "Meat & Fish", slug: "meat-fish", icon: Fish },
-  { id: "cat-07", name: "Bakery", slug: "bakery", icon: Cake },
-  { id: "cat-08", name: "Household", slug: "household", icon: SprayCan },
+  { id: "1", name: "Fresh Fruits", slug: "fresh-fruits", icon: Apple },
+  { id: "2", name: "Vegetables", slug: "vegetables", icon: Carrot },
+  { id: "3", name: "Dairy & Eggs", slug: "dairy-eggs", icon: Milk },
+  { id: "4", name: "Beverages", slug: "beverages", icon: Coffee },
+  { id: "5", name: "Snacks", slug: "snacks", icon: Cookie },
+  { id: "6", name: "Meat & Fish", slug: "meat-fish", icon: Fish },
+  { id: "7", name: "Bakery", slug: "bakery", icon: Cake },
+  { id: "8", name: "Household", slug: "household", icon: SprayCan },
 ];
 
 export const products: Product[] = [
