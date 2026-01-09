@@ -77,8 +77,18 @@ export default function LiveMapPage() {
 
     if (!isClient) return <div className="h-screen bg-gray-100 dark:bg-gray-900" />;
 
-    const displayShops = filters.shops ? data.shops : [];
-    const displayOrders = filters.orders ? data.orders : [];
+    // Filter to only include items with valid coordinates
+    const validShops = data.shops.filter(shop =>
+        shop.latitude && shop.longitude &&
+        !isNaN(shop.latitude) && !isNaN(shop.longitude)
+    );
+    const validOrders = data.orders.filter(order =>
+        order.latitude && order.longitude &&
+        !isNaN(order.latitude) && !isNaN(order.longitude)
+    );
+
+    const displayShops = filters.shops ? validShops : [];
+    const displayOrders = filters.orders ? validOrders : [];
 
     // Create icons only when leaflet is available
     const createIcons = () => {
@@ -125,10 +135,10 @@ export default function LiveMapPage() {
                     {/* Shops Section */}
                     <div className="space-y-2">
                         <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                            <Store size={18} /> Shops ({data.shops.length})
+                            <Store size={18} /> Shops ({validShops.length})
                         </h3>
                         <div className="space-y-2">
-                            {data.shops.map((shop) => (
+                            {validShops.map((shop) => (
                                 <div key={`shop-list-${shop.id}`} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                                     <button
                                         onClick={() => setExpandedShop(expandedShop === `shop-${shop.id}` ? null : `shop-${shop.id}`)}
@@ -160,10 +170,10 @@ export default function LiveMapPage() {
                     {/* Orders Section */}
                     <div className="space-y-2 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                         <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                            <Bike size={18} /> Orders ({data.orders.length})
+                            <Bike size={18} /> Orders ({validOrders.length})
                         </h3>
                         <div className="space-y-2">
-                            {data.orders.map((order) => (
+                            {validOrders.map((order) => (
                                 <div key={`order-list-${order.orderId}`} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                                     <button
                                         onClick={() => setExpandedOrder(expandedOrder === `order-${order.orderId}` ? null : `order-${order.orderId}`)}
@@ -183,8 +193,8 @@ export default function LiveMapPage() {
                                             {order.userName && <p><span className="text-gray-600 dark:text-gray-400">User:</span> {order.userName}</p>}
                                             <p><span className="text-gray-600 dark:text-gray-400">Location:</span> {order.latitude}, {order.longitude}</p>
                                             <span className={`inline-block text-[10px] px-2 py-1 rounded capitalize ${order.orderStatus === 'delivered' ? 'bg-green-100 text-green-700' :
-                                                    order.orderStatus === 'shipped' ? 'bg-blue-100 text-blue-700' :
-                                                        'bg-yellow-100 text-yellow-700'
+                                                order.orderStatus === 'shipped' ? 'bg-blue-100 text-blue-700' :
+                                                    'bg-yellow-100 text-yellow-700'
                                                 }`}>
                                                 {order.orderStatus}
                                             </span>
@@ -227,6 +237,9 @@ export default function LiveMapPage() {
                 {/* Legend */}
                 <div className="bg-white dark:bg-gray-800 p-3 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 space-y-2 w-64">
                     <h4 className="font-bold text-sm text-gray-900 dark:text-white">Map Legend</h4>
+                    <div className="text-xs text-gray-600 dark:text-gray-400 pb-2 border-b border-gray-200 dark:border-gray-700">
+                        Showing {displayShops.length} shops & {displayOrders.length} orders
+                    </div>
                     <div className="space-y-2">
                         <div className="flex items-center gap-3">
 
@@ -317,8 +330,8 @@ export default function LiveMapPage() {
                                         <p className="text-xs text-gray-500">User ID: {order.userId}</p>
                                         {order.userName && <p className="text-xs text-gray-500">User: {order.userName}</p>}
                                         <span className={`inline-block text-[10px] px-2 py-0.5 rounded-full mt-1 ${order.orderStatus === 'delivered' ? 'bg-green-100 text-green-700' :
-                                                order.orderStatus === 'shipped' ? 'bg-blue-100 text-blue-700' :
-                                                    'bg-yellow-100 text-yellow-700'
+                                            order.orderStatus === 'shipped' ? 'bg-blue-100 text-blue-700' :
+                                                'bg-yellow-100 text-yellow-700'
                                             }`}>
                                             {order.orderStatus}
                                         </span>
