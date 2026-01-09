@@ -109,21 +109,22 @@ export const AdminService = {
     return response.data.data.categories;
   },
 
-  createCategory: async (name: string, description: string) => {
+  createCategory: async (name: string, description: string, image?: string) => {
     const response = await axiosInstance.post(
       "/admin/products/create-category",
-      { name, description }
+      { name, description, image }
     );
     return response.data.data;
   },
   updateCategory: async (
     id: string,
     name: string,
-    description: string
+    description: string,
+    image?: string
   ) => {
     const response = await axiosInstance.patch(
       `/admin/products/update-category/${id}`,
-      { name, description }
+      { name, description, image }
     );
     return response.data.data;
   },
