@@ -52,6 +52,98 @@ export default function CheckoutPage() {
     return R * c;
   };
 
+  // Calculate delivery fees based on delivery radius pricing
+  const deliveryFeeCalculation = useMemo(() => {
+    if (!selectedAddressId) {
+      return { byShop: {}, totalDeliveryFee: 0 };
+    }
+
+    const selectedAddress = addresses.find(
+      (addr) => Number(addr.id) === selectedAddressId
+    );
+
+    if (!selectedAddress || !selectedAddress.geoLocation) {
+      return { byShop: {}, totalDeliveryFee: 0 };
+    }
+
+    const [userLat, userLng] = selectedAddress.geoLocation
+      .split(",")
+      .map((coord) => parseFloat(coord.trim()));
+
+    if (!Number.isFinite(userLat) || !Number.isFinite(userLng)) {
+      return { byShop: {}, totalDeliveryFee: 0 };
+    }
+
+    const byShop: Record<
+      string | number,
+      {
+        shopName: string;
+        distance: number;
+        deliveryFee: number;
+        rate?: { km: number; price: number };
+      }
+    > = {};
+
+    items.forEach((item) => {
+      const shop = (item as any).shop;
+      if (!shop) return;
+
+      const shopId = shop.id || `shop-${item.id}`;
+
+      // Skip if already calculated for this shop
+      if (byShop[shopId]) return;
+
+      // Get shop coordinates
+      let shopLat: number | undefined;
+      let shopLng: number | undefined;
+
+      if (shop.address?.geoLocation) {
+        const coords = shop.address.geoLocation.split(",").map((c: string) => parseFloat(c.trim()));
+        shopLat = coords[0];
+        shopLng = coords[1];
+      } else if (shop.address?.latitude && shop.address?.longitude) {
+        shopLat = parseFloat(shop.address.latitude);
+        shopLng = parseFloat(shop.address.longitude);
+      }
+
+      if (!Number.isFinite(shopLat) || !Number.isFinite(shopLng)) return;
+
+      // Calculate distance
+      const distance = calculateDistance(userLat, userLng, shopLat!, shopLng!);
+
+      // Get delivery rates
+      const deliveryRates = (shop.deliveryRates?.rates || shop.deliveryRates || []) as Array<{
+        km: number;
+        price: number;
+      }>;
+
+      let deliveryFee = 0;
+      let matchedRate: { km: number; price: number } | undefined;
+
+      if (Array.isArray(deliveryRates) && deliveryRates.length > 0) {
+        const sortedRates = [...deliveryRates].sort((a, b) => a.km - b.km);
+        matchedRate = sortedRates.find((rate) => distance <= rate.km);
+        if (matchedRate) {
+          deliveryFee = matchedRate.price;
+        }
+      }
+
+      byShop[shopId] = {
+        shopName: shop.name || "Unknown Shop",
+        distance,
+        deliveryFee,
+        rate: matchedRate,
+      };
+    });
+
+    const totalDeliveryFee = Object.values(byShop).reduce(
+      (sum, shop) => sum + shop.deliveryFee,
+      0
+    );
+
+    return { byShop, totalDeliveryFee };
+  }, [selectedAddressId, addresses, items]);
+
   // Validate delivery availability for all cart items
   const deliveryValidation = useMemo(() => {
     if (!selectedAddressId) {
@@ -287,6 +379,44 @@ export default function CheckoutPage() {
               )}
             </section>
 
+            {/* Delivery Details by Shop */}
+            {selectedAddressId && Object.keys(deliveryFeeCalculation.byShop).length > 0 && (
+              <section className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-2xl shadow-sm border border-blue-200 dark:border-blue-700">
+                <h3 className="text-lg font-bold text-blue-900 dark:text-blue-100 flex items-center gap-2 mb-4">
+                  <Truck className="text-blue-600 dark:text-blue-400" size={20} />
+                  Delivery Details
+                </h3>
+                <div className="space-y-3">
+                  {Object.entries(deliveryFeeCalculation.byShop).map(([shopId, details]) => (
+                    <div key={shopId} className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-blue-100 dark:border-blue-800">
+                      <p className="font-semibold text-gray-900 dark:text-white mb-2">
+                        {details.shopName}
+                      </p>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="text-gray-600 dark:text-gray-400">Distance</p>
+                          <p className="font-semibold text-gray-900 dark:text-white">
+                            {details.distance.toFixed(2)} km
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-600 dark:text-gray-400">Delivery Fee</p>
+                          <p className="font-semibold text-gray-900 dark:text-white">
+                            {details.deliveryFee === 0 ? "Free" : `₹${details.deliveryFee.toFixed(2)}`}
+                          </p>
+                        </div>
+                      </div>
+                      {details.rate && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                          Rate: ₹{details.rate.price} for up to {details.rate.km} km
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {/* Delivery Validation Message */}
             {selectedAddressId && !deliveryValidation.isValid && (
               <section className="bg-red-50 dark:bg-red-900/20 p-6 rounded-2xl shadow-sm border-2 border-red-200 dark:border-red-700">
@@ -366,13 +496,15 @@ export default function CheckoutPage() {
                   <span>₹{cartTotalAmount.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600 dark:text-gray-400">
-                  <span>Delivery</span>
-                  <span className="text-green-500 font-medium">Free</span>
+                  <span>Delivery Fee</span>
+                  <span className={deliveryFeeCalculation.totalDeliveryFee > 0 ? "font-medium text-gray-900 dark:text-white" : "text-green-500 font-medium"}>
+                    {deliveryFeeCalculation.totalDeliveryFee === 0 ? "Free" : `₹${deliveryFeeCalculation.totalDeliveryFee.toFixed(2)}`}
+                  </span>
                 </div>
                 <div className="h-px bg-gray-100 dark:bg-gray-700 my-4" />
                 <div className="flex justify-between text-xl font-bold text-gray-900 dark:text-white">
                   <span>Total</span>
-                  <span>₹{cartTotalAmount.toFixed(2)}</span>
+                  <span>₹{(cartTotalAmount + deliveryFeeCalculation.totalDeliveryFee).toFixed(2)}</span>
                 </div>
               </div>
 
