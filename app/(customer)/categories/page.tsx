@@ -10,6 +10,7 @@ import Image from "next/image";
 import coustomerServices from "@/services/customerService";
 import { useWishlistStore } from "@/hooks/useWishlistStore";
 import Link from "next/link";
+import { useLocationStore } from "@/store/locationStore";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -37,6 +38,7 @@ export default function CategoriesPage() {
   const [products, setProducts] = useState<any[]>([]); // Replace any with your Product type if available
   const { toggleWishlist, isWishlisted } = useWishlistStore();
   const [isClient, setIsClient] = useState(false);
+  const { currentCity } = useLocationStore();
 
   useEffect(() => {
     setIsClient(true);
@@ -70,11 +72,11 @@ export default function CategoriesPage() {
       try {
         let data;
         if (activeTab === "all") {
-          data = await coustomerServices.filterProducts("");
+          data = await coustomerServices.filterProducts("", currentCity || undefined);
           setProducts(data.products || []);
         } else {
           // You may need to implement getProductsByCategory in your ShopService
-          data = await coustomerServices.filterProducts(activeTab);
+          data = await coustomerServices.filterProducts(activeTab, currentCity || undefined);
           // console.log("Fetched products for category", activeTab, data);
           setProducts(data.products || []);
         }
@@ -85,7 +87,7 @@ export default function CategoriesPage() {
       }
     };
     fetchProducts();
-  }, [activeTab]);
+  }, [activeTab, currentCity]);
   // console.log(activeTab, "active tabs")
 
   // Tabs: All + each category

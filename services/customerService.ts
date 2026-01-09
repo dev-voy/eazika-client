@@ -108,8 +108,12 @@ const coustomerServices = {
     // console.log(response.data);
     return response.data;
   },
-  filterProducts: async (filter: string): Promise<ProductListType> => {
-    const response = await axios.get(`/customers/products/filter?filter=${filter}`);
+  filterProducts: async (filter: string, city?: string): Promise<ProductListType> => {
+    let url = `/customers/products/filter?filter=${filter}`;
+    if (city) {
+      url += `&city=${encodeURIComponent(city)}`;
+    }
+    const response = await axios.get(url);
     return response.data.data;
   },
 
