@@ -1,7 +1,16 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef, Suspense } from "react";
-import { ArrowRight, Heart, Star, Search, X, Loader2, MapPin, Navigation } from "lucide-react";
+import {
+  ArrowRight,
+  Heart,
+  Star,
+  Search,
+  X,
+  Loader2,
+  MapPin,
+  Navigation,
+} from "lucide-react";
 import Image from "next/image";
 import { BannerCarousel } from "@/app/components/BannerCarousel";
 import { motion, Variants, AnimatePresence } from "framer-motion";
@@ -99,7 +108,9 @@ export default function HomePage() {
         ]);
 
         // Map icons manually since backend doesn't send component references
-        const mappedCategories = (catsData?.length ? catsData : mockCategories).map((cat: any) => {
+        const mappedCategories = (
+          catsData?.length ? catsData : mockCategories
+        ).map((cat: any) => {
           const match = mockCategories.find(
             (m) =>
               m.name.toLowerCase() === (cat.name ?? "").toLowerCase() ||
@@ -260,15 +271,23 @@ export default function HomePage() {
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 shadow-lg mb-4">
               <MapPin size={40} className="text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Welcome to Eazika</h1>
-            <p className="text-gray-600 dark:text-gray-400">Discover local shops near you</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              Welcome to Eazika
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              Discover local shops near you
+            </p>
           </div>
 
           {/* City Selection Card */}
           <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700 p-8 space-y-6">
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Select your city</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Choose your location to see nearby shops and products</p>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                Select your city
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Choose your location to see nearby shops and products
+              </p>
             </div>
 
             {/* Selected City Display */}
@@ -279,9 +298,16 @@ export default function HomePage() {
                 className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-2xl p-4 border-2 border-yellow-300 dark:border-yellow-600"
               >
                 <div className="flex items-center justify-center gap-2">
-                  <MapPin size={20} className="text-yellow-600 dark:text-yellow-400" />
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Selected City:</p>
-                  <p className="text-lg font-bold text-yellow-600 dark:text-yellow-400">{cityInput}</p>
+                  <MapPin
+                    size={20}
+                    className="text-yellow-600 dark:text-yellow-400"
+                  />
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Selected City:
+                  </p>
+                  <p className="text-lg font-bold text-yellow-600 dark:text-yellow-400">
+                    {cityInput}
+                  </p>
                 </div>
               </motion.div>
             )}
@@ -289,7 +315,9 @@ export default function HomePage() {
             {/* Available Cities */}
             {normalizedSupported.length > 0 && (
               <div className="space-y-3">
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Available Cities</p>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  Available Cities
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {normalizedSupported.map((city) => (
                     <motion.button
@@ -297,10 +325,11 @@ export default function HomePage() {
                       onClick={() => handleCitySelect(city)}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className={`px-4 py-2.5 rounded-full text-sm font-medium border-2 transition-all ${cityInput === city
-                        ? "border-yellow-500 text-white bg-gradient-to-r from-yellow-500 to-orange-500 shadow-md"
-                        : "border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
-                        }`}
+                      className={`px-4 py-2.5 rounded-full text-sm font-medium border-2 transition-all ${
+                        cityInput === city
+                          ? "border-yellow-500 text-white bg-gradient-to-r from-yellow-500 to-orange-500 shadow-md"
+                          : "border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
+                      }`}
                     >
                       {city}
                     </motion.button>
@@ -330,7 +359,11 @@ export default function HomePage() {
                 disabled={detecting}
                 className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold py-3.5 hover:from-blue-600 hover:to-cyan-600 transition-all shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                {detecting ? <Loader2 className="animate-spin" size={18} /> : <Navigation size={18} />}
+                {detecting ? (
+                  <Loader2 className="animate-spin" size={18} />
+                ) : (
+                  <Navigation size={18} />
+                )}
                 {detecting ? "Detecting..." : "Use my location"}
               </button>
               <button
@@ -345,7 +378,10 @@ export default function HomePage() {
 
             {/* Help Text */}
             <p className="text-xs text-center text-gray-500 dark:text-gray-400 pt-2">
-              We'll show you shops and products available in <span className="font-semibold text-yellow-600 dark:text-yellow-400">{cityInput || "your city"}</span>
+              We'll show you shops and products available in{" "}
+              <span className="font-semibold text-yellow-600 dark:text-yellow-400">
+                {cityInput || "your city"}
+              </span>
             </p>
           </div>
         </motion.div>
@@ -409,14 +445,21 @@ export default function HomePage() {
                                   searchQuery,
                                   location: currentCity ?? undefined,
                                   resultsCount: searchSuggestions.length,
-                                  selectedProductId: typeof product.id === 'number' ? product.id : Number(product.id),
+                                  selectedProductId:
+                                    typeof product.id === "number"
+                                      ? product.id
+                                      : Number(product.id),
                                   metadata: {
                                     action: "product_clicked",
-                                    resultPosition: searchSuggestions.indexOf(product),
+                                    resultPosition:
+                                      searchSuggestions.indexOf(product),
                                   },
                                 });
                               } catch (error) {
-                                console.error("Failed to track product click:", error);
+                                console.error(
+                                  "Failed to track product click:",
+                                  error
+                                );
                               }
                               // Navigate to product
                               window.location.href = `/products/${product.id}`;
@@ -492,55 +535,55 @@ export default function HomePage() {
             >
               {isLoading
                 ? // Loading Skeletons
-                [1, 2, 3, 4, 5].map((i) => (
-                  <motion.div
-                    key={i}
-                    variants={itemVariants}
-                    className="flex flex-col items-center space-y-2 shrink-0"
-                  >
-                    <div className="w-16 h-16 bg-gray-200 dark:bg-gray-800 rounded-2xl animate-pulse" />
-                    <div className="w-12 h-3 bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
-                  </motion.div>
-                ))
-                : categories.map((category) => {
-                  const Icon = typeof category.icon === "function" ? category.icon : undefined;
-
-                  return (
-                    <Link
-                      href={`/categories`}
-                      key={category.id}
+                  [1, 2, 3, 4, 5].map((i) => (
+                    <motion.div
+                      key={i}
+                      variants={itemVariants}
+                      className="flex flex-col items-center space-y-2 shrink-0"
                     >
-                      <motion.div
-                        className="flex flex-col items-center space-y-2 text-center group cursor-pointer shrink-0"
-                        variants={itemVariants}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <div className="w-16 h-16 md:w-20 md:h-20 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-center group-hover:border-yellow-500 dark:group-hover:border-yellow-500 transition-colors duration-200 overflow-hidden relative">
-                          {category.image ? (
-                            <Image
-                              src={category.image}
-                              alt={category.name}
-                              fill
-                              className="object-cover"
-                            />
-                          ) : Icon ? (
-                            <Icon
-                              size={32}
-                              className="text-gray-400 dark:text-gray-500 group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors"
-                            />
-                          ) : (
-                            <div className="text-2xl font-bold text-gray-400">
-                              {category.name.charAt(0)}
-                            </div>
-                          )}
-                        </div>
-                        <span className="text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 w-20 truncate">
-                          {category.name}
-                        </span>
-                      </motion.div>
-                    </Link>
-                  );
-                })}
+                      <div className="w-16 h-16 bg-gray-200 dark:bg-gray-800 rounded-2xl animate-pulse" />
+                      <div className="w-12 h-3 bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
+                    </motion.div>
+                  ))
+                : categories.map((category) => {
+                    const Icon =
+                      typeof category.icon === "function"
+                        ? category.icon
+                        : undefined;
+
+                    return (
+                      <Link href={`/categories`} key={category.id}>
+                        <motion.div
+                          className="flex flex-col items-center space-y-2 text-center group cursor-pointer shrink-0"
+                          variants={itemVariants}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <div className="w-16 h-16 md:w-20 md:h-20 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-center group-hover:border-yellow-500 dark:group-hover:border-yellow-500 transition-colors duration-200 overflow-hidden relative">
+                            {category.image ? (
+                              <Image
+                                src={category.image}
+                                alt={category.name}
+                                fill
+                                className="object-cover"
+                              />
+                            ) : Icon ? (
+                              <Icon
+                                size={32}
+                                className="text-gray-400 dark:text-gray-500 group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors"
+                              />
+                            ) : (
+                              <div className="text-2xl font-bold text-gray-400">
+                                {category.name.charAt(0)}
+                              </div>
+                            )}
+                          </div>
+                          <span className="text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 w-20 truncate">
+                            {category.name}
+                          </span>
+                        </motion.div>
+                      </Link>
+                    );
+                  })}
             </motion.div>
           </div>
         </motion.section>
@@ -587,7 +630,7 @@ export default function HomePage() {
                   </>
                 }
               >
-                {visibleProducts.map((item) => {
+                {products.map((item) => {
                   const liked = isClient
                     ? isWishlisted(item.id.toString())
                     : false;
@@ -607,14 +650,14 @@ export default function HomePage() {
         </motion.section>
 
         {/* Scroll Observer Sentinel */}
-        {hasMoreProducts && !isLoading && (
+        {/* {hasMoreProducts && !isLoading && (
           <div
             ref={observerTarget}
             className="h-10 w-full flex justify-center items-center"
           >
             <Loader2 className="animate-spin text-gray-400" size={24} />
           </div>
-        )}
+        )} */}
       </motion.div>
     </div>
   );
@@ -661,8 +704,9 @@ const ProductCard = ({
               e.stopPropagation();
               toggleWishlist(product.id.toString());
             }}
-            className={`absolute top-2 right-2 p-2 rounded-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm transition-all shadow-sm z-10 ${liked ? "text-red-500" : "text-gray-400 hover:text-red-500"
-              }`}
+            className={`absolute top-2 right-2 p-2 rounded-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm transition-all shadow-sm z-10 ${
+              liked ? "text-red-500" : "text-gray-400 hover:text-red-500"
+            }`}
           >
             <Heart size={18} className={`${liked ? "fill-current" : ""}`} />
           </button>
