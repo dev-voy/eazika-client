@@ -16,14 +16,9 @@ import {
   ShieldCheck,
   Loader2,
   CreditCard, // Added CreditCard icon for Buy Now
-  MapPin,
-  Crosshair,
-  AlertCircle,
-  CheckCircle,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { ShopService, ShopProduct } from "@/services/shopService";
-// import { useCartStore } from "@/hooks/useCartStore";
+import { ShopProduct } from "@/services/shopService";
 import { useCartStore } from "@/store";
 import { useWishlistStore } from "@/hooks/useWishlistStore";
 import { useLocationStore } from "@/store/locationStore";
@@ -38,7 +33,11 @@ export default function ProductPage() {
   const id = Array.isArray(idParam) ? idParam[0] : idParam;
 
   // Stores
-  const { addToCart, isLoading: isCartLoading, items: cartItems } = useCartStore();
+  const {
+    addToCart,
+    isLoading: isCartLoading,
+    items: cartItems,
+  } = useCartStore();
   const { toggleWishlist, isWishlisted } = useWishlistStore();
   const { geoLocation, setGeoLocation } = useLocationStore();
 
@@ -51,7 +50,10 @@ export default function ProductPage() {
   const [activeImage, setActiveImage] = useState(0);
 
   // Location check state
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
   const [manualLat, setManualLat] = useState("");
   const [manualLng, setManualLng] = useState("");
   const [isLocating, setIsLocating] = useState(false);
@@ -66,14 +68,16 @@ export default function ProductPage() {
   const [showRatingForm, setShowRatingForm] = useState(false);
   const [ratingFormData, setRatingFormData] = useState({
     rating: 0,
-    heading: '',
-    description: ''
+    heading: "",
+    description: "",
   });
   const [isEligible, setIsEligible] = useState(false);
   const [isSubmittingRating, setIsSubmittingRating] = useState(false);
   const [hasUserReviewed, setHasUserReviewed] = useState(false);
 
-  const parseGeo = (geo?: string | null): { lat: number; lng: number } | null => {
+  const parseGeo = (
+    geo?: string | null
+  ): { lat: number; lng: number } | null => {
     if (!geo) return null;
     const parts = geo.split(",").map((p) => parseFloat(p.trim()));
     if (parts.length !== 2 || parts.some((n) => Number.isNaN(n))) return null;
@@ -87,12 +91,20 @@ export default function ProductPage() {
     if (lat && lng) {
       const latNum = parseFloat(lat);
       const lngNum = parseFloat(lng);
-      if (!Number.isNaN(latNum) && !Number.isNaN(lngNum)) return { lat: latNum, lng: lngNum };
+      if (!Number.isNaN(latNum) && !Number.isNaN(lngNum))
+        return { lat: latNum, lng: lngNum };
     }
     return null;
-  }, [product?.shop?.geoLocation, product?.shop?.address?.latitude, product?.shop?.address?.longitude]);
+  }, [
+    product?.shop?.geoLocation,
+    product?.shop?.address?.latitude,
+    product?.shop?.address?.longitude,
+  ]);
 
-  const haversineKm = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+  const haversineKm = (
+    a: { lat: number; lng: number },
+    b: { lat: number; lng: number }
+  ) => {
     const toRad = (deg: number) => (deg * Math.PI) / 180;
     const R = 6371; // Earth radius km
     const dLat = toRad(b.lat - a.lat);
@@ -106,9 +118,17 @@ export default function ProductPage() {
   };
 
   const deliveryCheck = useMemo(() => {
-    if (!product?.shop || !shopLocation || !userLocation || !product.shop.deliveryRates?.length) return null;
+    if (
+      !product?.shop ||
+      !shopLocation ||
+      !userLocation ||
+      !product.shop.deliveryRates?.length
+    )
+      return null;
     const distanceKm = haversineKm(shopLocation, userLocation);
-    const sortedRates = [...product.shop.deliveryRates].sort((a, b) => a.km - b.km);
+    const sortedRates = [...product.shop.deliveryRates].sort(
+      (a, b) => a.km - b.km
+    );
     const matchedRate = sortedRates.find((r) => distanceKm <= r.km) || null;
     return { distanceKm, matchedRate };
   }, [product?.shop, shopLocation, userLocation]);
@@ -161,12 +181,20 @@ export default function ProductPage() {
       return;
     }
 
-    if (!geoLocation && !hasAutoRequested && typeof window !== "undefined" && navigator.geolocation) {
+    if (
+      !geoLocation &&
+      !hasAutoRequested &&
+      typeof window !== "undefined" &&
+      navigator.geolocation
+    ) {
       setHasAutoRequested(true);
       setIsLocating(true);
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          const coords = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+          };
           setUserLocation(coords);
           setGeoLocation(coords);
           setManualLat(coords.lat.toFixed(6));
@@ -195,7 +223,9 @@ export default function ProductPage() {
 
         // Check if user is eligible to rate this product
         try {
-          const eligibilityData = await coustomerService.getEligibleForRating(Number(productData.id));
+          const eligibilityData = await coustomerService.getEligibleForRating(
+            Number(productData.id)
+          );
           setIsEligible(eligibilityData.eligible);
           setHasUserReviewed(eligibilityData.hasReviewed);
         } catch (error) {
@@ -256,11 +286,11 @@ export default function ProductPage() {
 
   const handleRatingFormSubmit = async () => {
     if (ratingFormData.rating === 0) {
-      alert('Please select a rating');
+      alert("Please select a rating");
       return;
     }
     if (!ratingFormData.description.trim()) {
-      alert('Please add a description');
+      alert("Please add a description");
       return;
     }
 
@@ -270,11 +300,11 @@ export default function ProductPage() {
     try {
       await submitRating(Number(product.id), {
         rating: ratingFormData.rating,
-        review: ratingFormData.description.trim()
+        review: ratingFormData.description.trim(),
       });
 
       // Reset form and close
-      setRatingFormData({ rating: 0, heading: '', description: '' });
+      setRatingFormData({ rating: 0, heading: "", description: "" });
       setShowRatingForm(false);
 
       // Refresh product data to show new rating
@@ -283,10 +313,10 @@ export default function ProductPage() {
       setProduct(productData);
       setHasUserReviewed(true);
 
-      alert('Thank you for your review!');
+      alert("Thank you for your review!");
     } catch (error) {
-      console.error('Failed to submit rating:', error);
-      alert('Failed to submit review. Please try again.');
+      console.error("Failed to submit rating:", error);
+      alert("Failed to submit review. Please try again.");
     } finally {
       setIsSubmittingRating(false);
     }
@@ -362,10 +392,11 @@ export default function ProductPage() {
                       <button
                         key={idx}
                         onClick={() => setActiveImage(idx)}
-                        className={`relative w-20 h-20 shrink-0 rounded-xl overflow-hidden border-2 transition-all ${activeImage === idx
-                          ? "border-yellow-500"
-                          : "border-transparent"
-                          }`}
+                        className={`relative w-20 h-20 shrink-0 rounded-xl overflow-hidden border-2 transition-all ${
+                          activeImage === idx
+                            ? "border-yellow-500"
+                            : "border-transparent"
+                        }`}
                       >
                         <Image
                           src={img}
@@ -424,14 +455,19 @@ export default function ProductPage() {
 
                   <div className="flex items-center gap-2.5 text-sm flex-wrap">
                     <div className="flex items-center gap-1.5 bg-yellow-100 dark:bg-yellow-900/30 px-3 py-1.5 rounded-full">
-                      <Star size={16} fill="currentColor" className="text-yellow-500" />
+                      <Star
+                        size={16}
+                        fill="currentColor"
+                        className="text-yellow-500"
+                      />
                       <span className="font-bold text-gray-900 dark:text-white">
                         {product.rating.rate}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-full">
                       <span className="text-gray-600 dark:text-gray-400">
-                        {product.rating.count} {product.rating.count === 1 ? 'Review' : 'Reviews'}
+                        {product.rating.count}{" "}
+                        {product.rating.count === 1 ? "Review" : "Reviews"}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5 bg-green-100 dark:bg-green-900/30 px-3 py-1.5 rounded-full">
@@ -455,13 +491,44 @@ export default function ProductPage() {
                     </p>
                     <p className="text-lg font-semibold text-gray-400 line-through">
                       ₹
-                      {(selectedPrice ? selectedPrice.price : product.prices[0].price) * quantity}
+                      {(selectedPrice
+                        ? selectedPrice.price
+                        : product.prices[0].price) * quantity}
                     </p>
                     <p className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-600">
                       ₹
                       {selectedPrice
-                        ? (selectedPrice.price * quantity * 0.9).toFixed(2)
-                        : (product.prices[0].price * quantity * 0.9).toFixed(2)}
+                        ? (
+                            selectedPrice.price *
+                            quantity *
+                            ((100 - Number(selectedPrice.discount)) / 100)
+                          ).toFixed(2)
+                        : (
+                            product.prices[0].price *
+                            quantity *
+                            ((100 - Number(product.prices[0].discount)) / 100)
+                          ).toFixed(2)}
+                    </p>
+                    <p>
+                      You save ₹
+                      {selectedPrice
+                        ? (
+                            selectedPrice.price * quantity -
+                            selectedPrice.price *
+                              quantity *
+                              ((100 - Number(selectedPrice.discount)) / 100)
+                          ).toFixed(2)
+                        : (
+                            product.prices[0].price * quantity -
+                            product.prices[0].price *
+                              quantity *
+                              ((100 - Number(product.prices[0].discount)) / 100)
+                          ).toFixed(2)}
+                      {` (${
+                        selectedPrice
+                          ? selectedPrice.discount
+                          : product.prices[0].discount
+                      }%off)`}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 bg-white dark:bg-gray-700 rounded-2xl p-2 shadow-lg border border-gray-200 dark:border-gray-600">
@@ -504,10 +571,11 @@ export default function ProductPage() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: idx * 0.05 }}
                         onClick={() => setSelectedPrice(price)}
-                        className={`px-5 py-3 rounded-2xl text-sm font-semibold transition-all border-2 ${selectedPrice?.id === price.id
-                          ? "border-yellow-500 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-500/20 dark:to-orange-500/10 text-yellow-700 dark:text-yellow-300 shadow-md shadow-yellow-500/20"
-                          : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:border-yellow-300 dark:hover:border-yellow-700 hover:shadow-sm"
-                          }`}
+                        className={`px-5 py-3 rounded-2xl text-sm font-semibold transition-all border-2 ${
+                          selectedPrice?.id === price.id
+                            ? "border-yellow-500 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-500/20 dark:to-orange-500/10 text-yellow-700 dark:text-yellow-300 shadow-md shadow-yellow-500/20"
+                            : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:border-yellow-300 dark:hover:border-yellow-700 hover:shadow-sm"
+                        }`}
                       >
                         {`${price.weight}${price.unit} - ₹${price.price}`}
 
@@ -516,7 +584,6 @@ export default function ProductPage() {
                             (Save {price.discount}%)
                           </span>
                         )}
-
                       </motion.button>
                     ))}
                   </div>
@@ -524,11 +591,12 @@ export default function ProductPage() {
 
                 {/* Description */}
 
-
                 {/* Shop Information */}
                 {product.shop && (
                   <div className="border-2 border-gray-100 dark:border-gray-700 rounded-2xl p-5 bg-linear-to-br from-yellow-50 to-orange-50 dark:from-gray-800 dark:to-gray-800/50">
-                    <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-4">Sold by</h3>
+                    <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-4">
+                      Sold by
+                    </h3>
                     <div className="flex items-start gap-4">
                       {/* Shop Image */}
                       <div className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-white dark:bg-gray-700 border-2 border-white dark:border-gray-600 shadow-md">
@@ -540,22 +608,32 @@ export default function ProductPage() {
                             objectFit="cover"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">Shop</div>
+                          <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
+                            Shop
+                          </div>
                         )}
                       </div>
 
                       {/* Shop Details */}
                       <div className="flex-1 min-w-0 space-y-2">
-                        <h4 className="font-bold text-lg text-gray-900 dark:text-white truncate">{product.shop.name}</h4>
+                        <h4 className="font-bold text-lg text-gray-900 dark:text-white truncate">
+                          {product.shop.name}
+                        </h4>
                         <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
                           {product.shop.category}
                         </p>
                         {product.shop.address?.fullAddress && (
                           <p className="text-sm text-gray-700 dark:text-gray-300">
                             {product.shop.address.fullAddress}
-                            {product.shop.address.city ? `, ${product.shop.address.city}` : ""}
-                            {product.shop.address.state ? `, ${product.shop.address.state}` : ""}
-                            {product.shop.address.pincode ? ` - ${product.shop.address.pincode}` : ""}
+                            {product.shop.address.city
+                              ? `, ${product.shop.address.city}`
+                              : ""}
+                            {product.shop.address.state
+                              ? `, ${product.shop.address.state}`
+                              : ""}
+                            {product.shop.address.pincode
+                              ? ` - ${product.shop.address.pincode}`
+                              : ""}
                           </p>
                         )}
 
@@ -564,42 +642,64 @@ export default function ProductPage() {
                           {/* Minimum Order */}
                           <div className="flex items-center gap-2 text-sm">
                             <div className="w-7 h-7 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                              <ShoppingCart size={14} className="text-green-600 dark:text-green-400" />
+                              <ShoppingCart
+                                size={14}
+                                className="text-green-600 dark:text-green-400"
+                              />
                             </div>
                             <span className="text-gray-700 dark:text-gray-300">
-                              Min. Order: <span className="font-bold text-gray-900 dark:text-white">₹{product.shop.minimumOrderValue}</span>
+                              Min. Order:{" "}
+                              <span className="font-bold text-gray-900 dark:text-white">
+                                ₹{product.shop.minimumOrderValue}
+                              </span>
                             </span>
                           </div>
 
                           {/* Delivery Rates */}
-                          {product.shop.deliveryRates && product.shop.deliveryRates.length > 0 && (
-                            <div className="flex items-start gap-2 text-sm">
-                              <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0 mt-0.5">
-                                <Truck size={14} className="text-blue-600 dark:text-blue-400" />
-                              </div>
-                              <div className="flex-1">
-                                <p className="text-gray-700 dark:text-gray-300 mb-1">Delivery Charges:</p>
-                                <div className="flex flex-wrap gap-2">
-                                  {product.shop.deliveryRates.slice(0, 3).map((rate, idx) => (
-                                    <span
-                                      key={idx}
-                                      className="inline-block px-2 py-1 bg-white dark:bg-gray-700 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600"
-                                    >
-                                      {rate.km}km: {rate.price === 0 ? "Free" : `₹${rate.price}`}
-                                    </span>
-                                  ))}
+                          {product.shop.deliveryRates &&
+                            product.shop.deliveryRates.length > 0 && (
+                              <div className="flex items-start gap-2 text-sm">
+                                <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0 mt-0.5">
+                                  <Truck
+                                    size={14}
+                                    className="text-blue-600 dark:text-blue-400"
+                                  />
+                                </div>
+                                <div className="flex-1">
+                                  <p className="text-gray-700 dark:text-gray-300 mb-1">
+                                    Delivery Charges:
+                                  </p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {product.shop.deliveryRates
+                                      .slice(0, 3)
+                                      .map((rate, idx) => (
+                                        <span
+                                          key={idx}
+                                          className="inline-block px-2 py-1 bg-white dark:bg-gray-700 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600"
+                                        >
+                                          {rate.km}km:{" "}
+                                          {rate.price === 0
+                                            ? "Free"
+                                            : `₹${rate.price}`}
+                                        </span>
+                                      ))}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          )}
+                            )}
 
                           {/* Online Delivery Status */}
                           {product.shop.schedule?.isOnlineDelivery && (
                             <div className="flex items-center gap-2 text-sm">
                               <div className="w-7 h-7 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
-                                <ShieldCheck size={14} className="text-yellow-600 dark:text-yellow-400" />
+                                <ShieldCheck
+                                  size={14}
+                                  className="text-yellow-600 dark:text-yellow-400"
+                                />
                               </div>
-                              <span className="text-green-600 dark:text-green-400 font-semibold">Online Delivery Available</span>
+                              <span className="text-green-600 dark:text-green-400 font-semibold">
+                                Online Delivery Available
+                              </span>
                             </div>
                           )}
                         </div>
@@ -744,19 +844,24 @@ export default function ProductPage() {
                     <motion.button
                       whileTap={{ scale: 0.98 }}
                       whileHover={{ y: -2 }}
-                      onClick={isInCart ? () => router.push('/cart') : handleAddToCart}
+                      onClick={
+                        isInCart ? () => router.push("/cart") : handleAddToCart
+                      }
                       disabled={isCartLoading || isBuying}
-                      className={`flex-1 font-bold py-4 rounded-2xl active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-base ${isInCart
-                        ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:shadow-lg hover:shadow-green-500/30 shadow-md shadow-green-500/20'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 hover:shadow-sm'
-                        }`}
+                      className={`flex-1 font-bold py-4 rounded-2xl active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-base ${
+                        isInCart
+                          ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:shadow-lg hover:shadow-green-500/30 shadow-md shadow-green-500/20"
+                          : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 hover:shadow-sm"
+                      }`}
                     >
                       {isCartLoading ? (
                         <Loader2 size={20} className="animate-spin" />
                       ) : (
                         <>
                           <ShoppingCart size={20} />
-                          <span className="hidden sm:inline">{isInCart ? 'View Cart' : 'Add to Cart'}</span>
+                          <span className="hidden sm:inline">
+                            {isInCart ? "View Cart" : "Add to Cart"}
+                          </span>
                         </>
                       )}
                     </motion.button>
@@ -793,13 +898,14 @@ export default function ProductPage() {
                     <button
                       onClick={() => setShowRatingForm(true)}
                       disabled={hasUserReviewed}
-                      className={`px-4 py-2 font-semibold rounded-xl transition-colors flex items-center gap-2 ${hasUserReviewed
-                        ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                        : 'bg-yellow-500 hover:bg-yellow-600 text-white'
-                        }`}
+                      className={`px-4 py-2 font-semibold rounded-xl transition-colors flex items-center gap-2 ${
+                        hasUserReviewed
+                          ? "bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                          : "bg-yellow-500 hover:bg-yellow-600 text-white"
+                      }`}
                     >
                       <Star size={18} />
-                      {hasUserReviewed ? 'Already Reviewed' : 'Add Review'}
+                      {hasUserReviewed ? "Already Reviewed" : "Add Review"}
                     </button>
                   )}
                 </div>
@@ -827,81 +933,92 @@ export default function ProductPage() {
                           ))}
                         </div>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                          {product.rating.count} {product.rating.count === 1 ? 'Review' : 'Reviews'}
+                          {product.rating.count}{" "}
+                          {product.rating.count === 1 ? "Review" : "Reviews"}
                         </p>
                       </div>
 
                       {/* Rating Distribution (if needed later) */}
                       <div className="flex-1">
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Based on {product.rating.count} verified purchase{product.rating.count !== 1 ? 's' : ''}
+                          Based on {product.rating.count} verified purchase
+                          {product.rating.count !== 1 ? "s" : ""}
                         </p>
                       </div>
                     </div>
 
                     {/* Individual Ratings */}
-                    {product.rating.ratings && product.rating.ratings.length > 0 && (
-                      <div className="mt-8 space-y-4">
-                        <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-4">
-                          Customer Feedback
-                        </h3>
-                        {product.rating.ratings.map((review: any, index: number) => (
-                          <div
-                            key={index}
-                            className="border-b border-gray-100 dark:border-gray-700 pb-4 last:border-0"
-                          >
-                            <div className="flex items-start gap-4">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-2">
-                                  <div className="flex flex-col">
-                                    {review.userName && (
-                                      <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                                        {review.userName}
+                    {product.rating.ratings &&
+                      product.rating.ratings.length > 0 && (
+                        <div className="mt-8 space-y-4">
+                          <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-4">
+                            Customer Feedback
+                          </h3>
+                          {product.rating.ratings.map(
+                            (review: any, index: number) => (
+                              <div
+                                key={index}
+                                className="border-b border-gray-100 dark:border-gray-700 pb-4 last:border-0"
+                              >
+                                <div className="flex items-start gap-4">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-3 mb-2">
+                                      <div className="flex flex-col">
+                                        {review.userName && (
+                                          <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                                            {review.userName}
+                                          </div>
+                                        )}
+                                        <div className="flex items-center gap-1">
+                                          {[...Array(5)].map((_, i) => (
+                                            <Star
+                                              key={i}
+                                              size={14}
+                                              className={
+                                                i < (review.rating || 0)
+                                                  ? "fill-yellow-500 text-yellow-500"
+                                                  : "text-gray-300 dark:text-gray-600"
+                                              }
+                                            />
+                                          ))}
+                                        </div>
                                       </div>
-                                    )}
-                                    <div className="flex items-center gap-1">
-                                      {[...Array(5)].map((_, i) => (
-                                        <Star
-                                          key={i}
-                                          size={14}
-                                          className={
-                                            i < (review.rating || 0)
-                                              ? "fill-yellow-500 text-yellow-500"
-                                              : "text-gray-300 dark:text-gray-600"
-                                          }
-                                        />
-                                      ))}
-                                    </div>
-                                  </div>
 
-                                  {review.date && (
-                                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                                      {new Date(review.date).toLocaleDateString()}
-                                    </span>
-                                  )}
+                                      {review.date && (
+                                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                                          {new Date(
+                                            review.date
+                                          ).toLocaleDateString()}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {review.review && (
+                                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                                        {review.review}
+                                      </p>
+                                    )}
+                                  </div>
                                 </div>
-                                {review.review && (
-                                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                                    {review.review}
-                                  </p>
-                                )}
                               </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                            )
+                          )}
+                        </div>
+                      )}
                   </div>
                 ) : (
                   <div className="text-center py-12">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
-                      <Star size={32} className="text-gray-400 dark:text-gray-500" />
+                      <Star
+                        size={32}
+                        className="text-gray-400 dark:text-gray-500"
+                      />
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                       No ratings yet
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-                      Be the first to review this product! Share your experience with other customers.
+                      Be the first to review this product! Share your experience
+                      with other customers.
                     </p>
                   </div>
                 )}
@@ -953,8 +1070,14 @@ export default function ProductPage() {
 
         {/* Rating Form Modal */}
         {showRatingForm && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowRatingForm(false)}>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowRatingForm(false)}
+          >
+            <div
+              className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
                   Write a Review
@@ -963,7 +1086,10 @@ export default function ProductPage() {
                   onClick={() => setShowRatingForm(false)}
                   className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 >
-                  <Plus size={24} className="rotate-45 text-gray-500 dark:text-gray-400" />
+                  <Plus
+                    size={24}
+                    className="rotate-45 text-gray-500 dark:text-gray-400"
+                  />
                 </button>
               </div>
 
@@ -1006,7 +1132,12 @@ export default function ProductPage() {
                 </label>
                 <textarea
                   value={ratingFormData.description}
-                  onChange={(e) => setRatingFormData({ ...ratingFormData, description: e.target.value })}
+                  onChange={(e) =>
+                    setRatingFormData({
+                      ...ratingFormData,
+                      description: e.target.value,
+                    })
+                  }
                   placeholder="Share your experience with this product..."
                   rows={4}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500 resize-none"
@@ -1033,7 +1164,7 @@ export default function ProductPage() {
                       Submitting...
                     </>
                   ) : (
-                    'Submit Review'
+                    "Submit Review"
                   )}
                 </button>
               </div>
