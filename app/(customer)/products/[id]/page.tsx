@@ -584,6 +584,10 @@ export default function ProductPage() {
                             (Save {price.discount}%)
                           </span>
                         )}
+                        <br />
+                        <span className="ml-2 text-xs text-green-600 dark:text-green-400 font-medium">
+                          {`Stock: ${price.stock} available`}
+                        </span>
                       </motion.button>
                     ))}
                   </div>
@@ -840,49 +844,59 @@ export default function ProductPage() {
                       />
                     </motion.button>
 
-                    {/* Add to Cart Button */}
-                    <motion.button
-                      whileTap={{ scale: 0.98 }}
-                      whileHover={{ y: -2 }}
-                      onClick={
-                        isInCart ? () => router.push("/cart") : handleAddToCart
-                      }
-                      disabled={isCartLoading || isBuying}
-                      className={`flex-1 font-bold py-4 rounded-2xl active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-base ${
-                        isInCart
-                          ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:shadow-lg hover:shadow-green-500/30 shadow-md shadow-green-500/20"
-                          : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 hover:shadow-sm"
-                      }`}
-                    >
-                      {isCartLoading ? (
-                        <Loader2 size={20} className="animate-spin" />
-                      ) : (
-                        <>
-                          <ShoppingCart size={20} />
-                          <span className="hidden sm:inline">
-                            {isInCart ? "View Cart" : "Add to Cart"}
-                          </span>
-                        </>
-                      )}
-                    </motion.button>
+                    {selectedPrice && selectedPrice.stock === 0 ? (
+                      <div className="flex-1 flex items-center justify-center bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-semibold px-4 py-4 rounded-2xl border border-red-200 dark:border-red-700">
+                        Out of Stock
+                      </div>
+                    ) : (
+                      <>
+                        {/* Add to Cart Button */}
+                        <motion.button
+                          whileTap={{ scale: 0.98 }}
+                          whileHover={{ y: -2 }}
+                          onClick={
+                            isInCart
+                              ? () => router.push("/cart")
+                              : handleAddToCart
+                          }
+                          disabled={isCartLoading || isBuying}
+                          className={`flex-1 font-bold py-4 rounded-2xl active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-base ${
+                            isInCart
+                              ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:shadow-lg hover:shadow-green-500/30 shadow-md shadow-green-500/20"
+                              : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 hover:shadow-sm"
+                          }`}
+                        >
+                          {isCartLoading ? (
+                            <Loader2 size={20} className="animate-spin" />
+                          ) : (
+                            <>
+                              <ShoppingCart size={20} />
+                              <span className="hidden sm:inline">
+                                {isInCart ? "View Cart" : "Add to Cart"}
+                              </span>
+                            </>
+                          )}
+                        </motion.button>
 
-                    {/* Buy Now Button */}
-                    <motion.button
-                      whileTap={{ scale: 0.98 }}
-                      whileHover={{ y: -2 }}
-                      onClick={handleBuyNow}
-                      disabled={isBuying || isCartLoading}
-                      className="flex-1 bg-gradient-to-r from-yellow-500 via-yellow-500 to-orange-500 text-white font-bold py-4 rounded-2xl shadow-lg shadow-yellow-500/40 hover:shadow-xl hover:shadow-yellow-500/50 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed text-base"
-                    >
-                      {isBuying ? (
-                        <Loader2 size={20} className="animate-spin" />
-                      ) : (
-                        <>
-                          <CreditCard size={20} />
-                          <span>Buy Now</span>
-                        </>
-                      )}
-                    </motion.button>
+                        {/* Buy Now Button */}
+                        <motion.button
+                          whileTap={{ scale: 0.98 }}
+                          whileHover={{ y: -2 }}
+                          onClick={handleBuyNow}
+                          disabled={isBuying || isCartLoading}
+                          className="flex-1 bg-gradient-to-r from-yellow-500 via-yellow-500 to-orange-500 text-white font-bold py-4 rounded-2xl shadow-lg shadow-yellow-500/40 hover:shadow-xl hover:shadow-yellow-500/50 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed text-base"
+                        >
+                          {isBuying ? (
+                            <Loader2 size={20} className="animate-spin" />
+                          ) : (
+                            <>
+                              <CreditCard size={20} />
+                              <span>Buy Now</span>
+                            </>
+                          )}
+                        </motion.button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
