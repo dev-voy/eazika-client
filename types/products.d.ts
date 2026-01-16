@@ -3,6 +3,7 @@ interface ProductPriceType {
   price: number;
   discount: number;
   weight: number;
+  stock: number;
   unit: "gram" | "kg" | "ml" | "litre" | "piece";
 }
 
@@ -95,6 +96,8 @@ interface CartItem {
     description?: string;
     image: string;
     price: number;
+    discount: number;
+    stock: number;
   };
 }
 

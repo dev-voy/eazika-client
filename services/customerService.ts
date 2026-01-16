@@ -99,17 +99,30 @@ const coustomerServices = {
     }
   },
 
-  getEligibleForRating: async (productId: number): Promise<{ eligible: boolean; hasReviewed: boolean; message: string }> => {
-    const response = await axios.get(`/customers/products/${productId}/rating-eligibility`);
+  getEligibleForRating: async (
+    productId: number
+  ): Promise<{ eligible: boolean; hasReviewed: boolean; message: string }> => {
+    const response = await axios.get(
+      `/customers/products/${productId}/rating-eligibility`
+    );
     return response.data.data;
   },
 
-  submitRating: async (productId: number, data: { rating: number; review: string }): Promise<void> => {
-    const response = await axios.post(`/customers/products/${productId}/rating`, data);
+  submitRating: async (
+    productId: number,
+    data: { rating: number; review: string }
+  ): Promise<void> => {
+    const response = await axios.post(
+      `/customers/products/${productId}/rating`,
+      data
+    );
     // console.log(response.data);
     return response.data;
   },
-  filterProducts: async (filter: string, city?: string): Promise<ProductListType> => {
+  filterProducts: async (
+    filter: string,
+    city?: string
+  ): Promise<ProductListType> => {
     let url = `/customers/products/filter?filter=${filter}`;
     if (city) {
       url += `&city=${encodeURIComponent(city)}`;
@@ -142,5 +155,12 @@ const coustomerServices = {
 };
 
 export default coustomerServices;
-export const { getProducts, getProductById, getAvailableCities, getCategories, cartMethods, getEligibleForRating, submitRating } =
-  coustomerServices;
+export const {
+  getProducts,
+  getProductById,
+  getAvailableCities,
+  getCategories,
+  cartMethods,
+  getEligibleForRating,
+  submitRating,
+} = coustomerServices;

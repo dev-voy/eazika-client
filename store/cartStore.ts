@@ -2,15 +2,21 @@ import { create } from "zustand";
 import { cartMethods } from "@/services/customerService";
 import { CartItem, AddToCartPayload, OrderPayload } from "@/types/products";
 
+type ItemId = string | number;
+
 interface CartState {
   items: CartItem[];
+  selectedItems: Set<ItemId>;
   isLoading: boolean;
   cartCount: number;
   cartTotalAmount: number;
+
+  // Actions
   fetchCart: () => Promise<void>;
+  setSelectedItems: (itemId: ItemId | ItemId[]) => void;
   addToCart: (data: AddToCartPayload) => Promise<void>;
-  removeFromCart: (itemId: number | string) => Promise<void>;
-  updateQuantity: (itemId: number | string, quantity: number) => Promise<void>;
+  removeFromCart: (itemId: ItemId) => Promise<void>;
+  updateQuantity: (itemId: ItemId, quantity: number) => Promise<void>;
   clearCart: () => Promise<void>;
   placeOrder: (data: OrderPayload) => Promise<void>;
 }
@@ -19,13 +25,16 @@ interface CartState {
 const calculateTotal = (items: CartItem[]) =>
   items.reduce((total, item) => total + item.product.price * item.quantity, 0);
 
-export const cartStore = create<CartState>((set, get) => ({
+export const cartStore = create<CartState>((set: SetState, get: Get) => ({
   items: [],
+  selectedItems: new Set(),
   isLoading: false,
   cartCount: 0,
   cartTotalAmount: 0,
 
   fetchCart: () => fetchCartData(set),
+  setSelectedItems: (item: ItemId | ItemId[]) =>
+    setSelectedItemsData(item, get, set),
   addToCart: (data) => addToCartData(data, get, set),
   removeFromCart: (itemId) => removeFromCartData(Number(itemId), get, set),
   updateQuantity: (itemId, quantity) =>
@@ -35,12 +44,12 @@ export const cartStore = create<CartState>((set, get) => ({
 }));
 
 type Get = () => CartState;
-type Set = (
+type SetState = (
   state: Partial<CartState> | ((state: CartState) => Partial<CartState>)
 ) => void;
 
 /* ============================ Actions ============================ */
-const fetchCartData = async (set: Set) => {
+const fetchCartData = async (set: SetState) => {
   set({ isLoading: true });
   try {
     const data = await cartMethods.getCart();
@@ -54,9 +63,29 @@ const fetchCartData = async (set: Set) => {
   } finally {
     set({ isLoading: false });
   }
-
 };
-const addToCartData = async (data: AddToCartPayload, get: Get, set: Set) => {
+
+const setSelectedItemsData = (
+  item: ItemId | ItemId[],
+  get: Get,
+  set: SetState
+) => {
+  const selectedItems = new Set(get().selectedItems);
+  if (Array.isArray(item)) {
+    item.forEach((id) => selectedItems.add(id));
+    if (item.length === 0) selectedItems.clear();
+  } else {
+    if (selectedItems.has(item)) selectedItems.delete(item);
+    else selectedItems.add(item);
+  }
+  set({ selectedItems });
+};
+
+const addToCartData = async (
+  data: AddToCartPayload,
+  get: Get,
+  set: SetState
+) => {
   set({ isLoading: true });
   try {
     if (!get().items.find((item) => item.productId === data.productId)) {
@@ -67,7 +96,7 @@ const addToCartData = async (data: AddToCartPayload, get: Get, set: Set) => {
     set({ isLoading: false });
   }
 };
-const removeFromCartData = async (itemId: number, get: Get, set: Set) => {
+const removeFromCartData = async (itemId: number, get: Get, set: SetState) => {
   const previousItems = get().items;
   const updatedItems = previousItems.filter((i) => i.id !== itemId);
 
@@ -93,7 +122,7 @@ const updateQuantityData = async (
   itemId: number,
   quantity: number,
   get: Get,
-  set: Set
+  set: SetState
 ) => {
   if (quantity < 1) return;
 
@@ -118,7 +147,7 @@ const updateQuantityData = async (
     });
   }
 };
-const clearCartData = async (get: Get, set: Set) => {
+const clearCartData = async (get: Get, set: SetState) => {
   const previousItems = get().items;
   set({ items: [], cartCount: 0, cartTotalAmount: 0 });
 
@@ -134,7 +163,7 @@ const clearCartData = async (get: Get, set: Set) => {
     });
   }
 };
-const placeOrderData = async (data: OrderPayload, get: Get, set: Set) => {
+const placeOrderData = async (data: OrderPayload, get: Get, set: SetState) => {
   set({ isLoading: true });
   try {
     const order = await cartMethods.createOrder(data);
