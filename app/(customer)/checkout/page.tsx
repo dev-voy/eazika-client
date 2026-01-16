@@ -18,8 +18,33 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 export default function CheckoutPage() {
-  const { items, fetchCart, cartTotalAmount, placeOrder } = useCartStore();
+  const { items, fetchCart, placeOrder, selectedItems } = useCartStore();
   const { addresses, fetchUser } = userStore();
+  const [checkoutItems, setCheckoutItems] = useState<typeof items>([]);
+
+  useEffect(() => {
+    const filteredItems =
+      selectedItems.size > 0
+        ? items.filter((item) => selectedItems.has(item.id))
+        : items;
+    setCheckoutItems(filteredItems);
+  }, [items, selectedItems]);
+
+  const cartTotal = useMemo(() => {
+    return checkoutItems.reduce((sum, item) => {
+      return sum + item.product.price * item.quantity;
+    }, 0);
+  }, [checkoutItems]);
+
+  const cartDiscount = useMemo(() => {
+    return checkoutItems.reduce(
+      (sum, item) =>
+        sum +
+        item.product.price * item.quantity * (item.product.discount / 100),
+
+      0
+    );
+  }, [checkoutItems]);
 
   const router = useRouter();
 
@@ -45,9 +70,9 @@ export default function CheckoutPage() {
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos(toRad(lat1)) *
-      Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+        Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
@@ -98,7 +123,9 @@ export default function CheckoutPage() {
       let shopLng: number | undefined;
 
       if (shop.address?.geoLocation) {
-        const coords = shop.address.geoLocation.split(",").map((c: string) => parseFloat(c.trim()));
+        const coords = shop.address.geoLocation
+          .split(",")
+          .map((c: string) => parseFloat(c.trim()));
         shopLat = coords[0];
         shopLng = coords[1];
       } else if (shop.address?.latitude && shop.address?.longitude) {
@@ -112,7 +139,9 @@ export default function CheckoutPage() {
       const distance = calculateDistance(userLat, userLng, shopLat!, shopLng!);
 
       // Get delivery rates
-      const deliveryRates = (shop.deliveryRates?.rates || shop.deliveryRates || []) as Array<{
+      const deliveryRates = (shop.deliveryRates?.rates ||
+        shop.deliveryRates ||
+        []) as Array<{
         km: number;
         price: number;
       }>;
@@ -158,7 +187,7 @@ export default function CheckoutPage() {
       return {
         isValid: false,
         unavailableItems: [],
-        reasons: ["Selected address doesn't have geo location"]
+        reasons: ["Selected address doesn't have geo location"],
       };
     }
 
@@ -170,7 +199,7 @@ export default function CheckoutPage() {
       return {
         isValid: false,
         unavailableItems: [],
-        reasons: ["Invalid geo location format"]
+        reasons: ["Invalid geo location format"],
       };
     }
 
@@ -197,7 +226,9 @@ export default function CheckoutPage() {
       let shopLng: number | undefined;
 
       if (shop.address?.geoLocation) {
-        const coords = shop.address.geoLocation.split(",").map((c: string) => parseFloat(c.trim()));
+        const coords = shop.address.geoLocation
+          .split(",")
+          .map((c: string) => parseFloat(c.trim()));
         shopLat = coords[0];
         shopLng = coords[1];
       } else if (shop.address?.latitude && shop.address?.longitude) {
@@ -218,7 +249,9 @@ export default function CheckoutPage() {
       const distance = calculateDistance(userLat, userLng, shopLat!, shopLng!);
 
       // Check delivery rates
-      const deliveryRates = (shop.deliveryRates?.rates || shop.deliveryRates || []) as Array<{
+      const deliveryRates = (shop.deliveryRates?.rates ||
+        shop.deliveryRates ||
+        []) as Array<{
         km: number;
         price: number;
       }>;
@@ -236,7 +269,11 @@ export default function CheckoutPage() {
         unavailableItems.push({
           productName: item.product.name,
           shopName: shop.name || "Unknown Shop",
-          reason: `Outside delivery range (${distance.toFixed(1)} km away, max delivery: ${sortedRates[sortedRates.length - 1]?.km || 0} km)`,
+          reason: `Outside delivery range (${distance.toFixed(
+            1
+          )} km away, max delivery: ${
+            sortedRates[sortedRates.length - 1]?.km || 0
+          } km)`,
           distance,
         });
       }
@@ -250,7 +287,6 @@ export default function CheckoutPage() {
   }, [selectedAddressId, addresses, items]);
 
   // Location State
-
   useEffect(() => {
     (async () => {
       if (addresses.length <= 0) {
@@ -280,16 +316,14 @@ export default function CheckoutPage() {
 
     try {
       const deliveryFee = deliveryFeeCalculation.totalDeliveryFee;
-      const discountRate = 0.1; // 10% discount
-      const discountAmount = cartTotalAmount * discountRate;
-      const totalAmount = cartTotalAmount - discountAmount + deliveryFee;
+      const totalAmount = cartTotal - cartDiscount + deliveryFee;
 
       await placeOrder({
         addressId: selectedAddressId,
         paymentMethod: "cash_on_delivery",
         deliveryFee: parseInt(String(deliveryFee)),
         totalAmount: parseInt(String(totalAmount)),
-        orderItems: items.map((item) => ({
+        orderItems: checkoutItems.map((item) => ({
           productId: item.productId,
           priceId: item.priceId,
           quantity: item.quantity,
@@ -302,7 +336,7 @@ export default function CheckoutPage() {
       if (isAxiosError(error)) {
         toast.error(
           error.response?.data?.message ||
-          "Failed to place order. Please try again."
+            "Failed to place order. Please try again."
         );
       } else if (error instanceof Error) {
         toast.error(error.message);
@@ -339,6 +373,7 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24 md:pb-8">
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
         {/* Header */}
+
         <div className="flex items-center gap-4 mb-8">
           <button
             onClick={() => router.back()}
@@ -387,54 +422,74 @@ export default function CheckoutPage() {
             </section>
 
             {/* Delivery Details by Shop */}
-            {selectedAddressId && Object.keys(deliveryFeeCalculation.byShop).length > 0 && (
-              <section className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-2xl shadow-sm border border-blue-200 dark:border-blue-700">
-                <h3 className="text-lg font-bold text-blue-900 dark:text-blue-100 flex items-center gap-2 mb-4">
-                  <Truck className="text-blue-600 dark:text-blue-400" size={20} />
-                  Delivery Details
-                </h3>
-                <div className="space-y-3">
-                  {Object.entries(deliveryFeeCalculation.byShop).map(([shopId, details]) => (
-                    <div key={shopId} className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-blue-100 dark:border-blue-800">
-                      <p className="font-semibold text-gray-900 dark:text-white mb-2">
-                        {details.shopName}
-                      </p>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="text-gray-600 dark:text-gray-400">Distance</p>
-                          <p className="font-semibold text-gray-900 dark:text-white">
-                            {details.distance.toFixed(2)} km
+            {selectedAddressId &&
+              Object.keys(deliveryFeeCalculation.byShop).length > 0 && (
+                <section className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-2xl shadow-sm border border-blue-200 dark:border-blue-700">
+                  <h3 className="text-lg font-bold text-blue-900 dark:text-blue-100 flex items-center gap-2 mb-4">
+                    <Truck
+                      className="text-blue-600 dark:text-blue-400"
+                      size={20}
+                    />
+                    Delivery Details
+                  </h3>
+                  <div className="space-y-3">
+                    {Object.entries(deliveryFeeCalculation.byShop).map(
+                      ([shopId, details]) => (
+                        <div
+                          key={shopId}
+                          className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-blue-100 dark:border-blue-800"
+                        >
+                          <p className="font-semibold text-gray-900 dark:text-white mb-2">
+                            {details.shopName}
                           </p>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <p className="text-gray-600 dark:text-gray-400">
+                                Distance
+                              </p>
+                              <p className="font-semibold text-gray-900 dark:text-white">
+                                {details.distance.toFixed(2)} km
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-gray-600 dark:text-gray-400">
+                                Delivery Fee
+                              </p>
+                              <p className="font-semibold text-gray-900 dark:text-white">
+                                {details.deliveryFee === 0
+                                  ? "Free"
+                                  : `₹${details.deliveryFee.toFixed(2)}`}
+                              </p>
+                            </div>
+                          </div>
+                          {details.rate && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                              Rate: ₹{details.rate.price} for up to{" "}
+                              {details.rate.km} km
+                            </p>
+                          )}
                         </div>
-                        <div>
-                          <p className="text-gray-600 dark:text-gray-400">Delivery Fee</p>
-                          <p className="font-semibold text-gray-900 dark:text-white">
-                            {details.deliveryFee === 0 ? "Free" : `₹${details.deliveryFee.toFixed(2)}`}
-                          </p>
-                        </div>
-                      </div>
-                      {details.rate && (
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                          Rate: ₹{details.rate.price} for up to {details.rate.km} km
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
+                      )
+                    )}
+                  </div>
+                </section>
+              )}
 
             {/* Delivery Validation Message */}
             {selectedAddressId && !deliveryValidation.isValid && (
               <section className="bg-red-50 dark:bg-red-900/20 p-6 rounded-2xl shadow-sm border-2 border-red-200 dark:border-red-700">
                 <div className="flex items-start gap-3 mb-4">
-                  <AlertCircle className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" size={24} />
+                  <AlertCircle
+                    className="text-red-600 dark:text-red-400 shrink-0 mt-0.5"
+                    size={24}
+                  />
                   <div>
                     <h3 className="text-lg font-bold text-red-900 dark:text-red-100">
                       Delivery Not Available
                     </h3>
                     <p className="text-sm text-red-700 dark:text-red-300 mt-1">
-                      Some items in your cart cannot be delivered to your selected address
+                      Some items in your cart cannot be delivered to your
+                      selected address
                     </p>
                   </div>
                 </div>
@@ -460,7 +515,8 @@ export default function CheckoutPage() {
 
                 <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border border-yellow-200 dark:border-yellow-700">
                   <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                    💡 <strong>Suggestion:</strong> Try selecting a different delivery address or remove unavailable items from your cart.
+                    💡 <strong>Suggestion:</strong> Try selecting a different
+                    delivery address or remove unavailable items from your cart.
                   </p>
                 </div>
               </section>
@@ -497,34 +553,62 @@ export default function CheckoutPage() {
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
                 Order Summary
               </h2>
+
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-gray-600 dark:text-gray-400">
-                  <span>Items ({items.length})</span>
-                  <span>₹{cartTotalAmount.toFixed(2)}</span>
+                  <span>Items ({checkoutItems.length})</span>
+
+                  <span>₹{cartTotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600 dark:text-gray-400">
-                  <span>Discount (10%)</span>
-                  <span className="text-green-600 dark:text-green-400 font-medium">-₹{(cartTotalAmount * 0.1).toFixed(2)}</span>
+                  <span>Discount </span>
+                  <span className="text-green-600 dark:text-green-400 font-medium">
+                    -₹{cartDiscount.toFixed(2)}
+                  </span>
                 </div>
                 <div className="flex justify-between text-gray-600 dark:text-gray-400">
                   <span>Delivery Fee</span>
-                  <span className={deliveryFeeCalculation.totalDeliveryFee > 0 ? "font-medium text-gray-900 dark:text-white" : "text-green-500 font-medium"}>
-                    {deliveryFeeCalculation.totalDeliveryFee === 0 ? "Free" : `₹${deliveryFeeCalculation.totalDeliveryFee.toFixed(2)}`}
+                  <span
+                    className={
+                      deliveryFeeCalculation.totalDeliveryFee > 0
+                        ? "font-medium text-gray-900 dark:text-white"
+                        : "text-green-500 font-medium"
+                    }
+                  >
+                    {deliveryFeeCalculation.totalDeliveryFee === 0
+                      ? "Free"
+                      : `₹${deliveryFeeCalculation.totalDeliveryFee.toFixed(
+                          2
+                        )}`}
                   </span>
                 </div>
                 <div className="h-px bg-gray-100 dark:bg-gray-700 my-4" />
                 <div className="flex justify-between text-xl font-bold text-gray-900 dark:text-white">
                   <span>Total</span>
-                  <span>₹{(cartTotalAmount - cartTotalAmount * 0.1 + deliveryFeeCalculation.totalDeliveryFee).toFixed(2)}</span>
+
+                  <span>
+                    ₹
+                    {(
+                      cartTotal -
+                      cartDiscount +
+                      deliveryFeeCalculation.totalDeliveryFee
+                    ).toFixed(2)}
+                  </span>
                 </div>
               </div>
 
               <button
                 onClick={handlePlaceOrder}
-                disabled={isOrderLoading || !selectedAddressId || !deliveryValidation.isValid}
+                disabled={
+                  isOrderLoading ||
+                  !selectedAddressId ||
+                  !deliveryValidation.isValid
+                }
                 className={cn(
                   "w-full bg-yellow-500 text-white font-bold py-4 rounded-xl hover:bg-yellow-600 transition-colors shadow-lg shadow-yellow-500/30 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed",
-                  isOrderLoading || !selectedAddressId || !deliveryValidation.isValid
+                  isOrderLoading ||
+                    !selectedAddressId ||
+                    !deliveryValidation.isValid
                     ? "cursor-not-allowed"
                     : "cursor-pointer"
                 )}
@@ -532,8 +616,8 @@ export default function CheckoutPage() {
                   !selectedAddressId
                     ? "Please select a delivery address"
                     : !deliveryValidation.isValid
-                      ? "Some items cannot be delivered to your address"
-                      : ""
+                    ? "Some items cannot be delivered to your address"
+                    : ""
                 }
               >
                 {isOrderLoading ? (
