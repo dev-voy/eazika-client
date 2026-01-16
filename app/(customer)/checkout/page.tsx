@@ -16,6 +16,7 @@ import { useCartStore, userStore } from "@/store";
 import { AddAddressFrom, AddressList } from "@/components/customer/checkout";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import Link from "next/link";
 
 export default function CheckoutPage() {
   const { items, fetchCart, placeOrder, selectedItems } = useCartStore();
@@ -345,6 +346,28 @@ export default function CheckoutPage() {
       setIsOrderLoading(false);
     }
   };
+
+  const currentHour = new Date().getHours();
+  const isShopClosed = currentHour >= 20 || currentHour < 10;
+
+  if (isShopClosed) {
+    return (
+      <div className="min-h-screen -mt-24 md:-mt-40 flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
+        <h2 className="text-2xl md:text-7xl font-bold text-gray-900 dark:text-white mb-4">
+          Shops are currently closed
+        </h2>
+        <p className="text-sm md:text-3xl text-gray-700 dark:text-gray-300 mb-4">
+          Please visit between 10:00 AM and 8:00 PM.
+        </p>
+        <Link
+          href="/"
+          className="text-2xl text-yellow-600 hover:text-yellow-500 font-semibold cursor-pointer"
+        >
+          Go Shopping
+        </Link>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     if (isLoading) {
