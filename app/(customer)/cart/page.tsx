@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation"; // Import useRouter
 import Image from "next/image";
@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { useCartStore } from "@/store";
 import type { CartItem } from "@/types/products";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 type ShopInfo = {
   id?: string | number;
@@ -27,23 +29,20 @@ type ShopInfo = {
   minOrder?: { minimumValue?: number };
   minimumOrderValue?: number;
   deliveryRates?:
-  | { km: number; price: number }[]
-  | { rates?: { km: number; price: number }[] };
+    | { km: number; price: number }[]
+    | { rates?: { km: number; price: number }[] };
 };
 
 type ItemWithShop = CartItem & { shop?: ShopInfo };
 
 export default function CartPage() {
   const router = useRouter(); // Initialize router
-  const { items, fetchCart } = useCartStore();
-  const [selectedItems, setSelectedItems] = useState<Set<string | number>>(new Set());
+  const { items, fetchCart, selectedItems, setSelectedItems } = useCartStore();
 
   useEffect(() => {
-    if (items.length <= 0) fetchCart();
-  }, [fetchCart, items.length]);
-
-  useEffect(() => {
-    if (items.length <= 0) fetchCart();
+    (async () => {
+      if (items.length <= 0) await fetchCart();
+    })();
   }, [fetchCart, items.length]);
 
   const availability = useMemo(() => {
@@ -97,18 +96,34 @@ export default function CartPage() {
   const deliveryTotal = useMemo(() => {
     return 0; // No delivery fees
   }, []);
-  const discountRate = 0.1; // 10% discount
-  const discountAmount = selectedTotal * discountRate;
+  // const discountRate = 0.1; // 10% discount
+  // const discountAmount = selectedTotal * discountRate;
+  // const grandTotal = selectedTotal + deliveryTotal - discountAmount;
+
+  const discountAmount = useMemo(() => {
+    return items.reduce((sum, item) => {
+      if (selectedItems.has(item.id))
+        return (
+          sum +
+          item.product.price * item.product.discount * 0.01 * item.quantity
+        );
+      return sum;
+    }, 0);
+  }, [items, selectedItems]);
+  // const discountAmount = discountRate; // Convert percentage to decimal
   const grandTotal = selectedTotal + deliveryTotal - discountAmount;
 
   // Calculate minimum order requirements by shop
   const shopOrderDetails = useMemo(() => {
-    const byShop: Record<string | number, {
-      total: number;
-      minOrder: number;
-      shopName?: string;
-      itemIds: (string | number)[];
-    }> = {};
+    const byShop: Record<
+      string | number,
+      {
+        total: number;
+        minOrder: number;
+        shopName?: string;
+        itemIds: (string | number)[];
+      }
+    > = {};
 
     items.forEach((item) => {
       if (!effectiveSelected.has(item.id)) return;
@@ -127,7 +142,8 @@ export default function CartPage() {
         };
       }
 
-      byShop[shopId].total += item.product.price * item.quantity;
+      byShop[shopId].total +=
+        item.product.price * item.quantity * (1 - item.product.discount * 0.01);
       byShop[shopId].itemIds.push(item.id);
     });
 
@@ -150,14 +166,7 @@ export default function CartPage() {
 
   // Toggle item selection
   const toggleItemSelection = (itemId: string | number) => {
-    if (!availability.byItemId[itemId]?.selectable) return;
-    const newSelected = new Set(selectedItems);
-    if (newSelected.has(itemId)) {
-      newSelected.delete(itemId);
-    } else {
-      newSelected.add(itemId);
-    }
-    setSelectedItems(newSelected);
+    setSelectedItems(itemId);
   };
 
   // Select/Deselect all
@@ -167,14 +176,15 @@ export default function CartPage() {
       .map((item) => item.id);
 
     if (selectableIds.length === effectiveSelected.size) {
-      setSelectedItems(new Set());
+      setSelectedItems([]);
     } else {
-      setSelectedItems(new Set(selectableIds));
+      setSelectedItems(selectableIds);
     }
   };
 
   const selectableCount = useMemo(
-    () => items.filter((item) => availability.byItemId[item.id]?.selectable).length,
+    () =>
+      items.filter((item) => availability.byItemId[item.id]?.selectable).length,
     [availability.byItemId, items]
   );
 
@@ -204,13 +214,17 @@ export default function CartPage() {
             <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
               <input
                 type="checkbox"
-                checked={selectableCount > 0 && effectiveSelected.size === selectableCount}
+                checked={
+                  selectableCount > 0 &&
+                  effectiveSelected.size === selectableCount
+                }
                 onChange={toggleSelectAll}
                 className="w-5 h-5 rounded cursor-pointer"
                 disabled={selectableCount === 0}
               />
               <label className="cursor-pointer text-sm font-semibold text-gray-700 dark:text-gray-300">
-                {effectiveSelected.size === selectableCount && selectableCount > 0
+                {effectiveSelected.size === selectableCount &&
+                selectableCount > 0
                   ? "Deselect All"
                   : "Select All"}
               </label>
@@ -243,16 +257,17 @@ export default function CartPage() {
                 </div>
                 <div className="flex justify-between text-gray-600 dark:text-gray-400">
                   <span>Delivery Fee</span>
-                  <span className="font-medium text-gray-900 dark:text-gray-200">₹{deliveryTotal.toFixed(2)}</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-200">
+                    ₹{deliveryTotal.toFixed(2)}
+                  </span>
                 </div>
                 <div className="flex justify-between text-gray-600 dark:text-gray-400">
-                  <span>Discount (10%)</span>
-                  <span className="text-green-600 dark:text-green-400 font-medium">-₹{discountAmount.toFixed(2)}</span>
+                  <span>Discount </span>
+                  <span className="text-green-600 dark:text-green-400 font-medium">
+                    -₹{discountAmount.toFixed(2)}
+                  </span>
                 </div>
-                {/* <div className="flex justify-between text-gray-600 dark:text-gray-400">
-                  <span>Taxes</span>
-                  <span>₹{(selectedTotal * 0.05).toFixed(2)}</span>
-                </div> */}
+
                 <div className="h-px bg-gray-100 dark:bg-gray-700 my-4" />
                 <div className="flex justify-between text-lg font-bold text-gray-900 dark:text-white">
                   <span>Total</span>
@@ -261,28 +276,37 @@ export default function CartPage() {
               </div>
 
               {/* Minimum Order Warnings */}
-              {shopsNotMeetingMinimum.length > 0 && effectiveSelected.size > 0 && (
-                <div className="mb-4 space-y-2">
-                  {shopsNotMeetingMinimum.map(([shopId, shop]) => (
-                    <div
-                      key={shopId}
-                      className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-3 text-sm"
-                    >
-                      <p className="font-semibold text-orange-800 dark:text-orange-300 mb-1">
-                        {shop.shopName || "Shop"} - Minimum Order Not Met
-                      </p>
-                      <p className="text-orange-700 dark:text-orange-400">
-                        Current: ₹{shop.total.toFixed(2)} / Required: ₹{shop.minOrder.toFixed(2)}
-                      </p>
-                      <p className="text-orange-600 dark:text-orange-500 text-xs mt-1">
-                        Add ₹{(shop.minOrder - shop.total).toFixed(2)} more to proceed
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
+              {shopsNotMeetingMinimum.length > 0 &&
+                effectiveSelected.size > 0 && (
+                  <div className="mb-4 space-y-2">
+                    {shopsNotMeetingMinimum.map(([shopId, shop]) => (
+                      <div
+                        key={shopId}
+                        className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-3 text-sm"
+                      >
+                        <p className="font-semibold text-orange-800 dark:text-orange-300 mb-1 capitalize">
+                          {shop.shopName || "Shop"}- Minimum Order Not Met
+                        </p>
+                        <p className="text-orange-700 dark:text-orange-400">
+                          Current: ₹{shop.total.toFixed(2)} / Required: ₹
+                          {shop.minOrder.toFixed(2)}
+                        </p>
 
-              <Link href={selectedItems.size > 0 && minimumOrderMet ? "/checkout" : "#"} className="block w-full">
+                        <p className="text-orange-600 dark:text-orange-500 text-xs mt-1">
+                          Add ₹{(shop.minOrder - shop.total).toFixed(2)} more to
+                          proceed
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+              <Link
+                href={
+                  selectedItems.size > 0 && minimumOrderMet ? "/checkout" : "#"
+                }
+                className="block w-full"
+              >
                 <button
                   disabled={effectiveSelected.size === 0 || !minimumOrderMet}
                   className="w-full bg-yellow-500 text-white font-bold py-4 rounded-xl hover:bg-yellow-600 transition-colors shadow-lg shadow-yellow-500/30 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-yellow-500"
@@ -290,8 +314,8 @@ export default function CartPage() {
                     effectiveSelected.size === 0
                       ? "Please select at least one product"
                       : !minimumOrderMet
-                        ? "Minimum order value not met"
-                        : ""
+                      ? "Minimum order value not met"
+                      : ""
                   }
                 >
                   Proceed to Checkout <ArrowRight size={20} />
@@ -366,10 +390,11 @@ const ItemsList = (item: ItemProps) => {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      className={`rounded-2xl p-4 shadow-sm border flex gap-4 transition-all ${containerState
-        ? "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-700"
-        : "bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700"
-        } ${availability.selectable ? "" : "opacity-70"}`}
+      className={`rounded-2xl p-4 shadow-sm border flex gap-4 transition-all ${
+        containerState
+          ? "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-700"
+          : "bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700"
+      } ${availability.selectable ? "" : "opacity-70"}`}
     >
       {/* Checkbox */}
       <div className="flex items-center justify-center">
@@ -417,6 +442,9 @@ const ItemsList = (item: ItemProps) => {
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Price: ₹{item.product.price.toFixed(2)}
           </p>
+          {/* <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Stock: {item.product.stock} available
+          </p> */}
         </div>
 
         <div className="flex items-center justify-between mt-4">
@@ -433,19 +461,43 @@ const ItemsList = (item: ItemProps) => {
               {item.quantity}
             </span>
             <button
-              onClick={() => updateQuantity(item.id, item.quantity + 1)}
+              onClick={() => {
+                if (item.quantity < item.product.stock)
+                  updateQuantity(item.id, item.quantity + 1);
+                else
+                  toast.warning("Cannot add more, stock limit reached.", {
+                    position: "top-center",
+                  });
+              }}
               className="w-8 h-8 flex items-center justify-center rounded-full bg-white dark:bg-gray-700 shadow-sm hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
             >
               <Plus size={14} />
             </button>
           </div>
+          <div className="flex flex-col items-end gap-1">
+            <span className="text-lg font-bold line-through text-gray-500 dark:text-gray-400">
+              ₹{(item.product.price * item.quantity).toFixed(2)}
+            </span>
 
-          <span
-            className={`text-lg font-bold ${item.isSelected ? "text-yellow-600 dark:text-yellow-400" : "text-gray-900 dark:text-white"
-              }`}
-          >
-            ₹{(item.product.price * item.quantity).toFixed(2)}
-          </span>
+            <span className="text-sm text-green-600 dark:text-green-400 font-medium">
+              {item.product.discount}% off
+            </span>
+            <span
+              className={cn(
+                "text-lg font-bold",
+                item.isSelected
+                  ? "text-yellow-600 dark:text-yellow-400"
+                  : "text-gray-900 dark:text-white"
+              )}
+            >
+              ₹
+              {(
+                item.product.price *
+                item.quantity *
+                (1 - item.product.discount * 0.01)
+              ).toFixed(2)}
+            </span>
+          </div>
         </div>
       </div>
     </motion.div>
