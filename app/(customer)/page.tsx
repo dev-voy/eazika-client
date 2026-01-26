@@ -45,7 +45,7 @@ const LOAD_MORE_COUNT = 4;
 
 export default function HomePage() {
   const [visibleProductCount, setVisibleProductCount] = useState(
-    INITIAL_PRODUCT_COUNT
+    INITIAL_PRODUCT_COUNT,
   );
   // Gate UI until client hydration (zustand persist rehydrates after mount)
   const [hydrated, setHydrated] = useState(false);
@@ -115,7 +115,7 @@ export default function HomePage() {
             (m) =>
               m.name.toLowerCase() === (cat.name ?? "").toLowerCase() ||
               (cat.name ?? "").toLowerCase().includes(m.slug) ||
-              m.slug.includes((cat.name ?? "").toLowerCase())
+              m.slug.includes((cat.name ?? "").toLowerCase()),
           );
           return {
             ...cat,
@@ -145,7 +145,7 @@ export default function HomePage() {
     const matches = products.filter(
       (product) =>
         product.name.toLowerCase().includes(lowerQuery) ||
-        product.category.toLowerCase().includes(lowerQuery)
+        product.category.toLowerCase().includes(lowerQuery),
     );
     setSearchSuggestions(matches.slice(0, 5));
 
@@ -183,7 +183,7 @@ export default function HomePage() {
           setVisibleProductCount((prev) => prev + LOAD_MORE_COUNT);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     if (observerTarget.current) {
@@ -232,7 +232,7 @@ export default function HomePage() {
           try {
             const { latitude, longitude } = position.coords;
             const resp = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
             );
             const data = await resp.json();
             const detectedCity =
@@ -255,7 +255,7 @@ export default function HomePage() {
         (error) => {
           console.error("Geolocation error", error);
           setDetecting(false);
-        }
+        },
       );
     };
 
@@ -458,7 +458,7 @@ export default function HomePage() {
                               } catch (error) {
                                 console.error(
                                   "Failed to track product click:",
-                                  error
+                                  error,
                                 );
                               }
                               // Navigate to product
@@ -674,6 +674,14 @@ const ProductCard = ({
   toggleWishlist: (productId: string) => void;
   isCartLoading: boolean;
 }) => {
+  const price =
+    product.prices && product.prices.length > 0
+      ? product.prices[0].price
+      : "N/A";
+  const discountPrice =
+    typeof price === "number"
+      ? price - price * product.prices[0].discount * 0.01
+      : null;
   return (
     <Link href={`/products/${product.id}`}>
       <motion.div
@@ -723,12 +731,21 @@ const ProductCard = ({
             {product.name}
           </h3>
           <div className="mt-auto flex items-center justify-between">
-            <p className="text-base md:text-lg font-bold text-gray-900 dark:text-white">
-              ₹
-              {product.prices && product.prices.length > 0
-                ? product.prices[0].price
-                : "N/A"}
-            </p>
+            {price !== discountPrice && discountPrice !== null ? (
+              <div className="flex text-sm md:text-base gap-x-1.5 items-center">
+                <p className="text-base md:text-lg font-bold text-gray-400 line-through">
+                  ₹{price}
+                </p>
+                <p className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white">
+                  ₹{discountPrice?.toFixed(0)}
+                </p>
+              </div>
+            ) : (
+              <p className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">
+                ₹{price}
+              </p>
+            )}
+
             <button
               disabled={isCartLoading}
               className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 group-hover:bg-yellow-500 group-hover:text-white transition-colors"
