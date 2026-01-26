@@ -2,8 +2,20 @@
 
 const serverUri = process.env.SERVER_URI || "https://server.eazika.com";
 
-export const uploadImage = async (file: File) => {
+type ResponseType = Promise<
+  | {
+      success: true;
+      url: string;
+    }
+  | { success: false; error: string }
+>;
+
+export const uploadImage = async (file: File): ResponseType => {
   try {
+    if (file.size > 5 * 1024 * 1024) {
+      throw new Error("File size exceeds 5MB limit");
+    }
+
     const contentType = file.type;
     const fileName = `image-${Date.now()}-${Math.floor(Math.random() * 1000)}.${
       contentType.split("/")[1]
@@ -12,7 +24,7 @@ export const uploadImage = async (file: File) => {
     // Step 1: Get signed upload URL from backend
     const signedUrlResponse = await getSignedUploadUrl(fileName, contentType);
     if (!signedUrlResponse.success)
-      return { success: false, error: signedUrlResponse.error };
+      return { success: false, error: signedUrlResponse.error as string };
 
     const { signedUrl, publicUrl, instructions } = signedUrlResponse.data;
 
@@ -20,14 +32,19 @@ export const uploadImage = async (file: File) => {
     const uploadResponse = await uploadFileToSignedUrl(
       signedUrl,
       file,
-      instructions
+      instructions,
     );
     if (!uploadResponse.success)
-      return { success: false, error: uploadResponse.error };
+      return { success: false, error: uploadResponse.error as string };
     return { success: true, url: publicUrl };
   } catch (error) {
-    console.error("Error in uploadImage:", error);
-    return { success: false, error: "Failed to upload image" };
+    // console.error("Error in uploadImage:", error);
+    // return { success: false, error: "Failed to upload image" };
+    if (error instanceof Error) {
+      return { success: false, error: error.message };
+    } else {
+      return { success: false, error: "Failed to upload image" };
+    }
   }
 };
 
@@ -41,9 +58,8 @@ export const uploadMultipleImages = async (files: FileList) => {
     }));
 
     // Step 1: Get signed upload URLs from backend
-    const { success, data, error } = await getSignedUploadUrlsForMultiple(
-      fileInfos
-    );
+    const { success, data, error } =
+      await getSignedUploadUrlsForMultiple(fileInfos);
     if (!success) return { success: false, error: error };
 
     const result: string[] = [];
@@ -55,13 +71,13 @@ export const uploadMultipleImages = async (files: FileList) => {
           signedUrl: i.signedUrl,
           contentType: i.contentType,
         }
-      )
+      ),
     );
 
     // Step 2: Upload files to the signed URLs
     const uploadResponse = await uploadMultipleFilesToSignedUrls(
       uploadData,
-      Array.from(files)
+      Array.from(files),
     );
     if (!uploadResponse.success)
       return { success: false, error: uploadResponse.error };
@@ -69,8 +85,11 @@ export const uploadMultipleImages = async (files: FileList) => {
     // const publicUrls = uploadData.map((data: any) => data.publicUrl);
     return { success: true, urls: result };
   } catch (error) {
-    console.error("Error in uploadMultipleImages:", error);
-    return { success: false, error: "Failed to upload images" };
+    if (error instanceof Error) {
+      return { success: false, error: error.message };
+    } else {
+      return { success: false, error: "Failed to upload images" };
+    }
   }
 };
 
@@ -92,15 +111,18 @@ async function getSignedUploadUrl(fileName: string, contentType: string) {
     const data = await response.json();
     return { success: true, data };
   } catch (error) {
-    console.error("Error getting signed URL:", error);
-    return { success: false, error: "Failed to get upload URL" };
+    if (error instanceof Error) {
+      return { success: false, error: error.message };
+    } else {
+      return { success: false, error: "Failed to get upload URL" };
+    }
   }
 }
 
 async function uploadFileToSignedUrl(
   signedUrl: string,
   file: File,
-  instructions: { method: string; headers: Record<string, string> }
+  instructions: { method: string; headers: Record<string, string> },
 ) {
   try {
     const response = await fetch(signedUrl, {
@@ -115,13 +137,16 @@ async function uploadFileToSignedUrl(
 
     return { success: true };
   } catch (error) {
-    console.error("Error uploading file:", error);
-    return { success: false, error: "Failed to upload file" };
+    if (error instanceof Error) {
+      return { success: false, error: error.message };
+    } else {
+      return { success: false, error: "Failed to upload file" };
+    }
   }
 }
 
 async function getSignedUploadUrlsForMultiple(
-  files: Array<{ fileName: string; contentType: string }>
+  files: Array<{ fileName: string; contentType: string }>,
 ) {
   try {
     const response = await fetch(`${serverUri}/api/V2/uploads/product`, {
@@ -138,14 +163,17 @@ async function getSignedUploadUrlsForMultiple(
 
     return { success: true, data: data.files };
   } catch (error) {
-    console.error("Error getting signed URLs:", error);
-    return { success: false, error: "Failed to get upload URLs" };
+    if (error instanceof Error) {
+      return { success: false, error: error.message };
+    } else {
+      return { success: false, error: "Failed to get upload URLs" };
+    }
   }
 }
 
 async function uploadMultipleFilesToSignedUrls(
   uploadData: Array<{ signedUrl: string; contentType: string }>,
-  files: File[]
+  files: File[],
 ) {
   try {
     await Promise.all(
@@ -154,13 +182,16 @@ async function uploadMultipleFilesToSignedUrls(
           method: "PUT",
           headers: { "Content-Type": data.contentType },
           body: files[index],
-        })
-      )
+        }),
+      ),
     );
 
     return { success: true };
   } catch (error) {
-    console.error("Error uploading multiple files:", error);
-    return { success: false, error: "Failed to upload files" };
+    if (error instanceof Error) {
+      return { success: false, error: error.message };
+    } else {
+      return { success: false, error: "Failed to upload files" };
+    }
   }
 }
