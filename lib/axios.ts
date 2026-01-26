@@ -24,34 +24,53 @@ async function getToken(tokenName: string): Promise<string | null> {
     return null;
   }
 }
-// --- REQUEST INTERCEPTOR ---
+/* =============== Request Interceptor =============== */
 axiosInstance.interceptors.request.use(
   async (config) => {
-    const token = await getToken("accessToken");
-    if (token) config.headers.Authorization = `Bearer ${token}`;
+    config.withCredentials = true; // Ensure cookies are sent with requests
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
-// --- RESPONSE INTERCEPTOR ---
+/* ============== Response Interceptor =============== */
 axiosInstance.interceptors.response.use(
+  // (response) => {
+  // const setCookieHeader = response.headers["set-cookie"];
+  // console.log("Set-Cookie Header:", setCookieHeader);
+  // if (setCookieHeader)
+  //   setCookieHeader.forEach((cookie: string) => (document.cookie = cookie));
+  //   return response;
+  // },
   (response) => response,
-  async (error) => {
-    // if (isAxiosError(error) && error.response) {
-    //   const { status } = error.response;
 
-    //   // Handle 401 Unauthorized globally
-    //   if (status === 401) {
-    //     // Optionally, you can clear user data or redirect to login
-    //     // const userStore = useUserStore();
-    //     // userStore.clearUserData();
-    //     console.warn("Unauthorized! Please log in again.");
-    //   }
-    // }
-    // toast.error(error.response?.data?.message || "An error occurred");
-    return Promise.reject(error);
-  }
+  async (error) => {
+    if (isAxiosError(error) && error.response) {
+      const { status, data } = error.response;
+      const message = [
+        "Access token is required",
+        "Invalid or expired access token",
+      ];
+
+      if (status === 401 && message.includes(data.message)) {
+        try {
+          await axiosInstance.post("/auth/refresh-tokens");
+          window.location.reload();
+          return Promise.resolve();
+        } catch (error) {
+          if (isAxiosError(error)) {
+            toast.error("Session expired. Please log in again.");
+            localStorage.clear();
+          }
+          return Promise.reject(error);
+        }
+      }
+    }
+    {
+      // toast.error(error.response.data.message);
+      return Promise.reject(error);
+    }
+  },
 );
 
 export default axiosInstance;
