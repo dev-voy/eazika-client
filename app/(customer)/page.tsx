@@ -12,7 +12,8 @@ import {
   Navigation,
 } from "lucide-react";
 import Image from "next/image";
-import { BannerCarousel } from "@/app/components/BannerCarousel";
+// import { BannerCarousel } from "@/app/components/BannerCarousel";
+import BannerCarousel from "@/components/banner";
 import { motion, Variants, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useWishlistStore } from "@/hooks/useWishlistStore";
